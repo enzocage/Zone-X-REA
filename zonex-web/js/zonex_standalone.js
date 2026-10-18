@@ -130,13 +130,19 @@ class MemoryState {
   initStaticRomTables() {
     const { charsets, meta_tiles, screens_data } = this.bundle;
 
-    const font = charsets.in_game;
-    for (let i = 0; i < font.length; i++) {
-      this.ram[0x706C + i] = font[i];
-      this.ram[0x1800 + i] = font[i];
+    const font1800 = charsets.in_game;
+    for (let i = 0; i < font1800.length; i++) {
+      this.ram[0x706C + i] = font1800[i];
+      this.ram[0x1800 + i] = font1800[i];
     }
-    this.ram[0x02F4] = 0x18;
-    this.ram[0xD409] = 0x18;
+
+    const font4000 = charsets.hud_4000 || charsets.in_game;
+    for (let i = 0; i < font4000.length; i++) {
+      this.ram[0x4000 + i] = font4000[i];
+    }
+
+    this.ram[0x02F4] = 0x40;
+    this.ram[0xD409] = 0x40;
 
     for (let t = 0; t < meta_tiles.length; t++) {
       const chars = meta_tiles[t].chars;
@@ -152,6 +158,10 @@ class MemoryState {
           this.ram[addr + i] = arr[i];
         }
       };
+      copyAt(0x3E7B, screens_data.dli_chbase_3e7b || [0x18, 0x40]);
+      copyAt(0x8000, screens_data.title_bitmap_8000);
+      copyAt(0x3D9F, screens_data.title_strings_3d9f);
+      copyAt(0x8E80, screens_data.hof_data_8e80);
       copyAt(0x3DB3, screens_data.title_text_3db3);
       copyAt(0x3E53, screens_data.hud_line1_3e53);
       copyAt(0x3E67, screens_data.hud_line2_3e67);
@@ -239,6 +249,10 @@ class MemoryState {
     this.ram[0x0578] = (curLms >> 8) & 0xFF;
   }
 
+  updateCameraLmsFromPlayer() {
+    this.updateCameraLmsPointers();
+  }
+
   get25LmsPointers() {
     const ptrs = [];
     for (let row = 0; row < 25; row++) {
@@ -298,7 +312,7 @@ class MemoryState {
     }
     const plut = this.ram[0x0598];
     for (let p = 0; p < plut && x + p < 20; p++) {
-      this.ram[0x0428 + x + p] = 0x85;
+      this.ram[0x0428 + x + p] = 0x83;
     }
   }
 }
@@ -345,6 +359,7 @@ class ZoneLoader {
     ram[0x0558] = gameZoneIdx;
     ram[0x0555] = zdata.internal_zone_idx !== undefined ? zdata.internal_zone_idx : gameZoneIdx;
     ram[0x0556] = diffIdx;
+    ram[0x055A] = MAP_WIDTH;
     ram[0x0598] = zdata.plutonium_count;
     ram[0x05B3] = zdata.container_count;
 
@@ -383,6 +398,7 @@ class ZoneLoader {
       ram[0x0414 + 6] = 0xD0 + (zNum % 10);
     } else {
       ram[0x0414 + 5] = 0xD0 + zNum;
+      ram[0x0414 + 6] = 0x00;
     }
     ram[0x0414 + 19] = 0xD3;
 
@@ -392,7 +408,7 @@ class ZoneLoader {
     ram[0x0400 + 18] = 0x50;
 
     for (let i = 0; i < Math.min(20, zdata.plutonium_count); i++) {
-      ram[0x0428 + i] = 0x85;
+      ram[0x0428 + i] = 0x83;
     }
 
     // 5. Player char coords ($4DCC: $0560 = (player_x + 1) * 2, $0561 = player_y * 2)
@@ -404,13 +420,15 @@ class ZoneLoader {
     ram[0xD404] = 0x06;
     ram[0xD405] = 0x06;
 
-    // 6. Display List Shadow Registers ($3C8B) & Charset ($1800)
+    // 6. Display List Shadow Registers ($3C8B), DLI ($64CD), & Charset ($4000 -> DLI switches to $1800)
     ram[0x0230] = 0x8B;
     ram[0x0231] = 0x3C;
     ram[0xD402] = 0x8B;
     ram[0xD403] = 0x3C;
-    ram[0x02F4] = 0x18;
-    ram[0xD409] = 0x18;
+    ram[0x0200] = 0xCD;
+    ram[0x0201] = 0x64;
+    ram[0x02F4] = 0x40;
+    ram[0xD409] = 0x40;
 
     // 7. Authentic per-zone GTIA color palette ($A2C4 + internal_zone_idx * 4)
     const cols = zdata.colors;
@@ -792,8 +810,9 @@ class RobotAI {
 // === engine/screens.js ===
 /**
  * zonex-web/js/engine/screens.js
- * Configures the 64KB RAM state for Title Screen ($3CE5), Feature Showcase ($939C),
- * and Hall of Fame ($3CE5) so AnticGtiaRenderer renders them bit-accurately.
+ * Configures the 64KB RAM state for Title Screen ($3CE5, DLI $6978),
+ * Features Showcase ($939C, DLI $9670), and Hall of Fame ($8F08)
+ * matching the 6502 setup routines ($5C55..$5CA1, $9325..$9351, $9072..$9195) 1:1.
  */
 
 class ScreenManager {
@@ -810,51 +829,102 @@ class ScreenManager {
     this.activeScreen = screenName;
 
     if (screenName === "title") {
+      // $6069..$60A5: SDLSTL/H = $3CE5, VDSLST = $6978, CHBAS = $40
       ram[0x0230] = 0xE5;
       ram[0x0231] = 0x3C;
       ram[0xD402] = 0xE5;
       ram[0xD403] = 0x3C;
-      ram[0x02F4] = 0x18;
-      ram[0xD409] = 0x18;
-      ram[0x02C4] = 0x28;
-      ram[0x02C5] = 0xCA;
-      ram[0x02C6] = 0x94;
-      ram[0x02C7] = 0x46;
+      ram[0x0200] = 0x78;
+      ram[0x0201] = 0x69;
+      ram[0x02F4] = 0x40;
+      ram[0xD409] = 0x40;
+
+      // Top colors ($606E..$607C): COLPF0=$B8, COLPF1=$B4, COLPF2=$0E, COLPF3=$D8, COLBK=$00
+      ram[0x02C4] = 0xB8;
+      ram[0x02C5] = 0xB4;
+      ram[0x02C6] = 0x0E;
+      ram[0x02C7] = 0xD8;
       ram[0x02C8] = 0x00;
       for (let i = 0; i < 5; i++) ram[0xD016 + i] = ram[0x02C4 + i];
-      const titleText = this.bundle.screens_data.title_text_3db3;
-      for (let i = 0; i < titleText.length; i++) {
-        ram[0x0400 + i] = titleText[i];
+
+      // $5C55..$5CA1: Populate menu text buffers in $0414..$04B3
+      for (let y = 0; y < 0x28; y++) {
+        ram[0x0464 + y] = ram[0x3E03 + y];
+        ram[0x0400 + y] = 0x00;
+      }
+      for (let y = 0; y < 0x14; y++) {
+        ram[0x043C + y] = (ram[0x3DB3 + y] + 0x60) & 0xFF;
+        ram[0x0450 + y] = (ram[0x3DC7 + y] + 0x60) & 0xFF;
+      }
+      for (let y = 0; y < 0x28; y++) {
+        ram[0x0414 + y] = (ram[0x3DDB + y] + 0xA0) & 0xFF;
+        ram[0x048C + y] = (ram[0x3E2B + y] + 0x20) & 0xFF;
       }
     } else if (screenName === "features") {
+      // $9325..$9351: SDLSTL/H = $939C, VDSLST = $9670, CHBAS = $40
       ram[0x0230] = 0x9C;
       ram[0x0231] = 0x93;
       ram[0xD402] = 0x9C;
       ram[0xD403] = 0x93;
-      ram[0x02F4] = 0x18;
-      ram[0xD409] = 0x18;
+      ram[0x0200] = 0x70;
+      ram[0x0201] = 0x96;
+      ram[0x02F4] = 0x40;
+      ram[0xD409] = 0x40;
+
+      // Colors ($9347..$9351 from $9378..$937B): COLPF0=$44, COLPF1=$4A, COLPF2=$00, COLPF3=$C8, COLBK=$00
       ram[0x02C4] = 0x44;
       ram[0x02C5] = 0x4A;
-      ram[0x02C6] = 0x86;
+      ram[0x02C6] = 0x00;
       ram[0x02C7] = 0xC8;
       ram[0x02C8] = 0x00;
       for (let i = 0; i < 5; i++) ram[0xD016 + i] = ram[0x02C4 + i];
     } else if (screenName === "halloffame") {
-      ram[0x0230] = 0xE5;
-      ram[0x0231] = 0x3C;
-      ram[0xD402] = 0xE5;
-      ram[0xD403] = 0x3C;
-      ram[0x02F4] = 0x18;
-      ram[0xD409] = 0x18;
-      ram[0x02C4] = 0x86;
-      ram[0x02C5] = 0xEC;
-      ram[0x02C6] = 0x44;
-      ram[0x02C7] = 0xC8;
+      // $8F7C..$8F94 & $9072..$9195: SDLSTL/H = $8F08, CHBAS = $40
+      ram[0x0230] = 0x08;
+      ram[0x0231] = 0x8F;
+      ram[0xD402] = 0x08;
+      ram[0xD403] = 0x8F;
+      ram[0x02F4] = 0x40;
+      ram[0xD409] = 0x40;
+
+      ram[0x02C4] = 0x44;
+      ram[0x02C5] = 0x4A;
+      ram[0x02C6] = 0x86;
+      ram[0x02C7] = 0xC6;
       ram[0x02C8] = 0x00;
       for (let i = 0; i < 5; i++) ram[0xD016 + i] = ram[0x02C4 + i];
+
+      // $9072..$9129: Build 12 Hall of Fame rows (20 bytes each) at $0B00..$0BEF
+      for (let x = 0; x < 12; x++) {
+        const rowBase = 0x0B00 + x * 20;
+        for (let c = 0; c < 20; c++) ram[rowBase + c] = 0x00;
+        ram[rowBase + 0] = 0x0B;
+        ram[rowBase + 19] = 0x0C;
+        ram[rowBase + 1] = (ram[0x8EE5 + x * 2] + 0x20) & 0xFF;
+        ram[rowBase + 2] = (ram[0x8EE5 + x * 2 + 1] + 0x20) & 0xFF;
+        ram[rowBase + 3] = 0x00;
+        for (let y = 0; y < 8; y++) {
+          ram[rowBase + 4 + y] = ram[0x8EFD + y];
+        }
+        ram[rowBase + 15] = 0xD1;
+        ram[rowBase + 16] = 0xD0;
+        ram[rowBase + 17] = 0xD0;
+        ram[rowBase + 18] = 0xD0;
+      }
+
+      // $912A..$9182: Header ($043C = "   |HALL OF FAME|   ") & Footer ($0450 = "|LAST SCORE       0|")
+      for (let x = 0; x < 20; x++) {
+        ram[0x043C + x] = (ram[0x3D9F + x] + 0x20) & 0xFF;
+        ram[0x0450 + x] = (ram[0x8ED1 + x] + 0x20) & 0xFF;
+      }
+      ram[0x043F] = 0x0B;
+      ram[0x044C] = 0x0C;
+      ram[0x0450] = 0x0B;
+      ram[0x0450 + 18] = 0xD0;
+      ram[0x0463] = 0x0C;
     } else {
       this.activeScreen = "ingame";
-      this.zoneLoader.loadZone(1, 3);
+      this.zoneLoader.loadZone(1, 1);
     }
   }
 }
@@ -863,7 +933,8 @@ class ScreenManager {
 /**
  * zonex-web/js/hardware/antic_gtia.js
  * Cycle-exact ANTIC Display List & GTIA PAL Renderer (336x240) + Full 62x32 Zone Overview Renderer (992x512).
- * Implements ANTIC Mode 4 (with Bit 7 COLPF3 selector), Mode 6, Mode 2,
+ * Implements ANTIC Mode 4 (with Bit 7 COLPF3 selector), Mode 6, Mode 7, Mode 14 ($0E), Mode 2,
+ * DLI handlers ($64CD In-Game, $9670 Features Showcase, $6978 Title Screen),
  * 24x $74 + 1x $54 LMS rows, and Player/Missile Graphics (P0 + P1).
  */
 
@@ -880,6 +951,7 @@ class AnticGtiaRenderer {
     this.isLockstep = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lockstep") === "1";
 
     this.fullMapCanvas = document.getElementById("full-map-canvas");
+    this.fullMapPanel = document.querySelector(".full-map-panel");
     if (this.fullMapCanvas) {
       this.fullMapCtx = this.fullMapCanvas.getContext("2d");
       this.fullMapImageData = this.fullMapCtx.createImageData(992, 512);
@@ -922,15 +994,36 @@ class AnticGtiaRenderer {
     }
 
     const dlAddr = ram[0x0230] | (ram[0x0231] << 8);
-    const chbase = (ram[0x02F4] << 8) & 0xFFFF;
+    let chbase = (ram[0x02F4] << 8) & 0xFFFF;
+    let dliIndex = 0;
     const xOffset = 8;
+
+    const applyDli = () => {
+      if (dlAddr === 0x3C8B) {
+        // In-Game DLI ($64CD): switches CHBASE via $3E7B,X ($18, $40)
+        chbase = (ram[0x3E7B + (dliIndex & 1)] << 8) & 0xFFFF;
+        dliIndex++;
+      } else if (dlAddr === 0x939C) {
+        // Features Showcase DLI ($9670): switches CHBASE via $3E7B,X ($18, $40) and COLPF2 ($86, $00)
+        chbase = (ram[0x3E7B + (dliIndex & 1)] << 8) & 0xFFFF;
+        regs.COLPF2 = (dliIndex & 1) ? 0x00 : 0x86;
+        dliIndex++;
+      } else if (dlAddr === 0x3CE5) {
+        // Title Screen DLI ($6978): switches COLPF0..3 to [$B8, $88, $A8, $D8]
+        regs.COLPF0 = 0xB8;
+        regs.COLPF1 = 0x88;
+        regs.COLPF2 = 0xA8;
+        regs.COLPF3 = 0xD8;
+        dliIndex++;
+      }
+    };
 
     let scanlineY = 8;
     let pc = dlAddr;
     let curLms = 0;
     let steps = 0;
 
-    while (scanlineY < this.height - 8 && steps < 256) {
+    while (scanlineY < this.height && steps < 256) {
       steps++;
       const ir = ram[pc & 0xFFFF];
       pc = (pc + 1) & 0xFFFF;
@@ -941,10 +1034,12 @@ class AnticGtiaRenderer {
 
       const mode = ir & 0x0F;
       const hasLms = (ir & 0x40) !== 0;
+      const hasDli = (ir & 0x80) !== 0;
 
       if (mode === 0) {
         const blankLines = ((ir >> 4) & 0x07) + 1;
         scanlineY += blankLines;
+        if (hasDli) applyDli();
         continue;
       }
 
@@ -999,6 +1094,43 @@ class AnticGtiaRenderer {
           scanlineY++;
         }
         curLms = (curLms + 20) & 0xFFFF;
+      } else if (mode === 7) {
+        // ANTIC Mode 7 (20 chars x 16 scanlines, double-height 4-color text)
+        const mode7Colors = [regs.COLPF0, regs.COLPF1, regs.COLPF2, regs.COLPF3];
+        for (let s = 0; s < 16; s++) {
+          if (scanlineY >= this.height) break;
+          const glyphRow = s >> 1;
+          for (let chCol = 0; chCol < 20; chCol++) {
+            const charCode = ram[(curLms + chCol) & 0xFFFF];
+            const charIndex = charCode & 0x3F;
+            const colorSel = (charCode >> 6) & 0x03;
+            const fgRgb = this.palPalette[mode7Colors[colorSel]];
+            const glyphByte = ram[(chbase + (charIndex << 3) + glyphRow) & 0xFFFF];
+            const baseX = xOffset + (chCol << 4);
+            for (let b = 0; b < 8; b++) {
+              const bit = (glyphByte >> (7 - b)) & 1;
+              this.drawDoublePixel(buf, scanlineY, baseX + (b << 1), bit ? fgRgb : bgRgb);
+            }
+          }
+          scanlineY++;
+        }
+        curLms = (curLms + 20) & 0xFFFF;
+      } else if (mode === 14) {
+        // ANTIC Mode 14 ($0E): 160x192 4-color bitmap (40 bytes per scanline, 1 scanline tall)
+        if (scanlineY < this.height) {
+          const mode14Colors = [regs.COLBK, regs.COLPF0, regs.COLPF1, regs.COLPF2];
+          for (let byteCol = 0; byteCol < 40; byteCol++) {
+            const bval = ram[(curLms + byteCol) & 0xFFFF];
+            const baseX = xOffset + (byteCol << 3);
+            for (let px = 0; px < 4; px++) {
+              const bp = (bval >> (6 - (px << 1))) & 0x03;
+              const rgb = this.palPalette[mode14Colors[bp]];
+              this.drawDoublePixel(buf, scanlineY, baseX + (px << 1), rgb);
+            }
+          }
+        }
+        scanlineY++;
+        curLms = (curLms + 40) & 0xFFFF;
       } else if (mode === 2) {
         // ANTIC Mode 2 (40 chars x 8 scanlines, high-res text)
         const fgRgb = this.palPalette[regs.COLPF1];
@@ -1022,6 +1154,14 @@ class AnticGtiaRenderer {
       } else {
         scanlineY += 8;
       }
+
+      if (hasDli) {
+        applyDli();
+      }
+    }
+
+    if (this.fullMapPanel) {
+      this.fullMapPanel.style.display = dlAddr === 0x3C8B ? "" : "none";
     }
 
     // Player Sprite Overlay (P0 + P1) when In-Game Display List ($3C8B) is active
@@ -1054,7 +1194,7 @@ class AnticGtiaRenderer {
       }
 
       if (this.fullMapCtx && !this.isLockstep) {
-        this.renderFullZoneMap(regs, chbase);
+        this.renderFullZoneMap(regs, 0x1800);
       }
     }
 
@@ -1071,11 +1211,10 @@ class AnticGtiaRenderer {
       COLPF3: ram[0x02C7],
       COLBK: ram[0x02C8],
     };
-    const chbase = (ram[0x02F4] << 8) & 0xFFFF;
-    this.renderFullZoneMap(regs, chbase);
+    this.renderFullZoneMap(regs, 0x1800);
   }
 
-  renderFullZoneMap(regs, chbase) {
+  renderFullZoneMap(regs, chbase = 0x1800) {
     const ram = this.memory.ram;
     const fbuf = this.fullMapImageData.data;
     const mapWidthPx = 992; // 62 tiles * 16 px = 124 chars * 8 px
@@ -1086,7 +1225,6 @@ class AnticGtiaRenderer {
         const py = chRow * 8 + s;
         const rowPixelOffset = py * mapWidthPx;
         for (let chCol = 0; chCol < 124; chCol++) {
-          // Tiles tx=0..61 reside at screen character columns 2..125
           const charCode = ram[(rowBaseAddr + chCol + 2) & 0xFFFF];
           const charIndex = charCode & 0x7F;
           const usePF3 = (charCode & 0x80) !== 0;
@@ -1120,7 +1258,6 @@ class AnticGtiaRenderer {
 
     this.fullMapCtx.putImageData(this.fullMapImageData, 0, 0);
 
-    // Highlight current 40x25 CRT viewport and Player Tile (I) on the 62x32 map
     const pxChar = ram[0x0560];
     const pyChar = ram[0x0561];
     const camX = pxChar < 0x16 ? 0 : Math.min(0x54, pxChar - 0x14);

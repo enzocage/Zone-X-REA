@@ -44,13 +44,19 @@ export class MemoryState {
   initStaticRomTables() {
     const { charsets, meta_tiles, screens_data } = this.bundle;
 
-    const font = charsets.in_game;
-    for (let i = 0; i < font.length; i++) {
-      this.ram[0x706C + i] = font[i];
-      this.ram[0x1800 + i] = font[i];
+    const font1800 = charsets.in_game;
+    for (let i = 0; i < font1800.length; i++) {
+      this.ram[0x706C + i] = font1800[i];
+      this.ram[0x1800 + i] = font1800[i];
     }
-    this.ram[0x02F4] = 0x18;
-    this.ram[0xD409] = 0x18;
+
+    const font4000 = charsets.hud_4000 || charsets.in_game;
+    for (let i = 0; i < font4000.length; i++) {
+      this.ram[0x4000 + i] = font4000[i];
+    }
+
+    this.ram[0x02F4] = 0x40;
+    this.ram[0xD409] = 0x40;
 
     for (let t = 0; t < meta_tiles.length; t++) {
       const chars = meta_tiles[t].chars;
@@ -66,6 +72,10 @@ export class MemoryState {
           this.ram[addr + i] = arr[i];
         }
       };
+      copyAt(0x3E7B, screens_data.dli_chbase_3e7b || [0x18, 0x40]);
+      copyAt(0x8000, screens_data.title_bitmap_8000);
+      copyAt(0x3D9F, screens_data.title_strings_3d9f);
+      copyAt(0x8E80, screens_data.hof_data_8e80);
       copyAt(0x3DB3, screens_data.title_text_3db3);
       copyAt(0x3E53, screens_data.hud_line1_3e53);
       copyAt(0x3E67, screens_data.hud_line2_3e67);
@@ -153,6 +163,10 @@ export class MemoryState {
     this.ram[0x0578] = (curLms >> 8) & 0xFF;
   }
 
+  updateCameraLmsFromPlayer() {
+    this.updateCameraLmsPointers();
+  }
+
   get25LmsPointers() {
     const ptrs = [];
     for (let row = 0; row < 25; row++) {
@@ -212,7 +226,7 @@ export class MemoryState {
     }
     const plut = this.ram[0x0598];
     for (let p = 0; p < plut && x + p < 20; p++) {
-      this.ram[0x0428 + x + p] = 0x85;
+      this.ram[0x0428 + x + p] = 0x83;
     }
   }
 }

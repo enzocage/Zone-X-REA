@@ -3,8 +3,8 @@
 """
 scripts/01_fast_dump.py
 Bootet ZoneX_unprotected.atr im Headless-Turbo-Modus (15.000 FPS),
-dumpt den Titel-Screen, den Feature-Screen ($939C), die Hall of Fame sowie
-alle 12 Zonen (ZONE 1 bis ZONE 12) als 64KB RAM-Snapshots und verlustfreie Referenz-PNGs.
+dumpt den Titel-Screen ($3CE5), den Feature-Screen ($939C), die Hall of Fame ($8F08) sowie
+alle 12 Zonen (ZONE 1 bis ZONE 12, $3C8B) als 64KB RAM-Snapshots und verlustfreie Referenz-PNGs.
 """
 
 import hashlib
@@ -110,6 +110,32 @@ def validate_all_zone_dumps(zone_dir: Path):
     return report
 
 
+def init_charsets_1800_and_4000(ram: bytearray):
+    """
+    Executes $6032..$6053 (copy $706C..$746B -> $1800..$1BFF),
+    $658F..$65B6 (init Laser Doors glyphs $1900..$193F from $6C12..$6C81),
+    and $6942..$6977 (init Plutonium $1880..$189F & Container $1980..$199F from $6CA2/$6CE2).
+    """
+    for i in range(1024):
+        ram[0x1800 + i] = ram[0x706C + i]
+
+    # $658F..$65B6: Laser door character frames into $1900..$193F
+    for x in range(8):
+        ram[0x1910 + x] = ram[0x6C12 + x]
+        ram[0x1930 + x] = ram[0x6C12 + x]
+        ram[0x1918 + x] = ram[0x6C4A + x]
+        ram[0x1938 + x] = ram[0x6C4A + x]
+        ram[0x1900 + x] = ram[0x6C42 + x]
+        ram[0x1920 + x] = ram[0x6C42 + x]
+        ram[0x1908 + x] = ram[0x6C7A + x]
+        ram[0x1928 + x] = ram[0x6C7A + x]
+
+    # $6942..$6967: Plutonium ($1880..$189F) and Container ($1980..$199F) active glyphs
+    for x in range(32):
+        ram[0x1880 + x] = ram[0x6CA2 + x]
+        ram[0x1980 + x] = ram[0x6CE2 + x]
+
+
 def expand_playfield_and_lms(ram: bytearray, zdata: dict):
     """
     1:1 Portierung der 6502-Routinen $428E..$435E, $4DCC..$4E36 & $4462..$44DC:
@@ -119,7 +145,6 @@ def expand_playfield_and_lms(ram: bytearray, zdata: dict):
     - Berechnet $0560 = (player_x + 1) * 2 und $0561 = player_y * 2 ($4DCC)
       und schreibt alle 25 LMS-Zeiger in die Display List ab $3C94 ($4462).
     """
-    # Store R (Tile 26) and r (Tile 27) character quads at $6D42 + 26*4 and 27*4 ($5575/$557C)
     ram[0x6D42 + 26 * 4 : 0x6D42 + 27 * 4] = bytes([0xC8, 0xC9, 0xCA, 0xCB])
     ram[0x6D42 + 27 * 4 : 0x6D42 + 28 * 4] = bytes([0x4C, 0x4D, 0x4E, 0x4F])
 
@@ -145,13 +170,11 @@ def expand_playfield_and_lms(ram: bytearray, zdata: dict):
             ram[row1_base + col_char] = c2
             ram[row1_base + col_char + 1] = c3
 
-    # $4DCC..$4E36: Player char coords ($0560 = (player_x + 1) * 2, $0561 = player_y * 2)
     px_char = ((zdata["player_start"]["x"] + 1) * 2) & 0xFF
     py_char = (zdata["player_start"]["y"] * 2) & 0xFF
     ram[0x0560] = px_char
     ram[0x0561] = py_char
 
-    # $4462..$44DC: Camera base address calculation
     cam_addr = 0x1C00
     if py_char >= 0x0C:
         row_scroll = py_char - 0x0A
@@ -182,6 +205,7 @@ def expand_playfield_and_lms(ram: bytearray, zdata: dict):
 def build_zone_ram(ram_relocated: bytes, game_zone_idx: int) -> bytearray:
     """Baut das bitgenaue 64KB RAM-Abbild für Game Zone (0..11 = Zone 1..12, Option Level 1) auf."""
     ram = bytearray(ram_relocated)
+    init_charsets_1800_and_4000(ram)
 
     # 1. Unpack 62x32 zone data into $0B00..$12BF
     zdata = unpack_zone(ram_relocated, game_zone_idx, difficulty=0)
@@ -193,6 +217,7 @@ def build_zone_ram(ram_relocated: bytes, game_zone_idx: int) -> bytearray:
     ram[0x0558] = game_zone_idx
     ram[0x0555] = zdata["internal_zone_idx"]
     ram[0x0556] = 0  # Option Level 1 (difficulty 0)
+    ram[0x055A] = MAP_WIDTH
     ram[0x0598] = zdata["plutonium_count"]
     ram[0x05B3] = zdata["container_count"]
     ram[0x055B] = zdata["player_start"]["offset"] & 0xFF
@@ -220,6 +245,7 @@ def build_zone_ram(ram_relocated: bytes, game_zone_idx: int) -> bytearray:
         ram[0x0414 + 6] = 0xD0 + (z_num % 10)
     else:
         ram[0x0414 + 5] = 0xD0 + z_num
+        ram[0x0414 + 6] = 0x00
     ram[0x0414 + 19] = 0xD3
 
     ram[0x0400 + 5] = 0x50
@@ -228,24 +254,22 @@ def build_zone_ram(ram_relocated: bytes, game_zone_idx: int) -> bytearray:
     ram[0x0400 + 18] = 0x50
 
     for i in range(min(20, zdata["plutonium_count"])):
-        ram[0x0428 + i] = 0x85
+        ram[0x0428 + i] = 0x83
 
     # 4. Expand 62x32 playfield to $1C00..$3BFF and set 25 LMS pointers at $3C94
     expand_playfield_and_lms(ram, zdata)
 
-    # 5. Setup Display List Shadow Registers ($3C8B)
+    # 5. Setup Display List ($3C8B) & DLI ($64CD) & CHBAS ($40 -> DLI switches to $18 for Mode 4)
     ram[0x0230] = 0x8B
     ram[0x0231] = 0x3C
     ram[0xD402] = 0x8B
     ram[0xD403] = 0x3C
+    ram[0x0200] = 0xCD
+    ram[0x0201] = 0x64
+    ram[0x02F4] = 0x40
+    ram[0xD409] = 0x40
 
-    # 6. Copy Charset to $1800 (from $706C)
-    for i in range(1024):
-        ram[0x1800 + i] = ram[0x706C + i]
-    ram[0x02F4] = 0x18
-    ram[0xD409] = 0x18
-
-    # 7. Set authentic per-zone colors from $A2C4 + internal_zone_idx * 4 ($62E9..$62FC)
+    # 6. Set authentic per-zone colors from $A2C4 + internal_zone_idx * 4 ($62E9..$62FC)
     cols = zdata["colors"]
     for i in range(4):
         ram[0x02C4 + i] = cols[i]
@@ -261,64 +285,133 @@ def build_zone_ram(ram_relocated: bytes, game_zone_idx: int) -> bytearray:
 
 
 def build_title_ram(ram_relocated: bytes) -> bytearray:
+    """
+    1:1 Port of Title / Menu Screen Init ($6069..$60A5, $5C55..$5D1E, DLI $6978):
+    - Display List: $3CE5 (92 rows of ANTIC Mode 14 bitmap at $8000, DLI at $3D43, then Mode 6/7 text)
+    - CHBAS: $40 ($4000 custom font)
+    - Top colors ($606E..$607C): COLPF0=$B8, COLPF1=$B4, COLPF2=$0E, COLPF3=$00, COLBK=$00
+    - DLI at $6978 switches COLPF0..3 to [$B8, $88, $A8, $D8] for the lower menu text.
+    """
     ram = bytearray(ram_relocated)
+    init_charsets_1800_and_4000(ram)
+
     ram[0x0230] = 0xE5
     ram[0x0231] = 0x3C
     ram[0xD402] = 0xE5
     ram[0xD403] = 0x3C
-    for i in range(1024):
-        ram[0x1800 + i] = ram[0x706C + i]
-    ram[0x02F4] = 0x18
-    ram[0xD409] = 0x18
-    ram[0x02C4] = 0x28
-    ram[0x02C5] = 0xCA
-    ram[0x02C6] = 0x94
-    ram[0x02C7] = 0x46
+    ram[0x0200] = 0x78
+    ram[0x0201] = 0x69
+    ram[0x02F4] = 0x40
+    ram[0xD409] = 0x40
+
+    ram[0x02C4] = 0xB8
+    ram[0x02C5] = 0xB4
+    ram[0x02C6] = 0x0E
+    ram[0x02C7] = 0xD8
     ram[0x02C8] = 0x00
     for i in range(5):
         ram[0xD016 + i] = ram[0x02C4 + i]
-    for i in range(160):
-        ram[0x0400 + i] = ram[0x3DB3 + i]
+
+    # $5C55..$5CA1: Populate menu text buffers in $0414..$04B3
+    for y in range(0x28):
+        ram[0x0464 + y] = ram[0x3E03 + y]
+        ram[0x0400 + y] = 0x00
+    for y in range(0x14):
+        ram[0x043C + y] = (ram[0x3DB3 + y] + 0x60) & 0xFF
+        ram[0x0450 + y] = (ram[0x3DC7 + y] + 0x60) & 0xFF
+    for y in range(0x28):
+        ram[0x0414 + y] = (ram[0x3DDB + y] + 0xA0) & 0xFF
+        ram[0x048C + y] = (ram[0x3E2B + y] + 0x20) & 0xFF
+
     return ram
 
 
 def build_features_ram(ram_relocated: bytes) -> bytearray:
+    """
+    1:1 Port of Features Showcase Screen Init ($9325..$9351, DLI $9670):
+    - Display List: $939C
+    - VDSLST: $9670 (DLI 0 at $93B0 sets CHBASE=$18 & COLPF2=$86; DLI 1 at $93CF sets CHBASE=$40 & COLPF2=$00)
+    - CHBAS: $40 ($4000 custom font)
+    - Colors ($9347..$9351 from $9378..$937B): COLPF0=$44, COLPF1=$4A, COLPF2=$00, COLPF3=$C8, COLBK=$00
+    """
     ram = bytearray(ram_relocated)
+    init_charsets_1800_and_4000(ram)
+
     ram[0x0230] = 0x9C
     ram[0x0231] = 0x93
     ram[0xD402] = 0x9C
     ram[0xD403] = 0x93
-    for i in range(1024):
-        ram[0x1800 + i] = ram[0x706C + i]
-    ram[0x02F4] = 0x18
-    ram[0xD409] = 0x18
+    ram[0x0200] = 0x70
+    ram[0x0201] = 0x96
+    ram[0x02F4] = 0x40
+    ram[0xD409] = 0x40
+
     ram[0x02C4] = 0x44
     ram[0x02C5] = 0x4A
-    ram[0x02C6] = 0x86
+    ram[0x02C6] = 0x00
     ram[0x02C7] = 0xC8
     ram[0x02C8] = 0x00
     for i in range(5):
         ram[0xD016 + i] = ram[0x02C4 + i]
+
     return ram
 
 
 def build_halloffame_ram(ram_relocated: bytes) -> bytearray:
+    """
+    1:1 Port of Hall of Fame Screen Init ($8F36..$8F94, $9072..$9195):
+    - Display List: $8F08
+    - CHBAS: $40 ($4000 custom font)
+    - Colors ($8F81..$8F94): COLPF0=$44, COLPF1=$4A, COLPF2=$86, COLPF3=$C6, COLBK=$00
+    - Populates 12 zone high-score rows at $0B00..$0BEF, header at $043C..$044F, and footer at $0450..$0463.
+    """
     ram = bytearray(ram_relocated)
-    ram[0x0230] = 0xE5
-    ram[0x0231] = 0x3C
-    ram[0xD402] = 0xE5
-    ram[0xD403] = 0x3C
-    for i in range(1024):
-        ram[0x1800 + i] = ram[0x706C + i]
-    ram[0x02F4] = 0x18
-    ram[0xD409] = 0x18
-    ram[0x02C4] = 0x86
-    ram[0x02C5] = 0xEC
-    ram[0x02C6] = 0x44
-    ram[0x02C7] = 0xC8
+    init_charsets_1800_and_4000(ram)
+
+    ram[0x0230] = 0x08
+    ram[0x0231] = 0x8F
+    ram[0xD402] = 0x08
+    ram[0xD403] = 0x8F
+    ram[0x02F4] = 0x40
+    ram[0xD409] = 0x40
+
+    ram[0x02C4] = 0x44
+    ram[0x02C5] = 0x4A
+    ram[0x02C6] = 0x86
+    ram[0x02C7] = 0xC6
     ram[0x02C8] = 0x00
     for i in range(5):
         ram[0xD016 + i] = ram[0x02C4 + i]
+
+    # $9072..$9129: Build 12 Hall of Fame rows (20 bytes each) at $0B00..$0BEF
+    for x in range(12):
+        row_base = 0x0B00 + x * 20
+        for c in range(20):
+            ram[row_base + c] = 0x00
+        ram[row_base + 0] = 0x0B  # Left vertical double bar ($926A)
+        ram[row_base + 19] = 0x0C # Right vertical double bar ($9270)
+        ram[row_base + 1] = (ram[0x8EE5 + x * 2] + 0x20) & 0xFF
+        ram[row_base + 2] = (ram[0x8EE5 + x * 2 + 1] + 0x20) & 0xFF
+        ram[row_base + 3] = 0x00
+        # 8-char default name from $8EFD ("DRJ     ")
+        for y in range(8):
+            ram[row_base + 4 + y] = ram[0x8EFD + y]
+        # Default score from $8F05 (BCD 00 10 00 -> "  1000")
+        ram[row_base + 15] = 0xD1
+        ram[row_base + 16] = 0xD0
+        ram[row_base + 17] = 0xD0
+        ram[row_base + 18] = 0xD0
+
+    # $912A..$9182: Header ($043C = "   |HALL OF FAME|   ") and Footer ($0450 = "|LAST SCORE       0|")
+    for x in range(20):
+        ram[0x043C + x] = (ram[0x3D9F + x] + 0x20) & 0xFF
+        ram[0x0450 + x] = (ram[0x8ED1 + x] + 0x20) & 0xFF
+    ram[0x043F] = 0x0B
+    ram[0x044C] = 0x0C
+    ram[0x0450] = 0x0B
+    ram[0x0450 + 18] = 0xD0
+    ram[0x0463] = 0x0C
+
     return ram
 
 
@@ -338,6 +431,7 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
 
     dl_addr = ram[0x0230] | (ram[0x0231] << 8)
     chbase = (ram[0x02F4] << 8) & 0xFFFF
+    dli_index = 0
 
     scanline_y = 8
     pc = dl_addr
@@ -351,8 +445,27 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
             fb[idx + 1] = rgb[1]
             fb[idx + 2] = rgb[2]
 
+    def apply_dli():
+        nonlocal chbase, colpf0, colpf1, colpf2, colpf3, dli_index
+        if dl_addr == 0x3C8B:
+            # In-Game DLI ($64CD): switches CHBASE via $3E7B,X ($18, $40)
+            chbase = (ram[0x3E7B + (dli_index & 1)] << 8) & 0xFFFF
+            dli_index += 1
+        elif dl_addr == 0x939C:
+            # Features Showcase DLI ($9670): switches CHBASE via $3E7B,X ($18, $40) and COLPF2 ($86, $00)
+            chbase = (ram[0x3E7B + (dli_index & 1)] << 8) & 0xFFFF
+            colpf2 = 0x00 if (dli_index & 1) else 0x86
+            dli_index += 1
+        elif dl_addr == 0x3CE5:
+            # Title Screen DLI ($6978): switches COLPF0..3 to [$B8, $88, $A8, $D8]
+            colpf0 = 0xB8
+            colpf1 = 0x88
+            colpf2 = 0xA8
+            colpf3 = 0xD8
+            dli_index += 1
+
     steps = 0
-    while scanline_y < height - 8 and steps < 256:
+    while scanline_y < height and steps < 256:
         steps += 1
         ir = ram[pc & 0xFFFF]
         pc = (pc + 1) & 0xFFFF
@@ -362,10 +475,13 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
 
         mode = ir & 0x0F
         has_lms = (ir & 0x40) != 0
+        has_dli = (ir & 0x80) != 0
 
         if mode == 0:
             blank_lines = ((ir >> 4) & 0x07) + 1
             scanline_y += blank_lines
+            if has_dli:
+                apply_dli()
             continue
 
         if has_lms:
@@ -421,6 +537,44 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
                 scanline_y += 1
             cur_lms = (cur_lms + 20) & 0xFFFF
 
+        elif mode == 7:
+            # ANTIC Mode 7: 20 chars x 16 scanlines (double-height 4-color text)
+            for s in range(16):
+                if scanline_y >= height:
+                    break
+                glyph_row = s >> 1
+                for ch_col in range(20):
+                    char_code = ram[(cur_lms + ch_col) & 0xFFFF]
+                    char_idx = char_code & 0x3F
+                    color_sel = (char_code >> 6) & 0x03
+                    creg = [colpf0, colpf1, colpf2, colpf3][color_sel]
+                    fg_rgb = PAL_PALETTE[creg]
+                    bg_c = PAL_PALETTE[colbk]
+                    glyph = ram[(chbase + (char_idx << 3) + glyph_row) & 0xFFFF]
+                    base_x = x_offset + (ch_col << 4)
+                    for b in range(8):
+                        bit = (glyph >> (7 - b)) & 1
+                        rgb = fg_rgb if bit else bg_c
+                        put_px(base_x + (b << 1), scanline_y, rgb)
+                        put_px(base_x + (b << 1) + 1, scanline_y, rgb)
+                scanline_y += 1
+            cur_lms = (cur_lms + 20) & 0xFFFF
+
+        elif mode == 14:
+            # ANTIC Mode 14 ($0E): 160x192 4-color bitmap (40 bytes per scanline, 1 scanline tall)
+            if scanline_y < height:
+                for byte_col in range(40):
+                    bval = ram[(cur_lms + byte_col) & 0xFFFF]
+                    base_x = x_offset + (byte_col << 3)
+                    for px in range(4):
+                        bp = (bval >> (6 - (px << 1))) & 0x03
+                        creg = [colbk, colpf0, colpf1, colpf2][bp]
+                        rgb = PAL_PALETTE[creg]
+                        put_px(base_x + (px << 1), scanline_y, rgb)
+                        put_px(base_x + (px << 1) + 1, scanline_y, rgb)
+            scanline_y += 1
+            cur_lms = (cur_lms + 40) & 0xFFFF
+
         elif mode == 2:
             for s in range(8):
                 if scanline_y >= height:
@@ -440,6 +594,9 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
             cur_lms = (cur_lms + 40) & 0xFFFF
         else:
             scanline_y += 8
+
+        if has_dli:
+            apply_dli()
 
     if dl_addr == 0x3C8B:
         p0_col = PAL_PALETTE[ram[0x02C0]]

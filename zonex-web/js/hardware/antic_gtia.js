@@ -1,7 +1,8 @@
 /**
  * zonex-web/js/hardware/antic_gtia.js
  * Cycle-exact ANTIC Display List & GTIA PAL Renderer (336x240) + Full 62x32 Zone Overview Renderer (992x512).
- * Implements ANTIC Mode 4 (with Bit 7 COLPF3 selector), Mode 6, Mode 2,
+ * Implements ANTIC Mode 4 (with Bit 7 COLPF3 selector), Mode 6, Mode 7, Mode 14 ($0E), Mode 2,
+ * DLI handlers ($64CD In-Game, $9670 Features Showcase, $6978 Title Screen),
  * 24x $74 + 1x $54 LMS rows, and Player/Missile Graphics (P0 + P1).
  */
 
@@ -18,6 +19,7 @@ export class AnticGtiaRenderer {
     this.isLockstep = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lockstep") === "1";
 
     this.fullMapCanvas = document.getElementById("full-map-canvas");
+    this.fullMapPanel = document.querySelector(".full-map-panel");
     if (this.fullMapCanvas) {
       this.fullMapCtx = this.fullMapCanvas.getContext("2d");
       this.fullMapImageData = this.fullMapCtx.createImageData(992, 512);
@@ -60,15 +62,36 @@ export class AnticGtiaRenderer {
     }
 
     const dlAddr = ram[0x0230] | (ram[0x0231] << 8);
-    const chbase = (ram[0x02F4] << 8) & 0xFFFF;
+    let chbase = (ram[0x02F4] << 8) & 0xFFFF;
+    let dliIndex = 0;
     const xOffset = 8;
+
+    const applyDli = () => {
+      if (dlAddr === 0x3C8B) {
+        // In-Game DLI ($64CD): switches CHBASE via $3E7B,X ($18, $40)
+        chbase = (ram[0x3E7B + (dliIndex & 1)] << 8) & 0xFFFF;
+        dliIndex++;
+      } else if (dlAddr === 0x939C) {
+        // Features Showcase DLI ($9670): switches CHBASE via $3E7B,X ($18, $40) and COLPF2 ($86, $00)
+        chbase = (ram[0x3E7B + (dliIndex & 1)] << 8) & 0xFFFF;
+        regs.COLPF2 = (dliIndex & 1) ? 0x00 : 0x86;
+        dliIndex++;
+      } else if (dlAddr === 0x3CE5) {
+        // Title Screen DLI ($6978): switches COLPF0..3 to [$B8, $88, $A8, $D8]
+        regs.COLPF0 = 0xB8;
+        regs.COLPF1 = 0x88;
+        regs.COLPF2 = 0xA8;
+        regs.COLPF3 = 0xD8;
+        dliIndex++;
+      }
+    };
 
     let scanlineY = 8;
     let pc = dlAddr;
     let curLms = 0;
     let steps = 0;
 
-    while (scanlineY < this.height - 8 && steps < 256) {
+    while (scanlineY < this.height && steps < 256) {
       steps++;
       const ir = ram[pc & 0xFFFF];
       pc = (pc + 1) & 0xFFFF;
@@ -79,10 +102,12 @@ export class AnticGtiaRenderer {
 
       const mode = ir & 0x0F;
       const hasLms = (ir & 0x40) !== 0;
+      const hasDli = (ir & 0x80) !== 0;
 
       if (mode === 0) {
         const blankLines = ((ir >> 4) & 0x07) + 1;
         scanlineY += blankLines;
+        if (hasDli) applyDli();
         continue;
       }
 
@@ -137,6 +162,43 @@ export class AnticGtiaRenderer {
           scanlineY++;
         }
         curLms = (curLms + 20) & 0xFFFF;
+      } else if (mode === 7) {
+        // ANTIC Mode 7 (20 chars x 16 scanlines, double-height 4-color text)
+        const mode7Colors = [regs.COLPF0, regs.COLPF1, regs.COLPF2, regs.COLPF3];
+        for (let s = 0; s < 16; s++) {
+          if (scanlineY >= this.height) break;
+          const glyphRow = s >> 1;
+          for (let chCol = 0; chCol < 20; chCol++) {
+            const charCode = ram[(curLms + chCol) & 0xFFFF];
+            const charIndex = charCode & 0x3F;
+            const colorSel = (charCode >> 6) & 0x03;
+            const fgRgb = this.palPalette[mode7Colors[colorSel]];
+            const glyphByte = ram[(chbase + (charIndex << 3) + glyphRow) & 0xFFFF];
+            const baseX = xOffset + (chCol << 4);
+            for (let b = 0; b < 8; b++) {
+              const bit = (glyphByte >> (7 - b)) & 1;
+              this.drawDoublePixel(buf, scanlineY, baseX + (b << 1), bit ? fgRgb : bgRgb);
+            }
+          }
+          scanlineY++;
+        }
+        curLms = (curLms + 20) & 0xFFFF;
+      } else if (mode === 14) {
+        // ANTIC Mode 14 ($0E): 160x192 4-color bitmap (40 bytes per scanline, 1 scanline tall)
+        if (scanlineY < this.height) {
+          const mode14Colors = [regs.COLBK, regs.COLPF0, regs.COLPF1, regs.COLPF2];
+          for (let byteCol = 0; byteCol < 40; byteCol++) {
+            const bval = ram[(curLms + byteCol) & 0xFFFF];
+            const baseX = xOffset + (byteCol << 3);
+            for (let px = 0; px < 4; px++) {
+              const bp = (bval >> (6 - (px << 1))) & 0x03;
+              const rgb = this.palPalette[mode14Colors[bp]];
+              this.drawDoublePixel(buf, scanlineY, baseX + (px << 1), rgb);
+            }
+          }
+        }
+        scanlineY++;
+        curLms = (curLms + 40) & 0xFFFF;
       } else if (mode === 2) {
         // ANTIC Mode 2 (40 chars x 8 scanlines, high-res text)
         const fgRgb = this.palPalette[regs.COLPF1];
@@ -160,6 +222,14 @@ export class AnticGtiaRenderer {
       } else {
         scanlineY += 8;
       }
+
+      if (hasDli) {
+        applyDli();
+      }
+    }
+
+    if (this.fullMapPanel) {
+      this.fullMapPanel.style.display = dlAddr === 0x3C8B ? "" : "none";
     }
 
     // Player Sprite Overlay (P0 + P1) when In-Game Display List ($3C8B) is active
@@ -192,7 +262,7 @@ export class AnticGtiaRenderer {
       }
 
       if (this.fullMapCtx && !this.isLockstep) {
-        this.renderFullZoneMap(regs, chbase);
+        this.renderFullZoneMap(regs, 0x1800);
       }
     }
 
@@ -209,11 +279,10 @@ export class AnticGtiaRenderer {
       COLPF3: ram[0x02C7],
       COLBK: ram[0x02C8],
     };
-    const chbase = (ram[0x02F4] << 8) & 0xFFFF;
-    this.renderFullZoneMap(regs, chbase);
+    this.renderFullZoneMap(regs, 0x1800);
   }
 
-  renderFullZoneMap(regs, chbase) {
+  renderFullZoneMap(regs, chbase = 0x1800) {
     const ram = this.memory.ram;
     const fbuf = this.fullMapImageData.data;
     const mapWidthPx = 992; // 62 tiles * 16 px = 124 chars * 8 px
@@ -224,7 +293,6 @@ export class AnticGtiaRenderer {
         const py = chRow * 8 + s;
         const rowPixelOffset = py * mapWidthPx;
         for (let chCol = 0; chCol < 124; chCol++) {
-          // Tiles tx=0..61 reside at screen character columns 2..125
           const charCode = ram[(rowBaseAddr + chCol + 2) & 0xFFFF];
           const charIndex = charCode & 0x7F;
           const usePF3 = (charCode & 0x80) !== 0;
@@ -258,7 +326,6 @@ export class AnticGtiaRenderer {
 
     this.fullMapCtx.putImageData(this.fullMapImageData, 0, 0);
 
-    // Highlight current 40x25 CRT viewport and Player Tile (I) on the 62x32 map
     const pxChar = ram[0x0560];
     const pyChar = ram[0x0561];
     const camX = pxChar < 0x16 ? 0 : Math.min(0x54, pxChar - 0x14);

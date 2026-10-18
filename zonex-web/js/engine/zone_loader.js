@@ -40,6 +40,7 @@ export class ZoneLoader {
     ram[0x0558] = gameZoneIdx;
     ram[0x0555] = zdata.internal_zone_idx !== undefined ? zdata.internal_zone_idx : gameZoneIdx;
     ram[0x0556] = diffIdx;
+    ram[0x055A] = MAP_WIDTH;
     ram[0x0598] = zdata.plutonium_count;
     ram[0x05B3] = zdata.container_count;
 
@@ -78,6 +79,7 @@ export class ZoneLoader {
       ram[0x0414 + 6] = 0xD0 + (zNum % 10);
     } else {
       ram[0x0414 + 5] = 0xD0 + zNum;
+      ram[0x0414 + 6] = 0x00;
     }
     ram[0x0414 + 19] = 0xD3;
 
@@ -87,7 +89,7 @@ export class ZoneLoader {
     ram[0x0400 + 18] = 0x50;
 
     for (let i = 0; i < Math.min(20, zdata.plutonium_count); i++) {
-      ram[0x0428 + i] = 0x85;
+      ram[0x0428 + i] = 0x83;
     }
 
     // 5. Player char coords ($4DCC: $0560 = (player_x + 1) * 2, $0561 = player_y * 2)
@@ -99,13 +101,15 @@ export class ZoneLoader {
     ram[0xD404] = 0x06;
     ram[0xD405] = 0x06;
 
-    // 6. Display List Shadow Registers ($3C8B) & Charset ($1800)
+    // 6. Display List Shadow Registers ($3C8B), DLI ($64CD), & Charset ($4000 -> DLI switches to $1800)
     ram[0x0230] = 0x8B;
     ram[0x0231] = 0x3C;
     ram[0xD402] = 0x8B;
     ram[0xD403] = 0x3C;
-    ram[0x02F4] = 0x18;
-    ram[0xD409] = 0x18;
+    ram[0x0200] = 0xCD;
+    ram[0x0201] = 0x64;
+    ram[0x02F4] = 0x40;
+    ram[0xD409] = 0x40;
 
     // 7. Authentic per-zone GTIA color palette ($A2C4 + internal_zone_idx * 4)
     const cols = zdata.colors;

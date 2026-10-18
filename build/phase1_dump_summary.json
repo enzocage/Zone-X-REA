@@ -1,61 +1,61 @@
 {
   "zone_01": {
-    "sha256": "0044307c493bebbc",
+    "sha256": "47d6280e431a88c2",
     "dl_start": "$3C93",
     "first_lms": "$252A"
   },
   "zone_02": {
-    "sha256": "0c987a4758b9d64b",
+    "sha256": "bb246bbee52cb3f9",
     "dl_start": "$3C93",
     "first_lms": "$1F00"
   },
   "zone_03": {
-    "sha256": "7681f05d915c8895",
+    "sha256": "caa357ddd81624c3",
     "dl_start": "$3C93",
     "first_lms": "$1D00"
   },
   "zone_04": {
-    "sha256": "0ab3672d49097855",
+    "sha256": "acf42a25e94f7d64",
     "dl_start": "$3C93",
     "first_lms": "$1C00"
   },
   "zone_05": {
-    "sha256": "69d318b82e376e93",
+    "sha256": "ea820a0086426207",
     "dl_start": "$3C93",
     "first_lms": "$2C32"
   },
   "zone_06": {
-    "sha256": "caa471d6b2e2f9bf",
+    "sha256": "9047731e59a0edb9",
     "dl_start": "$3C93",
     "first_lms": "$262A"
   },
   "zone_07": {
-    "sha256": "052f99fe8e429a2e",
+    "sha256": "cb0a039824e69828",
     "dl_start": "$3C93",
     "first_lms": "$2D24"
   },
   "zone_08": {
-    "sha256": "eded0850fc48795a",
+    "sha256": "13615df54d339dd7",
     "dl_start": "$3C93",
     "first_lms": "$2428"
   },
   "zone_09": {
-    "sha256": "22982e8091d5077a",
+    "sha256": "17d4f0e80fd9942b",
     "dl_start": "$3C93",
     "first_lms": "$264A"
   },
   "zone_10": {
-    "sha256": "a540f60f7c6d89d0",
+    "sha256": "6f28487daadc294e",
     "dl_start": "$3C93",
     "first_lms": "$1C00"
   },
   "zone_11": {
-    "sha256": "a402bc837a47f796",
+    "sha256": "eca24a9a665e46f5",
     "dl_start": "$3C93",
     "first_lms": "$2542"
   },
   "zone_12": {
-    "sha256": "1955d9845581e8bc",
+    "sha256": "50609e12ca6e4c33",
     "dl_start": "$3C93",
     "first_lms": "$1C00"
   }

@@ -42,6 +42,22 @@ def generate_atari_pal_palette():
 def main():
     ram = bytearray(open("build/ram_relocated.bin", "rb").read())
 
+    # 0. Initialize $1800 charset from $706C + $658F (Laser Doors) + $6942 (Plutonium & Container)
+    for i in range(1024):
+        ram[0x1800 + i] = ram[0x706C + i]
+    for x in range(8):
+        ram[0x1910 + x] = ram[0x6C12 + x]
+        ram[0x1930 + x] = ram[0x6C12 + x]
+        ram[0x1918 + x] = ram[0x6C4A + x]
+        ram[0x1938 + x] = ram[0x6C4A + x]
+        ram[0x1900 + x] = ram[0x6C42 + x]
+        ram[0x1920 + x] = ram[0x6C42 + x]
+        ram[0x1908 + x] = ram[0x6C7A + x]
+        ram[0x1928 + x] = ram[0x6C7A + x]
+    for x in range(32):
+        ram[0x1880 + x] = ram[0x6CA2 + x]
+        ram[0x1980 + x] = ram[0x6CE2 + x]
+
     # Populate R ($5575: $C8..$CB) and r ($557C: $4C..$4F) into Meta-Tile slots 26 & 27
     ram[0x6D42 + 26 * 4 : 0x6D42 + 27 * 4] = bytes([0xC8, 0xC9, 0xCA, 0xCB])
     ram[0x6D42 + 27 * 4 : 0x6D42 + 28 * 4] = bytes([0x4C, 0x4D, 0x4E, 0x4F])
@@ -49,8 +65,9 @@ def main():
     assets_dir = Path("zonex-web/assets")
     assets_dir.mkdir(exist_ok=True, parents=True)
 
-    # 1. Charsets (1024-byte font at $706C)
-    font_ingame = list(ram[0x706C : 0x706C + 1024])
+    # 1. Charsets ($1800 Mode 4 Playfield/Feature Tileset & $4000 HUD/Text Font)
+    font_ingame_1800 = list(ram[0x1800 : 0x1800 + 1024])
+    font_hud_4000 = list(ram[0x4000 : 0x4000 + 1024])
 
     # 2. Meta-Tiles (32 Tiles à 4 Zeichen ab $6D42)
     meta_tiles = []
@@ -94,11 +111,14 @@ def main():
         level_zones = [unpack_zone(ram, z, difficulty=diff) for z in range(12)]
         zones_by_level.append(level_zones)
 
-    # Default zones = Option Level 1 (matching the Excel sheets and game boot default)
     zones = zones_by_level[0]
 
-    # 5. Screen & Display List Templates (Title, Features $939C, Hall of Fame, HUD)
+    # 5. Screen & Display List Templates (Title $3CE5+$8000, Features $939C, Hall of Fame $8F08, HUD)
     screens_data = {
+        "dli_chbase_3e7b": list(ram[0x3E7B : 0x3E7D]),
+        "title_bitmap_8000": list(ram[0x8000 : 0x8E60]),
+        "title_strings_3d9f": list(ram[0x3D9F : 0x3E80]),
+        "hof_data_8e80": list(ram[0x8E80 : 0x8F36]),
         "title_text_3db3": list(ram[0x3DB3 : 0x3DB3 + 160]),
         "hud_line1_3e53": list(ram[0x3E53 : 0x3E53 + 20]),
         "hud_line2_3e67": list(ram[0x3E67 : 0x3E67 + 20]),
@@ -129,7 +149,8 @@ def main():
             "extracted_by": "Google Antigravity Autonomous Re-Engineering"
         },
         "charsets": {
-            "in_game": font_ingame
+            "in_game": font_ingame_1800,
+            "hud_4000": font_hud_4000
         },
         "meta_tiles": meta_tiles,
         "sprites": sprites,
