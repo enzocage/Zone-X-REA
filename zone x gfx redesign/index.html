@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZONE X — 3D GFX &amp; FM SYNTH REDESIGN</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Command Navigation Bar -->
+    <header class="top-bar">
+      <div class="brand">
+        <span class="badge" id="ui-hz-badge">3D WEBGL + FM SYNTH (50Hz)</span>
+        <h1>ZONE X <small>3D VOGELPERSPEKTIVE &amp; FM SYNTH REMASTER</small></h1>
+      </div>
+
+      <div class="controls-bar">
+        <label>Ansicht:
+          <select id="ui-render-mode" title="Zwischen echter 3D-Mesh-Vogelperspektive, Hybrid-PiP und Klassik-2D wechseln">
+            <option value="3d_birdseye" selected>3D Mesh Vogelperspektive</option>
+            <option value="hybrid_pip">3D + Retro-PiP Overlay</option>
+            <option value="classic_2d">Klassik 2D (Atari 800XL)</option>
+          </select>
+        </label>
+
+        <label>3D Kamera:
+          <select id="ui-camera-preset" title="3D-Kamerawinkel wählen">
+            <option value="birdseye_tactical" selected>Taktisch Vogelperspektive (55°)</option>
+            <option value="action_close">Action Nahaufnahme (44°)</option>
+            <option value="isometric_wide">Weitwinkel Übersicht (50°)</option>
+            <option value="topdown_ortho">Top-Down Direkt (82°)</option>
+          </select>
+        </label>
+
+        <label>Sound-Engine:
+          <select id="ui-synth-mode" title="FM-Synthesizer oder Original-POKEY wählen">
+            <option value="fm_remaster" selected>FM Synthesizer (Multi-Op)</option>
+            <option value="hybrid">Hybrid (FM Synth + POKEY)</option>
+            <option value="classic_pokey">Klassik Atari POKEY</option>
+          </select>
+        </label>
+
+        <label>Modus:
+          <select id="ui-screen-select">
+            <option value="title" selected>Intro / Titelbildschirm</option>
+            <option value="features">Features Intro-Schau</option>
+            <option value="halloffame">Hall of Fame</option>
+            <option value="ingame">Direkt im Spiel</option>
+          </select>
+        </label>
+
+        <label>Zone:
+          <select id="ui-zone-select">
+            <optgroup label="Original Zone X (1985)">
+              <option value="1">Zone 01 — Classic</option>
+              <option value="2">Zone 02 — Classic</option>
+              <option value="3">Zone 03 — Classic</option>
+              <option value="4">Zone 04 — Classic</option>
+              <option value="5">Zone 05 — Classic</option>
+              <option value="6">Zone 06 — Classic</option>
+              <option value="7">Zone 07 — Classic</option>
+              <option value="8">Zone 08 — Classic</option>
+              <option value="9">Zone 09 — Classic</option>
+              <option value="10">Zone 10 — Classic</option>
+              <option value="11">Zone 11 — Classic</option>
+              <option value="12">Zone 12 — Classic</option>
+            </optgroup>
+            <optgroup label="10 Neue Bonus-Level (Expansion)">
+              <option value="13">Zone 13 ★ The Twin Reactors</option>
+              <option value="14">Zone 14 ★ Excavation Site Alpha</option>
+              <option value="15">Zone 15 ★ Laser Gauntlet</option>
+              <option value="16">Zone 16 ★ Quantum Labyrinth</option>
+              <option value="17">Zone 17 ★ Swarm Containment</option>
+              <option value="18">Zone 18 ★ The Bridge Builder</option>
+              <option value="19">Zone 19 ★ Chrono Vault</option>
+              <option value="20">Zone 20 ★ Crumbly Catacombs</option>
+              <option value="21">Zone 21 ★ Fortress Gremlin</option>
+              <option value="22">Zone 22 ★ Omega Core Meltdown</option>
+            </optgroup>
+            <optgroup label="Eigene Editor-Level" id="ui-custom-zones-group">
+            </optgroup>
+          </select>
+        </label>
+
+        <label>Option:
+          <select id="ui-level-select">
+            <option value="1" selected>Level 1</option>
+            <option value="2">Level 2</option>
+            <option value="3">Level 3</option>
+          </select>
+        </label>
+
+        <button id="btn-open-editor" type="button" class="btn-accent">🛠 Level-Editor</button>
+        <button id="btn-hz-toggle" type="button" title="Zwischen 50 Hz (PAL) und 60 Hz (NTSC) umschalten">Mode: 50 Hz (PAL)</button>
+        <button id="btn-audio-toggle" type="button" class="btn-audio">🔊 Enable FM Audio</button>
+        <button id="btn-crt-toggle" type="button">CRT Scanlines</button>
+      </div>
+    </header>
+
+    <!-- Main Next-Gen Sci-Fi Command Deck -->
+    <main class="command-deck">
+      <!-- Left Holographic Telemetry & Suit Status Panel -->
+      <aside class="holo-panel holo-left">
+        <div class="holo-card">
+          <div class="holo-card-header">MISSION TELEMETRIE</div>
+          <div class="holo-stat-row">
+            <span>AKTIVE SEKTOR-ZONE</span>
+            <strong id="hud-zone-val" class="cyan-glow">ZONE 01</strong>
+          </div>
+          <div class="holo-stat-row">
+            <span>MISSIONS-SCORE</span>
+            <strong id="hud-score-val" class="gold-glow">000000</strong>
+          </div>
+          <div class="holo-stat-row">
+            <span>VERBLEIBENDE ANZÜGE</span>
+            <strong id="hud-lives-val" class="emerald-glow">5</strong>
+          </div>
+        </div>
+
+        <div class="holo-card">
+          <div class="holo-card-header">STRAHLUNGS- &amp; KERN-STATUS</div>
+          <div class="rad-gauge-wrap">
+            <div class="rad-bar-bg">
+              <div id="hud-radiation-fill" class="rad-fill safe" style="width: 100%"></div>
+            </div>
+            <div id="hud-radiation-text" class="rad-status-label">STABLE (SAFE)</div>
+          </div>
+
+          <div class="core-grid">
+            <div class="core-metric">
+              <span class="metric-label">PLUTONIUM</span>
+              <strong id="hud-plutonium-val" class="emerald-glow">0</strong>
+            </div>
+            <div class="core-metric">
+              <span class="metric-label">CONTAINER</span>
+              <strong id="hud-containers-val" class="cyan-glow">0</strong>
+            </div>
+            <div class="core-metric">
+              <span class="metric-label">MATTEN</span>
+              <strong id="hud-mats-val" class="gold-glow">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="holo-card">
+          <div class="holo-card-header">AKTIVES INVENTAR</div>
+          <div class="inv-badges-grid">
+            <div id="badge-inv-key" class="inv-badge">🔑 KEYCARD</div>
+            <div id="badge-inv-mask" class="inv-badge">🛡️ STRAHLENSCHUTZ</div>
+            <div id="badge-inv-spade" class="inv-badge">⛏️ PLASMA-SPATEN</div>
+            <div id="badge-inv-mats" class="inv-badge">🟨 ISOLIERMATTE</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center 3D Bird's-Eye WebGL Viewport -->
+      <section class="arcade-stage">
+        <div class="zone-banner" id="ui-zone-banner">
+          3D ORBITAL SHOWCASE / INTRO — DRÜCKE [SPACE / START], UM DIE MISSION ZU STARTEN
+        </div>
+
+        <div class="crt-frame" id="crt-container">
+          <canvas id="webgl-3d-canvas" width="960" height="620"></canvas>
+          <canvas id="atari-canvas" width="336" height="240" class="viewport-2d-hologram"></canvas>
+          <div class="crt-overlay" id="crt-overlay"></div>
+
+          <!-- Floating 3D Camera Quick-Controls -->
+          <div class="cam-quick-bar">
+            <button type="button" id="btn-cam-zoom-in" title="Näher heranzoomen">🔍+</button>
+            <button type="button" id="btn-cam-zoom-out" title="Weiter herauszoomen">🔍−</button>
+            <button type="button" id="btn-cam-tilt-up" title="Steilere Vogelperspektive">📐▲</button>
+            <button type="button" id="btn-cam-tilt-down" title="Flacherer 3D-Winkel">📐▼</button>
+          </div>
+        </div>
+
+        <div class="atari-console-deck">
+          <button type="button" class="console-btn" id="btn-console-select" title="Atari SELECT Taste (F1)">SELECT <span>[F1]</span></button>
+          <button type="button" class="console-btn" id="btn-console-option" title="Atari OPTION Taste (F2)">OPTION <span>[F2]</span></button>
+          <button type="button" class="console-btn console-btn-start" id="btn-console-start" title="Atari START Taste (F3 / Space)">START MISSION <span>[F3 / SPACE]</span></button>
+          <div class="controls-hint">
+            <span><strong>Pfeiltasten / WASD:</strong> 3D Bewegung</span>
+            <span><strong>Space / Z:</strong> Aktion / Graben / Teleport</span>
+            <span><strong>C:</strong> Item wechseln</span>
+            <span><strong>Mausrad:</strong> 3D Kamera-Zoom</span>
+            <span><strong>P:</strong> Pause</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right FM Synthesizer Visualizer & Tactical Sector Radar -->
+      <aside class="holo-panel holo-right">
+        <div class="holo-card">
+          <div class="holo-card-header">FM SYNTHESIZER SPEKTRUM &amp; OSZILLOSKOP</div>
+          <canvas id="fm-spectrum-canvas" width="280" height="92"></canvas>
+          <div class="fm-sub-info">
+            <span>4-Ch Dual-Operator FM + Stereo Space Chorus</span>
+          </div>
+        </div>
+
+        <div class="holo-card full-map-panel">
+          <div class="holo-card-header">TAKTISCHES SEKTOR-RADAR (62 &times; 32)</div>
+          <div class="radar-canvas-wrap">
+            <canvas id="full-map-canvas" width="992" height="512"></canvas>
+          </div>
+        </div>
+
+        <div class="holo-card">
+          <div class="holo-card-header">3D OBJEKT-LEGENDE</div>
+          <ul class="legend-list">
+            <li><span class="dot emerald"></span> <strong>Plutonium-Kristall:</strong> Pulsierender 3D-Oktaeder (in Container ablegen)</li>
+            <li><span class="dot cyan"></span> <strong>Warp-Portal &amp; Exit:</strong> Rotierende Torus-Energieringe</li>
+            <li><span class="dot crimson"></span> <strong>Alien-Patrouille:</strong> Schwebende 3D-Wächter-Sphären &amp; Mechs</li>
+            <li><span class="dot gold"></span> <strong>Laser-Schranken:</strong> Weich animierte Plasma-Strahlen</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Hidden hardware diagnostics DOM nodes for automated tests & telemetry -->
+    <div class="hidden-diagnostics" aria-hidden="true">
+      <strong id="dbg-zone">1</strong>
+      <strong id="dbg-player-xy">(0, 0)</strong>
+      <strong id="dbg-char-xy">(0, 0)</strong>
+      <strong id="dbg-dlist">$3CE5</strong>
+      <strong id="dbg-lms0">$3322</strong>
+      <strong id="dbg-scroll">$08 / $00</strong>
+      <strong id="dbg-timer">0950</strong>
+      <strong id="dbg-score">000000</strong>
+      <strong id="dbg-plutonium">0</strong>
+      <strong id="dbg-mats">0</strong>
+      <strong id="dbg-inv">NONE</strong>
+      <strong id="dbg-pokey">00 00 00 00</strong>
+    </div>
+  </div>
+
+  <!-- Interactive Level Editor Modal -->
+  <div id="editor-modal" class="editor-modal hidden">
+    <div class="editor-window">
+      <div class="editor-header">
+        <div>
+          <h2>🛠 ZONE X — INTERAKTIVER 3D/2D LEVEL-EDITOR (62 &times; 32 META-TILES)</h2>
+          <p id="editor-status">Links-Klick/Ziehen: Zeichnen | Rechts-Klick: Boden löschen</p>
+        </div>
+        <div class="editor-actions">
+          <label>Vorlage laden:
+            <select id="editor-template-select">
+              <option value="">-- Level wählen --</option>
+              <optgroup label="10 Neue Bonus-Level">
+                <option value="13">Zone 13 ★ The Twin Reactors</option>
+                <option value="14">Zone 14 ★ Excavation Site Alpha</option>
+                <option value="15">Zone 15 ★ Laser Gauntlet</option>
+                <option value="16">Zone 16 ★ Quantum Labyrinth</option>
+                <option value="17">Zone 17 ★ Swarm Containment</option>
+                <option value="18">Zone 18 ★ The Bridge Builder</option>
+                <option value="19">Zone 19 ★ Chrono Vault</option>
+                <option value="20">Zone 20 ★ Crumbly Catacombs</option>
+                <option value="21">Zone 21 ★ Fortress Gremlin</option>
+                <option value="22">Zone 22 ★ Omega Core Meltdown</option>
+              </optgroup>
+              <optgroup label="Original Zone X (1–12)">
+                <option value="1">Zone 01</option>
+                <option value="2">Zone 02</option>
+                <option value="3">Zone 03</option>
+                <option value="4">Zone 04</option>
+                <option value="5">Zone 05</option>
+                <option value="6">Zone 06</option>
+                <option value="7">Zone 07</option>
+                <option value="8">Zone 08</option>
+                <option value="9">Zone 09</option>
+                <option value="10">Zone 10</option>
+                <option value="11">Zone 11</option>
+                <option value="12">Zone 12</option>
+              </optgroup>
+            </select>
+          </label>
+          <button type="button" id="btn-editor-random">🎲 Zufalls-Level</button>
+          <button type="button" id="btn-editor-clear">🗑 Leeren</button>
+          <label>Slot:
+            <select id="editor-slot-select">
+              <option value="0">Custom Slot 1 (Zone 23)</option>
+              <option value="1">Custom Slot 2 (Zone 24)</option>
+              <option value="2">Custom Slot 3 (Zone 25)</option>
+              <option value="3">Custom Slot 4 (Zone 26)</option>
+              <option value="4">Custom Slot 5 (Zone 27)</option>
+            </select>
+          </label>
+          <button type="button" id="btn-editor-save-slot">💾 Speichern</button>
+          <button type="button" id="btn-editor-export">⬇ JSON Export</button>
+          <button type="button" id="btn-editor-import">⬆ JSON Import</button>
+          <input type="file" id="editor-file-import" accept=".json" style="display:none">
+          <button type="button" id="btn-editor-play" class="btn-play-now">▶ Level in 3D spielen!</button>
+          <button type="button" id="btn-editor-close" class="btn-close-editor">✕ Schließen</button>
+        </div>
+      </div>
+
+      <div class="editor-body">
+        <aside class="editor-sidebar">
+          <h3>Bausteine &amp; Objekte</h3>
+          <div id="editor-palette" class="editor-palette"></div>
+        </aside>
+        <div class="editor-canvas-wrap">
+          <canvas id="editor-canvas" width="992" height="512"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/zonex_rom_bundle.js"></script>
+  <script src="src/bundle/zonex_gfx_redesign.bundle.js"></script>
+</body>
+</html>
