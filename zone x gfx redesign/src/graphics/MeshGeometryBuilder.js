@@ -270,59 +270,122 @@ export class MeshGeometryBuilder {
     b.addBox(0, 0.42, 0, 1.0, 0.06, 1.0, [0.2, 0.75, 1.0], 0.55);
     compile("wallBlock");
 
-    // 3. Plutonium Core (Cherenkov Crystal + Containment Rings)
-    b.addOctahedron(0, 0.42, 0, 0.24, 0.36, 0.24, [0.25, 1.0, 0.65], 0.95);
-    b.addTorusXZ(0, 0.42, 0, 0.34, 0.035, 12, 6, [0.1, 0.85, 1.0], 0.8);
-    b.addCylinderY(0, 0.04, 0.12, 0, 0.28, 0.22, 8, [0.25, 0.35, 0.48], 0.15);
+    // 3. Plutonium Core (Unmistakable Radioactive Plutonium Fuel Rod Cluster + Black/Yellow Hazard Base)
+    // High-contrast Black & Yellow octagonal radiation containment pad on the floor
+    b.addCylinderY(0, 0.0, 0.1, 0, 0.46, 0.44, 8, [0.95, 0.78, 0.02], 0.35);
+    b.addCylinderY(0, 0.1, 0.16, 0, 0.39, 0.37, 8, [0.05, 0.06, 0.08], 0.02);
+    // 3-Blade Yellow-on-Black Radiation Trefoil Symbol (☢) on the pedestal
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI * 2) / 3;
+      b.addBox(Math.cos(a) * 0.23, 0.17, Math.sin(a) * 0.23, 0.17, 0.04, 0.17, [0.98, 0.82, 0.02], 0.45);
+    }
+    // Cluster of 4 Vivid Radioactive Neon-Green Plutonium Fuel Rods (low R/B so they stay pure neon-green!)
+    b.addCylinderY(0, 0.16, 0.78, 0, 0.17, 0.17, 10, [0.02, 0.95, 0.04], 0.65);
+    b.addCylinderY(-0.15, 0.16, 0.6, 0.11, 0.1, 0.1, 8, [0.03, 0.88, 0.05], 0.55);
+    b.addCylinderY(0.15, 0.16, 0.6, 0.11, 0.1, 0.1, 8, [0.03, 0.88, 0.05], 0.55);
+    b.addCylinderY(0.0, 0.16, 0.6, -0.17, 0.1, 0.1, 8, [0.03, 0.88, 0.05], 0.55);
+    b.addOctahedron(0, 0.52, 0, 0.28, 0.36, 0.28, [0.04, 0.98, 0.06], 0.7);
+    // Dark Lead/Steel Cap Rings on top of the fuel rods for crisp contrast
+    b.addTorusXZ(0, 0.76, 0, 0.17, 0.04, 10, 6, [0.08, 0.1, 0.12], 0.05);
     compile("plutoniumCore");
 
-    // 4. Plutonium Container (Heavy Containment Silo + Glowing Core Slot)
-    b.addCylinderY(0, 0.0, 0.52, 0, 0.42, 0.38, 12, [0.26, 0.34, 0.46], 0.05);
-    b.addTorusXZ(0, 0.52, 0, 0.32, 0.06, 12, 6, [0.45, 0.62, 0.82], 0.2);
-    b.addCylinderY(0, 0.5, 0.55, 0, 0.24, 0.24, 10, [0.1, 0.95, 0.55], 0.85);
-    b.addTorusXZ(0, 0.26, 0, 0.41, 0.03, 12, 6, [1.0, 0.75, 0.15], 0.7);
+    // 3b. Rotating Radioactive Trefoil Rotor (☢) + Orbiting Atomic Electrons (⚛) around Plutonium
+    b.addTorusXZ(0, 0.44, 0, 0.44, 0.04, 16, 6, [0.02, 0.92, 0.04], 0.65);
+    b.addTorusXZ(0, 0.24, 0, 0.38, 0.032, 14, 6, [0.96, 0.8, 0.02], 0.5);
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI * 2) / 3;
+      // High-contrast Black & Yellow Trefoil Warning Fin
+      const fx = Math.cos(a) * 0.35;
+      const fz = Math.sin(a) * 0.35;
+      b.addBox(fx, 0.24, fz, 0.18, 0.06, 0.18, [0.06, 0.07, 0.09], 0.05);
+      b.addBox(fx, 0.28, fz, 0.13, 0.03, 0.13, [0.98, 0.84, 0.02], 0.55);
+      // Vivid Radioactive Neon-Green Electron Sphere
+      const ex = Math.cos(a + 0.52) * 0.44;
+      const ez = Math.sin(a + 0.52) * 0.44;
+      b.addOctahedron(ex, 0.44 + (i - 1) * 0.1, ez, 0.12, 0.12, 0.12, [0.02, 0.98, 0.05], 0.75);
+    }
+    compile("plutoniumBeacon");
+
+    // 4. Plutonium Container (Unmistakable Yellow & Black Striped Radioactive Waste Barrel / Atommüll-Tonne with Open Glowing Receptor Mouth)
+    // Main Signal-Yellow cylindrical steel barrel body
+    b.addCylinderY(0, 0.0, 0.68, 0, 0.44, 0.44, 14, [0.96, 0.78, 0.02], 0.35);
+    // 3 Bold Black Hazard Stripes / Barrel Hoops (bottom, middle, upper)
+    b.addTorusXZ(0, 0.1, 0, 0.445, 0.042, 14, 6, [0.06, 0.07, 0.09], 0.02);
+    b.addTorusXZ(0, 0.35, 0, 0.45, 0.048, 14, 6, [0.06, 0.07, 0.09], 0.02);
+    b.addTorusXZ(0, 0.6, 0, 0.445, 0.042, 14, 6, [0.06, 0.07, 0.09], 0.02);
+    // Radioactive hazard emblem plates on the N/S/E/W sides of the yellow drum
+    b.addBox(0, 0.35, 0.43, 0.24, 0.2, 0.05, [0.06, 0.07, 0.09], 0.02);
+    b.addOctahedron(0, 0.35, 0.46, 0.1, 0.1, 0.04, [0.02, 0.95, 0.04], 0.65);
+    b.addBox(0, 0.35, -0.43, 0.24, 0.2, 0.05, [0.06, 0.07, 0.09], 0.02);
+    // Heavy Top Receptor Rim + Vivid Radioactive Neon-Green Open Funnel Mouth (matches Plutonium color!)
+    b.addTorusXZ(0, 0.69, 0, 0.38, 0.065, 14, 6, [0.08, 0.09, 0.11], 0.05);
+    b.addCylinderY(0, 0.66, 0.72, 0, 0.31, 0.28, 12, [0.02, 0.25, 0.04], 0.15);
+    b.addCylinderY(0, 0.69, 0.74, 0, 0.24, 0.24, 12, [0.02, 0.95, 0.04], 0.65);
     compile("containerVault");
 
-    // 5. Keycard (Floating Golden/Cyan Holo-Key)
-    b.addBox(0, 0.38, 0, 0.46, 0.06, 0.28, [1.0, 0.82, 0.18], 0.65);
-    b.addBox(0.08, 0.42, 0, 0.22, 0.03, 0.16, [0.15, 0.95, 1.0], 0.95);
-    b.addTorusXZ(-0.14, 0.38, 0, 0.07, 0.025, 8, 6, [1.0, 0.9, 0.4], 0.8);
+    // 4b. Floating 3D Downward Delivery Target Arrow above every Container Barrel
+    b.addCylinderY(0, 0.88, 1.18, 0, 0.03, 0.22, 8, [0.02, 0.95, 0.04], 0.65); // Vivid green arrow head cone
+    b.addBox(0, 1.28, 0, 0.11, 0.22, 0.11, [0.98, 0.84, 0.02], 0.55); // Gold arrow shaft
+    compile("containerArrow");
+
+    // 5. Golden Key (True 3D Key Shape: Round Bow Ring + Long Shaft + Double Key Teeth)
+    b.addTorusXZ(0, 0.36, -0.22, 0.16, 0.055, 12, 6, [1.0, 0.85, 0.12], 0.85); // Key ring bow
+    b.addBox(0, 0.36, 0.08, 0.09, 0.08, 0.44, [1.0, 0.88, 0.18], 0.85); // Key shaft
+    b.addBox(0.11, 0.36, 0.14, 0.14, 0.08, 0.07, [1.0, 0.92, 0.28], 0.95); // Tooth 1
+    b.addBox(0.13, 0.36, 0.26, 0.18, 0.08, 0.07, [1.0, 0.92, 0.28], 0.95); // Tooth 2
     compile("keyItem");
 
-    // 6. Radiation Capsule / Plasma Spade (Excavator Module)
-    b.addCylinderY(0, 0.15, 0.58, 0, 0.18, 0.18, 10, [0.2, 0.88, 0.45], 0.7);
-    b.addCylinderY(0, 0.58, 0.7, 0, 0.18, 0.04, 10, [0.65, 1.0, 0.8], 0.9);
-    b.addTorusXZ(0, 0.25, 0, 0.21, 0.03, 10, 6, [0.9, 0.95, 1.0], 0.4);
-    b.addTorusXZ(0, 0.48, 0, 0.21, 0.03, 10, 6, [0.9, 0.95, 1.0], 0.4);
+    // 6. Excavator Spade / Shovel (True 3D Shovel: T-Grip Handle + Shaft + Wide Pointed Steel Scoop Blade)
+    b.addBox(0, 0.36, -0.32, 0.26, 0.08, 0.08, [1.0, 0.65, 0.12], 0.8); // Orange/Gold T-handle grip
+    b.addBox(0, 0.36, -0.08, 0.07, 0.07, 0.44, [0.85, 0.62, 0.22], 0.55); // Wooden/alloy shaft
+    b.addBevelledBox(0, 0.35, 0.2, 0.36, 0.06, 0.26, 0.02, [0.75, 0.88, 1.0], [0.9, 0.96, 1.0], 0.75); // Wide steel shovel scoop
+    b.addOctahedron(0, 0.35, 0.33, 0.18, 0.04, 0.14, [0.3, 0.95, 1.0], 0.9); // Pointed digging tip
+    compile("spadeItem");
+
+    // 6b. Radiation Shield / Med-Pod Capsule (White/Emerald Hazmat Pod with Bold 3D Cross)
+    b.addCylinderY(0, 0.12, 0.56, 0, 0.24, 0.24, 12, [0.9, 0.96, 1.0], 0.5);
+    b.addTorusXZ(0, 0.34, 0, 0.25, 0.035, 12, 6, [0.1, 0.95, 0.55], 0.85);
+    b.addBox(0, 0.59, 0, 0.28, 0.06, 0.1, [0.1, 1.0, 0.45], 0.95); // 3D Cross bar 1
+    b.addBox(0, 0.59, 0, 0.1, 0.06, 0.28, [0.1, 1.0, 0.45], 0.95); // 3D Cross bar 2
     compile("capsuleItem");
 
-    // 7. Insulating Mat (Dielectric Shield Platform)
-    b.addBevelledBox(0, 0.12, 0, 0.72, 0.14, 0.52, 0.04, [0.95, 0.58, 0.12], [1.0, 0.78, 0.25], 0.55);
-    b.addBox(0, 0.2, 0, 0.52, 0.03, 0.32, [0.2, 0.95, 1.0], 0.85);
+    // 7. Insulating Mat / Radiation Shield Mat (Ribbed Golden-Copper Hazard Tread Platform)
+    b.addBevelledBox(0, 0.12, 0, 0.82, 0.14, 0.62, 0.04, [0.95, 0.55, 0.1], [1.0, 0.78, 0.22], 0.65);
+    b.addBox(-0.24, 0.2, 0, 0.1, 0.04, 0.52, [0.15, 0.95, 1.0], 0.9);
+    b.addBox(0.0, 0.2, 0, 0.1, 0.04, 0.52, [0.15, 0.95, 1.0], 0.9);
+    b.addBox(0.24, 0.2, 0, 0.1, 0.04, 0.52, [0.15, 0.95, 1.0], 0.9);
     compile("matItem");
 
-    // 8. Extra Time Chrono Crystal (3D Dual Hourglass)
-    b.addCylinderY(0, 0.12, 0.38, 0, 0.26, 0.04, 8, [0.35, 0.85, 1.0], 0.8);
-    b.addCylinderY(0, 0.38, 0.64, 0, 0.04, 0.26, 8, [0.35, 0.85, 1.0], 0.8);
-    b.addBox(0, 0.1, 0, 0.56, 0.05, 0.56, [0.95, 0.78, 0.25], 0.5);
-    b.addBox(0, 0.66, 0, 0.56, 0.05, 0.56, [0.95, 0.78, 0.25], 0.5);
+    // 8. Extra Time Chrono Hourglass (Distinct 3D Golden Hourglass with Glowing Cyan Sand Bulbs)
+    b.addBox(0, 0.1, 0, 0.56, 0.07, 0.56, [1.0, 0.82, 0.18], 0.65); // Bottom gold plate
+    b.addCylinderY(0, 0.14, 0.42, 0, 0.26, 0.04, 10, [0.2, 0.92, 1.0], 0.95); // Lower sand bulb
+    b.addCylinderY(0, 0.42, 0.7, 0, 0.04, 0.26, 10, [0.2, 0.92, 1.0], 0.95); // Upper sand bulb
+    b.addBox(0, 0.73, 0, 0.56, 0.07, 0.56, [1.0, 0.82, 0.18], 0.65); // Top gold plate
     compile("extraTimeItem");
 
-    // 9. Mystery Box (3D Supply Vault with Neon Cross)
-    b.addBevelledBox(0, 0.32, 0, 0.64, 0.56, 0.64, 0.06, [0.58, 0.25, 0.85], [0.75, 0.42, 0.98], 0.45);
-    b.addBox(0, 0.32, 0, 0.68, 0.1, 0.14, [1.0, 0.85, 0.2], 0.9);
-    b.addBox(0, 0.32, 0, 0.14, 0.1, 0.68, [1.0, 0.85, 0.2], 0.9);
+    // 9. Bonus / Mystery Box (3D Treasure Crate with Bold Golden '?' Question Emblem on Top)
+    b.addBevelledBox(0, 0.32, 0, 0.68, 0.58, 0.68, 0.06, [0.62, 0.18, 0.88], [0.8, 0.35, 1.0], 0.5);
+    b.addBox(0, 0.32, 0, 0.72, 0.1, 0.14, [1.0, 0.85, 0.15], 0.9);
+    b.addBox(0, 0.32, 0, 0.14, 0.1, 0.72, [1.0, 0.85, 0.15], 0.9);
+    // 3D '?' symbol raised above the crate top
+    b.addBox(0, 0.64, -0.14, 0.26, 0.07, 0.08, [1.0, 0.95, 0.25], 1.0);
+    b.addBox(0.09, 0.64, -0.05, 0.08, 0.07, 0.14, [1.0, 0.95, 0.25], 1.0);
+    b.addBox(0, 0.64, 0.02, 0.16, 0.07, 0.08, [1.0, 0.95, 0.25], 1.0);
+    b.addBox(0, 0.64, 0.18, 0.09, 0.07, 0.09, [1.0, 0.95, 0.25], 1.0);
     compile("mysteryBox");
 
-    // 10. Locked Door & Proximity Door (Armored Blast Gate)
-    b.addBevelledBox(0, 0.4, 0, 0.96, 0.8, 0.36, 0.05, [0.75, 0.28, 0.18], [0.95, 0.45, 0.25], 0.25);
-    b.addOctahedron(0, 0.45, 0, 0.18, 0.18, 0.24, [1.0, 0.88, 0.2], 0.95);
-    b.addBox(-0.42, 0.4, 0, 0.12, 0.82, 0.44, [0.3, 0.38, 0.48], 0.1);
-    b.addBox(0.42, 0.4, 0, 0.12, 0.82, 0.44, [0.3, 0.38, 0.48], 0.1);
+    // 10. Locked Key-Door & Airlock Door (Heavy Armored Gate with Giant 3D Golden Padlock / Keyhole)
+    b.addBevelledBox(0, 0.42, 0, 0.96, 0.84, 0.42, 0.05, [0.78, 0.32, 0.12], [0.95, 0.52, 0.18], 0.3);
+    // Giant Golden Padlock Shackle + Body on Top & Front so player knows it needs a Key
+    b.addTorusXZ(0, 0.92, 0, 0.18, 0.05, 10, 6, [1.0, 0.88, 0.15], 0.95);
+    b.addBox(0, 0.62, 0, 0.38, 0.48, 0.52, [1.0, 0.84, 0.12], 0.85);
+    b.addCylinderY(0, 0.65, 0.9, 0, 0.08, 0.08, 8, [0.08, 0.08, 0.1], 0.0); // Keyhole center
     compile("lockedDoor");
 
-    b.addBevelledBox(0, 0.4, 0, 0.96, 0.8, 0.36, 0.05, [0.18, 0.62, 0.75], [0.3, 0.82, 0.95], 0.3);
-    b.addOctahedron(0, 0.45, 0, 0.18, 0.18, 0.24, [0.2, 1.0, 0.65], 0.95);
+    // Airlock / Proximity Door (Cyan-Armored Bulkhead Gate with Glowing Sensor Wheel)
+    b.addBevelledBox(0, 0.42, 0, 0.96, 0.84, 0.42, 0.05, [0.16, 0.58, 0.78], [0.28, 0.82, 0.98], 0.35);
+    b.addTorusXZ(0, 0.88, 0, 0.24, 0.05, 12, 6, [0.2, 1.0, 0.7], 0.95);
+    b.addOctahedron(0, 0.88, 0, 0.16, 0.16, 0.16, [1.0, 0.9, 0.25], 0.95);
     compile("proximityDoor");
 
     // 11. Automatic Laser/Blast Door:
@@ -362,26 +425,38 @@ export class MeshGeometryBuilder {
     b.addTorusXZ(0, 0.55, 0, 0.35, 0.05, 10, 6, [0.3, 0.9, 1.0], 0.9);
     compile("warpFrame");
 
-    // 13. Crumbly Regolith Dirt & Rock
-    b.addOctahedron(-0.18, 0.24, -0.14, 0.28, 0.32, 0.28, [0.58, 0.42, 0.24], 0.05);
-    b.addOctahedron(0.18, 0.28, 0.12, 0.26, 0.38, 0.26, [0.66, 0.48, 0.28], 0.08);
-    b.addOctahedron(0.0, 0.18, -0.05, 0.34, 0.24, 0.34, [0.48, 0.34, 0.18], 0.02);
+    // 13. Crumbly Diggable Dirt Mound (Rich Earthy Brown Soil & Golden Pebbles — clearly diggable!)
+    b.addBevelledBox(0, 0.16, 0, 0.86, 0.32, 0.86, 0.08, [0.55, 0.36, 0.16], [0.68, 0.46, 0.22], 0.12);
+    b.addOctahedron(-0.2, 0.36, -0.16, 0.28, 0.28, 0.28, [0.65, 0.44, 0.2], 0.15);
+    b.addOctahedron(0.2, 0.4, 0.14, 0.26, 0.32, 0.26, [0.74, 0.52, 0.26], 0.18);
+    b.addOctahedron(0.0, 0.34, 0.02, 0.32, 0.26, 0.32, [0.48, 0.32, 0.14], 0.1);
     compile("crumblyDirt");
 
     b.addOctahedron(0, 0.38, 0, 0.44, 0.48, 0.44, [0.45, 0.5, 0.58], 0.08);
     b.addOctahedron(0.16, 0.26, 0.16, 0.28, 0.32, 0.28, [0.35, 0.4, 0.48], 0.05);
     compile("rockBlock");
 
-    // 14. Forcefield & Skull Hazard
-    b.addBox(0, 0.04, 0, 0.92, 0.08, 0.92, [0.35, 0.1, 0.18], 0.3);
-    b.addTorusXZ(0, 0.22, 0, 0.36, 0.04, 12, 6, [1.0, 0.18, 0.32], 0.95);
-    b.addOctahedron(0, 0.36, 0, 0.2, 0.28, 0.2, [1.0, 0.45, 0.15], 0.95);
+    // 14. Forcefield / Closed Slam Door Barrier & Skull Hazard / Open Slam Door Threshold
+    b.addBevelledBox(0, 0.38, 0, 0.92, 0.76, 0.92, 0.06, [0.65, 0.08, 0.16], [0.95, 0.18, 0.25], 0.55);
+    b.addTorusXZ(0, 0.78, 0, 0.36, 0.045, 12, 6, [1.0, 0.35, 0.15], 0.95);
+    b.addOctahedron(0, 0.85, 0, 0.2, 0.24, 0.2, [1.0, 0.75, 0.15], 0.95);
     compile("hazardField");
 
-    // 15. Exit Extraction Portal
-    b.addCylinderY(0, 0, 0.85, 0, 0.36, 0.24, 12, [0.2, 0.75, 0.95], 0.65);
-    b.addTorusXZ(0, 0.65, 0, 0.42, 0.06, 14, 6, [0.35, 1.0, 0.75], 1.0);
-    b.addOctahedron(0, 0.95, 0, 0.22, 0.28, 0.22, [1.0, 0.95, 0.4], 1.0);
+    // 14b. 3D White Skull & Crossbones / One-Way Slam Door Threshold
+    b.addBox(0, 0.04, 0, 0.88, 0.06, 0.88, [0.45, 0.08, 0.14], 0.35);
+    b.addBevelledBox(0, 0.22, -0.04, 0.36, 0.22, 0.34, 0.05, [0.92, 0.92, 0.95], [1.0, 1.0, 1.0], 0.75); // Skull cranium
+    b.addBox(0, 0.14, 0.16, 0.22, 0.12, 0.14, [0.88, 0.88, 0.92], 0.7); // Skull jaw
+    b.addBox(-0.09, 0.28, 0.06, 0.08, 0.08, 0.08, [1.0, 0.1, 0.15], 1.0); // Red eye socket L
+    b.addBox(0.09, 0.28, 0.06, 0.08, 0.08, 0.08, [1.0, 0.1, 0.15], 1.0); // Red eye socket R
+    compile("skullHazard");
+
+    // 15. Exit Extraction Portal (Giant Glowing Emerald/Gold Stargate Archway + Extraction Beacon)
+    b.addCylinderY(0, 0.0, 0.14, 0, 0.48, 0.44, 14, [0.15, 0.55, 0.45], 0.45);
+    b.addBox(-0.38, 0.48, 0, 0.12, 0.92, 0.22, [1.0, 0.84, 0.18], 0.75); // Left gold portal pillar
+    b.addBox(0.38, 0.48, 0, 0.12, 0.92, 0.22, [1.0, 0.84, 0.18], 0.75); // Right gold portal pillar
+    b.addBox(0, 0.92, 0, 0.9, 0.14, 0.26, [1.0, 0.88, 0.22], 0.85); // Top gold portal lintel
+    b.addTorusXZ(0, 0.52, 0, 0.38, 0.055, 14, 6, [0.2, 1.0, 0.65], 1.0);
+    b.addOctahedron(0, 1.15, 0, 0.24, 0.32, 0.24, [0.35, 1.0, 0.75], 1.0);
     compile("exitPortal");
 
     // 16. Articulated 3D Astronaut Player Meshes
@@ -403,22 +478,66 @@ export class MeshGeometryBuilder {
     b.addBox(0, -0.28, 0.03, 0.17, 0.1, 0.2, [0.25, 0.68, 0.95], 0.55); // Boot / gauntlet cuff
     compile("playerLimb");
 
-    // 17. Alien Patrol Droids (Normal & Fast)
-    // Normal Droid Core (Hovering Sentinel Sphere/Octahedron + Red Scanner Eye)
-    b.addOctahedron(0, 0, 0, 0.34, 0.32, 0.34, [0.85, 0.22, 0.28], 0.55);
-    b.addBox(0, 0.04, 0.26, 0.24, 0.1, 0.14, [1.0, 0.95, 0.2], 1.0); // Glowing scanner eye
+    // 17. Creepy Multi-Part 3D Alien Hunters (Normal = Xenomorph-Arachnid Stalker, Fast = Eldritch Shadow-Reaper)
+    // 17a. Xenomorph-Arachnid Stalker Body (Obsidian-Crimson Carapace, Pulsing Abdomen Sac, Dorsal Spines & 6 Venom-Green Eyes)
+    // Elongated cephalothorax & predator skull
+    b.addBevelledBox(0, 0.06, 0.08, 0.34, 0.24, 0.42, 0.05, [0.16, 0.03, 0.06], [0.28, 0.05, 0.1], 0.15);
+    // Swollen ribbed rear abdomen sac with glowing bioluminescent blood-orange core
+    b.addOctahedron(0, 0.14, -0.26, 0.26, 0.24, 0.32, [0.24, 0.04, 0.08], 0.2);
+    b.addOctahedron(0, 0.2, -0.26, 0.18, 0.18, 0.22, [1.0, 0.18, 0.05], 0.95);
+    // 3 Jagged dorsal chitin spines along the back
+    b.addCylinderY(0, 0.16, 0.42, 0.12, 0.06, 0.01, 6, [0.85, 0.1, 0.18], 0.75);
+    b.addCylinderY(0, 0.18, 0.48, -0.04, 0.07, 0.01, 6, [0.95, 0.15, 0.22], 0.85);
+    b.addCylinderY(0, 0.2, 0.44, -0.2, 0.06, 0.01, 6, [0.85, 0.1, 0.18], 0.75);
+    // 6 Glowing Venom-Green Arachnid Eyes on the front of the skull
+    b.addBox(-0.09, 0.1, 0.3, 0.06, 0.06, 0.05, [0.35, 1.0, 0.12], 1.0);
+    b.addBox(0.09, 0.1, 0.3, 0.06, 0.06, 0.05, [0.35, 1.0, 0.12], 1.0);
+    b.addBox(-0.15, 0.14, 0.26, 0.05, 0.05, 0.05, [0.2, 1.0, 0.25], 1.0);
+    b.addBox(0.15, 0.14, 0.26, 0.05, 0.05, 0.05, [0.2, 1.0, 0.25], 1.0);
+    b.addBox(-0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [0.75, 1.0, 0.15], 1.0);
+    b.addBox(0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [0.75, 1.0, 0.15], 1.0);
     compile("droidCore");
 
-    // Normal Droid Gyroscope Ring
-    b.addTorusXZ(0, 0, 0, 0.46, 0.05, 12, 6, [1.0, 0.45, 0.15], 0.9);
-    compile("droidRing");
+    // 17b. Articulated Alien Spider Leg (Upper Femur + Spiked Knee + Razor Claw Tip)
+    // Extends in +X so it can be rotated around Y for all 6 left/right legs!
+    b.addBox(0.14, 0.14, 0, 0.26, 0.06, 0.06, [0.22, 0.04, 0.09], 0.2);
+    b.addOctahedron(0.27, 0.2, 0, 0.06, 0.09, 0.06, [0.9, 0.12, 0.2], 0.85); // Spiked knee joint
+    b.addCylinderY(0.36, -0.26, 0.2, 0, 0.015, 0.05, 5, [0.35, 0.06, 0.12], 0.35);
+    b.addOctahedron(0.36, -0.26, 0, 0.04, 0.08, 0.04, [1.0, 0.15, 0.2], 0.95); // Glowing blood-red claw tip
+    compile("alienSpiderLeg");
 
-    // Fast Alien Interceptor Mech (Aggressive Violet/Cyan Twin-Thruster Stalker)
-    b.addOctahedron(0, 0, 0, 0.42, 0.26, 0.46, [0.75, 0.2, 0.95], 0.65);
-    b.addTorusXZ(0, 0, 0, 0.5, 0.045, 10, 6, [0.2, 0.95, 1.0], 0.95);
-    b.addBox(-0.32, -0.08, 0, 0.12, 0.24, 0.56, [0.95, 0.25, 0.65], 0.8);
-    b.addBox(0.32, -0.08, 0, 0.12, 0.24, 0.56, [0.95, 0.25, 0.65], 0.8);
+    // 17c. Articulated Serrated Mandible / Fang Jaw
+    b.addBox(0, 0.0, 0.12, 0.06, 0.05, 0.22, [0.3, 0.05, 0.1], 0.3);
+    b.addOctahedron(0, 0.0, 0.24, 0.04, 0.04, 0.09, [0.4, 1.0, 0.18], 1.0); // Venomous fang tip
+    compile("alienMandible");
+
+    // 17d. Eldritch Shadow-Reaper Body (Fast Alien: Hunched Abyssal Horror, Xenomorph Cranium, Horns & Glowing Chest Maw)
+    // Elongated Xenomorph-like biomechanical cranium & hunched ribcage
+    b.addBevelledBox(0, 0.16, 0.02, 0.38, 0.34, 0.46, 0.06, [0.11, 0.02, 0.18], [0.2, 0.05, 0.32], 0.2);
+    b.addOctahedron(0, 0.32, -0.22, 0.22, 0.18, 0.38, [0.16, 0.03, 0.26], 0.25); // Elongated rear skull dome
+    // Twin curved devilish cranial horns
+    b.addCylinderY(-0.18, 0.26, 0.54, -0.1, 0.05, 0.01, 6, [0.95, 0.08, 0.45], 0.9);
+    b.addCylinderY(0.18, 0.26, 0.54, -0.1, 0.05, 0.01, 6, [0.95, 0.08, 0.45], 0.9);
+    // Glowing radioactive magenta-crimson chest maw & piercing red eyes
+    b.addOctahedron(0, 0.14, 0.24, 0.14, 0.16, 0.1, [1.0, 0.06, 0.38], 1.0);
+    b.addBox(-0.1, 0.28, 0.26, 0.07, 0.05, 0.06, [1.0, 0.05, 0.12], 1.0);
+    b.addBox(0.1, 0.28, 0.26, 0.07, 0.05, 0.06, [1.0, 0.05, 0.12], 1.0);
+    b.addBox(0, 0.33, 0.27, 0.05, 0.05, 0.05, [0.4, 1.0, 0.2], 1.0); // Third hunter eye
     compile("fastDroidBody");
+
+    // 17e. Articulated Praying-Mantis / Necromorph Scythe Claw Arm
+    b.addBox(0, 0.14, 0.16, 0.07, 0.08, 0.32, [0.22, 0.04, 0.32], 0.3);
+    b.addOctahedron(0, 0.04, 0.34, 0.05, 0.24, 0.18, [1.0, 0.08, 0.42], 0.95); // Giant glowing scythe blade
+    compile("alienScytheClaw");
+
+    // 17f. Whipping Scorpion / Xenomorph Tail with Venom Stinger
+    b.addCylinderY(0, 0.08, 0.48, -0.32, 0.06, 0.025, 6, [0.24, 0.04, 0.35], 0.35);
+    b.addOctahedron(0, 0.5, -0.26, 0.06, 0.08, 0.14, [0.35, 1.0, 0.18], 1.0); // Glowing toxic stinger barb
+    compile("alienTailStinger");
+
+    // 17g. Pulsing Dark Bio-Aura Ring (for Showcase / Boss Aura)
+    b.addTorusXZ(0, 0.04, 0, 0.42, 0.03, 12, 6, [0.85, 0.1, 0.25], 0.75);
+    compile("droidRing");
 
     // 18. 3D Particle Crystal Shard & Expanding Shockwave Ring
     b.addOctahedron(0, 0, 0, 0.12, 0.12, 0.12, [1.0, 1.0, 1.0], 0.95);

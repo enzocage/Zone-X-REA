@@ -390,31 +390,52 @@ export class WebGL3DMeshRenderer {
 
           case TileType.PLUTONIUM:
             if (isVis) {
-              const bob = Math.sin(t * 4.2 + tx * 0.7 + tz * 0.5) * 0.1;
-              const pulse = 0.25 + 0.25 * Math.sin(t * 7.0 + tx);
-              this._drawMesh("plutoniumCore", tx, bob, tz, t * 2.4 + tx, 1, 1, 1, [1, 1, 1], pulse);
+              const bob = Math.sin(t * 4.2 + tx * 0.7 + tz * 0.5) * 0.08;
+              const pulse = 0.45 + 0.35 * Math.sin(t * 7.5 + tx);
+              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.15, 1.15, 1.15, [1, 1, 1], pulse);
+              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.4 + tz, 1.15, 1.15, 1.15, [1, 1, 1], 0.65);
             }
             break;
 
-          case TileType.CONTAINER:
+          case TileType.CONTAINER: {
+            const carryingPlutonium = this.anim.player.plutoniumGlow > 0.05;
+            const barrelPulse = carryingPlutonium
+              ? 0.45 + 0.35 * Math.sin(t * 9.0 + tx)
+              : 0.2 + 0.15 * Math.sin(t * 4.0 + tx);
             this._drawMesh(
               "containerVault",
               tx,
               0,
               tz,
-              t * 0.6,
-              1,
-              1,
-              1,
+              0,
+              1.08,
+              1.08,
+              1.08,
               [1, 1, 1],
-              0.15 + 0.15 * Math.sin(t * 4.0 + tx)
+              barrelPulse
+            );
+            // Bobbing 3D Target Arrow above the barrel opening ("Deliver Plutonium Here!")
+            const arrowBob = Math.sin(t * (carryingPlutonium ? 8.5 : 4.5) + tx) * 0.14;
+            const arrowScale = carryingPlutonium ? 1.28 : 1.0;
+            this._drawMesh(
+              "containerArrow",
+              tx,
+              arrowBob,
+              tz,
+              t * 3.2,
+              arrowScale,
+              arrowScale,
+              arrowScale,
+              carryingPlutonium ? [0.4, 1.0, 0.3] : [1.0, 0.95, 0.3],
+              carryingPlutonium ? 0.85 : 0.45
             );
             break;
+          }
 
           case TileType.KEY:
             if (isVis) {
               const bob = Math.sin(t * 3.8 + tx) * 0.09;
-              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1, 1, 1, [1, 1, 1], 0.2);
+              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.18, 1.18, 1.18, [1, 1, 1], 0.35);
             }
             break;
 
@@ -422,40 +443,37 @@ export class WebGL3DMeshRenderer {
           case TileType.SPADE:
             if (isVis) {
               const bob = Math.sin(t * 3.5 + tz) * 0.08;
-              this._drawMesh("capsuleItem", tx, bob, tz, t * 1.9, 1, 1, 1, [1, 1, 1], 0.2);
+              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.2, 1.2, 1.2, [1, 1, 1], 0.35);
             }
             break;
 
           case TileType.INSULATING_MAT:
             if (isVis) {
               const bob = Math.sin(t * 3.0 + tx) * 0.05;
-              this._drawMesh("matItem", tx, bob, tz, t * 1.2, 1, 1, 1, [1, 1, 1], 0.15);
+              this._drawMesh("matItem", tx, bob, tz, t * 1.2, 1.08, 1.08, 1.08, [1, 1, 1], 0.25);
             }
             break;
 
           case TileType.EXTRA_TIME:
             if (isVis) {
               const bob = Math.sin(t * 4.0 + tx) * 0.09;
-              this._drawMesh("extraTimeItem", tx, bob, tz, t * 2.2, 1, 1, 1, [1, 1, 1], 0.25);
+              this._drawMesh("extraTimeItem", tx, bob, tz, t * 2.2, 1.12, 1.12, 1.12, [1, 1, 1], 0.35);
             }
             break;
 
           case TileType.MYSTERY_BOX:
             if (isVis) {
               const bob = Math.sin(t * 3.2 + tx) * 0.06;
-              this._drawMesh("mysteryBox", tx, bob, tz, t * 1.1, 1, 1, 1, [1, 1, 1], 0.2);
+              this._drawMesh("mysteryBox", tx, bob, tz, t * 1.1, 1.08, 1.08, 1.08, [1, 1, 1], 0.3);
             }
             break;
 
           case TileType.LOCKED_DOOR:
-            if (isVis) {
-              this._drawMesh("lockedDoor", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.1);
-            }
-            break;
-
           case TileType.DOOR_MARKER_A:
             if (isVis) {
-              this._drawMesh("proximityDoor", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.1);
+              // Both Tile 7 (Original Key-Locked Door) and Tile 9 (Security/Airlock Door)
+              const meshId = rawTile === TileType.DOOR_MARKER_A ? "lockedDoor" : "lockedDoor";
+              this._drawMesh(meshId, tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.25);
             }
             break;
 
@@ -497,23 +515,29 @@ export class WebGL3DMeshRenderer {
             this._drawMesh("warpFrame", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.2);
             break;
 
+          case 18: // Original Atari Crumbly Block (0x12) dug with Spade
           case TileType.CRUMBLY_DIRT:
             if (isVis) {
-              this._drawMesh("crumblyDirt", tx, 0, tz, (tx * 1.7 + tz * 2.3) % 6.28, 1, 1, 1, [1, 1, 1], 0);
+              this._drawMesh("crumblyDirt", tx, 0, tz, (tx * 1.7 + tz * 2.3) % 6.28, 1, 1, 1, [1, 1, 1], 0.08);
             }
             break;
 
           case TileType.FORCEFIELD:
+            if (isVis) {
+              this._drawMesh("hazardField", tx, 0, tz, t * 3.2, 1, 1, 1, [1, 1, 1], 0.45);
+            }
+            break;
+
           case TileType.SKULL_HAZARD:
             if (isVis) {
-              this._drawMesh("hazardField", tx, 0, tz, t * 3.2, 1, 1, 1, [1, 1, 1], 0.35);
+              this._drawMesh("skullHazard", tx, 0, tz, Math.sin(t * 2.5 + tx) * 0.2, 1, 1, 1, [1, 1, 1], 0.4);
             }
             break;
 
           case TileType.EXIT_PORTAL: {
-            const containersLeft = ram[SystemAddressMap.CONTAINERS_REMAINING];
-            const exitBoost = containersLeft === 0 ? 0.55 + 0.35 * Math.sin(t * 8.0) : 0.1;
-            this._drawMesh("exitPortal", tx, 0, tz, t * 2.0, 1, 1, 1, [1, 1, 1], exitBoost);
+            const plutLeft = ram[SystemAddressMap.PLUTONIUM_REMAINING];
+            const exitBoost = plutLeft === 0 ? 0.65 + 0.35 * Math.sin(t * 8.0) : 0.25;
+            this._drawMesh("exitPortal", tx, 0, tz, t * 1.8, 1.12, 1.12, 1.12, [1, 1, 1], exitBoost);
             break;
           }
 
@@ -529,22 +553,12 @@ export class WebGL3DMeshRenderer {
     // 2. Render Articulated 3D Astronaut Player
     this._renderArticulatedPlayer(t);
 
-    // 3. Render Smoothly Interpolated 3D Alien Patrol Droids
+    // 3. Render Creepy Articulated 3D Alien Hunters (Xenomorph-Arachnid Stalkers & Eldritch Shadow-Reapers)
     for (let i = 0; i < this.anim.droids.length; i++) {
       const d = this.anim.droids[i];
       if (!d.active) continue;
       if (d.x < minTx - 1 || d.x > maxTx + 1 || d.z < minTz - 1 || d.z > maxTz + 1) continue;
-
-      const hoverY = 0.42 + Math.sin(t * 5.5 + i * 1.3) * 0.08;
-      if (d.type === 0) {
-        // Normal Sentinel Droid: Core + Spinning Gyroscope Ring
-        this._drawMesh("droidCore", d.x, hoverY, d.z, d.facingAngle, 1, 1, 1, [1, 1, 1], 0.25);
-        this._drawMesh("droidRing", d.x, hoverY, d.z, d.ringSpin, 1, 1, 1, [1, 1, 1], 0.4);
-      } else {
-        // Fast Interceptor Mech
-        const pulse = 0.3 + 0.2 * Math.sin(t * 14.0 + i);
-        this._drawMesh("fastDroidBody", d.x, hoverY, d.z, d.facingAngle, 1.08, 1.08, 1.08, [1, 1, 1], pulse);
-      }
+      this._renderCreepyAlien(d, i, t);
     }
 
     // 4. Render 3D Particle Shards & Expanding Shockwave Torus Rings
@@ -626,6 +640,149 @@ export class WebGL3DMeshRenderer {
 
     this._drawMesh("playerLimb", lArmX, baseY + 0.56, lArmZ, yaw - swing * 0.4, 0.88, 0.9, 0.88, suitTint, boost);
     this._drawMesh("playerLimb", rArmX, baseY + 0.56, rArmZ, yaw + swing * 0.4, 0.88, 0.9, 0.88, suitTint, boost);
+  }
+
+  /**
+   * Renders a creepy, articulated 3D Alien Hunter:
+   * - Type 0: Xenomorph-Arachnid Stalker (obsidian-crimson carapace, pulsing bio-sac abdomen,
+   *   6 venom-green eyes, 6 scuttling spider legs in alternating tripod gait, and 2 snapping mandibles).
+   * - Type 1: Eldritch Shadow-Reaper (hunched biomechanical horror with exposed toxic-green ribcage,
+   *   horned Xenomorph cranium, 6 fast-scuttling spider legs, 2 slashing mantis scythe-claws, and whipping scorpion stinger tail).
+   */
+  _renderCreepyAlien(d, index, t) {
+    const ax = d.x;
+    const az = d.z;
+    const isFast = d.type !== 0;
+
+    // Predatory player-stalking: subtly orient toward the player when within hunting range
+    let yaw = d.facingAngle;
+    const p = this.anim.player;
+    if (p) {
+      const toPlayerX = p.x - ax;
+      const toPlayerZ = p.z - az;
+      const distToPlayer = Math.hypot(toPlayerX, toPlayerZ);
+      if (distToPlayer > 0.1 && distToPlayer < 10.0) {
+        const angleToPlayer = Math.atan2(toPlayerX, toPlayerZ);
+        let diff = angleToPlayer - yaw;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        const stalkBlend = (1.0 - distToPlayer / 10.0) * 0.45;
+        yaw += diff * stalkBlend;
+      }
+    }
+
+    const fwdX = Math.sin(yaw);
+    const fwdZ = Math.cos(yaw);
+    const rightX = Math.cos(yaw);
+    const rightZ = -Math.sin(yaw);
+
+    const gaitFreq = isFast ? 22.0 : 16.0;
+    const gaitPhaseBase = t * gaitFreq + index * 1.9;
+    const scuttleBob = Math.abs(Math.sin(gaitPhaseBase)) * 0.06;
+    const baseY = 0.22 + scuttleBob;
+    const breathe = 1.0 + 0.06 * Math.sin(t * 9.0 + index);
+    const pulseBoost = 0.25 + 0.25 * Math.sin(t * (isFast ? 14.0 : 8.5) + index);
+
+    // 1. Render Central Alien Thorax / Abdomen / Skull
+    if (!isFast) {
+      this._drawMesh(
+        "droidCore",
+        ax,
+        baseY,
+        az,
+        yaw,
+        1.12 * breathe,
+        1.12,
+        1.12 / breathe,
+        [1, 1, 1],
+        pulseBoost
+      );
+
+      // 2. Snapping Razor Mandible Pincers (Left & Right)
+      const jawOpen = 0.12 + 0.34 * Math.abs(Math.sin(t * 10.5 + index * 1.3));
+      const lJawX = ax - rightX * 0.11 + fwdX * 0.05;
+      const lJawZ = az - rightZ * 0.11 + fwdZ * 0.05;
+      const rJawX = ax + rightX * 0.11 + fwdX * 0.05;
+      const rJawZ = az + rightZ * 0.11 + fwdZ * 0.05;
+      this._drawMesh("alienMandible", lJawX, baseY, lJawZ, yaw - jawOpen, 1.15, 1.15, 1.15, [1, 1, 1], 0.35);
+      this._drawMesh("alienMandible", rJawX, baseY, rJawZ, yaw + jawOpen, 1.15, 1.15, 1.15, [1, 1, 1], 0.35);
+    } else {
+      // Eldritch Shadow-Reaper Torso & Horned Xenomorph Skull
+      this._drawMesh(
+        "fastDroidBody",
+        ax,
+        baseY + 0.03,
+        az,
+        yaw,
+        1.16 * breathe,
+        1.16,
+        1.16,
+        [1, 1, 1],
+        pulseBoost + 0.1
+      );
+
+      // 2. Giant Slashing Praying-Mantis / Necromorph Scythe Claws (Left & Right)
+      const slash = Math.sin(t * 15.0 + index) * 0.48;
+      const lClawX = ax - rightX * 0.22 + fwdX * 0.04;
+      const lClawZ = az - rightZ * 0.22 + fwdZ * 0.04;
+      const rClawX = ax + rightX * 0.22 + fwdX * 0.04;
+      const rClawZ = az + rightZ * 0.22 + fwdZ * 0.04;
+      this._drawMesh("alienScytheClaw", lClawX, baseY + 0.04, lClawZ, yaw + 0.18 + slash, 1.18, 1.18, 1.18, [1, 1, 1], 0.55);
+      this._drawMesh("alienScytheClaw", rClawX, baseY + 0.04, rClawZ, yaw - 0.18 - slash, 1.18, 1.18, 1.18, [1, 1, 1], 0.55);
+
+      // 3. Whipping Scorpion Stinger Tail
+      const tailWhip = Math.sin(t * 12.5 + index * 0.7) * 0.42;
+      this._drawMesh("alienTailStinger", ax, baseY + 0.05, az, yaw + tailWhip, 1.2, 1.2, 1.2, [1, 1, 1], 0.5);
+    }
+
+    // 4. 6 Articulated Spider Legs in Alternating Tripod Gait (3 Left, 3 Right)
+    const zOffsets = [0.16, 0.0, -0.16];
+    const spreadAngles = [-0.46, 0.0, 0.46];
+    const legTint = isFast ? [0.85, 0.45, 1.0] : [1.0, 0.65, 0.65];
+
+    for (let pair = 0; pair < 3; pair++) {
+      const zOff = zOffsets[pair];
+      const spread = spreadAngles[pair];
+
+      // Tripod group A vs B (alternating phase by PI)
+      const rPhase = gaitPhaseBase + (pair % 2 === 0 ? 0 : Math.PI);
+      const lPhase = gaitPhaseBase + (pair % 2 === 0 ? Math.PI : 0);
+
+      const rSwing = Math.sin(rPhase) * 0.36;
+      const lSwing = Math.sin(lPhase) * 0.36;
+      const rLift = Math.max(0, Math.cos(rPhase)) * 0.09;
+      const lLift = Math.max(0, Math.cos(lPhase)) * 0.09;
+
+      const rLegX = ax + rightX * 0.08 + fwdX * zOff;
+      const rLegZ = az + rightZ * 0.08 + fwdZ * zOff;
+      const lLegX = ax - rightX * 0.08 + fwdX * zOff;
+      const lLegZ = az - rightZ * 0.08 + fwdZ * zOff;
+
+      this._drawMesh(
+        "alienSpiderLeg",
+        rLegX,
+        baseY + rLift,
+        rLegZ,
+        yaw + spread + rSwing,
+        1.12,
+        1.12,
+        1.12,
+        legTint,
+        0.2
+      );
+      this._drawMesh(
+        "alienSpiderLeg",
+        lLegX,
+        baseY + lLift,
+        lLegZ,
+        yaw + Math.PI - spread - lSwing,
+        1.12,
+        1.12,
+        1.12,
+        legTint,
+        0.2
+      );
+    }
   }
 
   /**
@@ -763,20 +920,20 @@ export class WebGL3DMeshRenderer {
       }
     }
 
-    // Centerpiece: Giant Rotating Plutonium Core + Warp Rings + Orbiting Droids
+    // Centerpiece: Giant Rotating Plutonium Core + Radioactive Beacon + Prowling 3D Aliens
     this._drawMesh("warpPad", 0, 0, 0, t * 1.8, 1.8, 1.5, 1.8, [1, 1, 1], 0.35);
-    this._drawMesh("plutoniumCore", 0, 0.35 + Math.sin(t * 3.0) * 0.12, 0, t * 2.2, 1.6, 1.6, 1.6, [1, 1, 1], 0.45);
+    this._drawMesh("plutoniumCore", 0, 0.25 + Math.sin(t * 3.0) * 0.1, 0, t * 2.2, 1.5, 1.5, 1.5, [1, 1, 1], 0.45);
+    this._drawMesh("plutoniumBeacon", 0, 0.25 + Math.sin(t * 3.0) * 0.1, 0, -t * 3.2, 1.5, 1.5, 1.5, [1, 1, 1], 0.65);
 
     for (let i = 0; i < 4; i++) {
       const a = t * 1.1 + (i * Math.PI) / 2;
       const rx = Math.cos(a) * 3.1;
       const rz = Math.sin(a) * 3.1;
-      if (i % 2 === 0) {
-        this._drawMesh("droidCore", rx, 0.5, rz, a + Math.PI, 1.1, 1.1, 1.1, [1, 1, 1], 0.3);
-        this._drawMesh("droidRing", rx, 0.5, rz, t * 5.0, 1.1, 1.1, 1.1, [1, 1, 1], 0.45);
-      } else {
-        this._drawMesh("fastDroidBody", rx, 0.5, rz, a + Math.PI, 1.1, 1.1, 1.1, [1, 1, 1], 0.35);
-      }
+      this._renderCreepyAlien(
+        { x: rx, z: rz, type: i % 2, facingAngle: a + Math.PI * 0.5 },
+        i,
+        t
+      );
     }
   }
 
