@@ -1,0 +1,24 @@
+{
+  "sector_size": 128,
+  "checksum_patches_applied": 4,
+  "unprotected_atr": "build\\ZoneX_unprotected.atr",
+  "symbols_file": "build\\atari_zonex_symbols.sym",
+  "verified_features": [
+    "LASER",
+    "WARP",
+    "SLAM",
+    "AIRDOORS",
+    "DOOR",
+    "PLUTONIUM",
+    "BONUS",
+    "LOCK",
+    "KEY",
+    "LOCKED",
+    "SPADE",
+    "CRUMBLY",
+    "MATS",
+    "CONTAINER",
+    "BLOCK",
+    "TIME"
+  ]
+}
