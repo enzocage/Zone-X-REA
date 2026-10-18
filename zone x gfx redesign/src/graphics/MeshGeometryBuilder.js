@@ -539,12 +539,30 @@ export class MeshGeometryBuilder {
     b.addTorusXZ(0, 0.04, 0, 0.42, 0.03, 12, 6, [0.85, 0.1, 0.25], 0.75);
     compile("droidRing");
 
-    // 18. 3D Particle Crystal Shard & Expanding Shockwave Ring
+    // 18. 3D Particle Crystal Shard, Volumetric Fireball, Armor Shrapnel & Shockwave Ring
     b.addOctahedron(0, 0, 0, 0.12, 0.12, 0.12, [1.0, 1.0, 1.0], 0.95);
     compile("particleShard");
 
     b.addTorusXZ(0, 0, 0, 0.5, 0.04, 16, 6, [1.0, 1.0, 1.0], 1.0);
     compile("shockwaveRing");
+
+    // 19. Volumetric 3D Explosion Fireball (Multi-spike plasma core + equatorial blast corona)
+    b.addOctahedron(0, 0, 0, 0.42, 0.42, 0.42, [1.0, 0.92, 0.55], 0.95);
+    b.addBox(0, 0, 0, 0.54, 0.3, 0.3, [1.0, 0.55, 0.12], 0.9);
+    b.addBox(0, 0, 0, 0.3, 0.54, 0.3, [1.0, 0.55, 0.12], 0.9);
+    b.addBox(0, 0, 0, 0.3, 0.3, 0.54, [1.0, 0.55, 0.12], 0.9);
+    b.addTorusXZ(0, 0, 0, 0.46, 0.07, 12, 6, [1.0, 0.32, 0.08], 0.95);
+    compile("explosionFireball");
+
+    // 20. Jagged 3D Hull / Door / Suit Shrapnel Plate with Molten Edges
+    b.addBevelledBox(0, 0, 0, 0.28, 0.08, 0.22, 0.02, [0.75, 0.82, 0.95], [1.0, 0.58, 0.18], 0.65);
+    b.addOctahedron(0.08, 0.04, 0, 0.12, 0.08, 0.1, [1.0, 0.35, 0.1], 0.85);
+    compile("debrisArmorChunk");
+
+    // 21. Exploded Alien Chitin Carapace & Glowing Bio-Plasma Fragment
+    b.addBevelledBox(0, 0, 0, 0.24, 0.12, 0.28, 0.03, [0.35, 0.05, 0.14], [0.85, 0.12, 0.28], 0.55);
+    b.addOctahedron(0, 0.06, 0, 0.14, 0.14, 0.14, [0.15, 1.0, 0.18], 0.95);
+    compile("alienBioChunk");
 
     return meshes;
   }

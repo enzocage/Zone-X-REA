@@ -308,14 +308,14 @@ export class WebGL3DMeshRenderer {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.useProgram(this.program);
 
-    // Compute Camera Position from SmoothAnimationTracker
-    const camTargetX = this.anim.camera.x;
-    const camTargetZ = this.anim.camera.z;
+    // Compute Camera Position from SmoothAnimationTracker + 3D Explosion Shake
+    const camTargetX = this.anim.camera.x + (this.anim.camera.shakeX || 0);
+    const camTargetZ = this.anim.camera.z + (this.anim.camera.shakeZ || 0);
     const pitchRad = (this.anim.camera.pitchDeg * Math.PI) / 180;
     const dist = this.anim.camera.distance;
 
     const eyeX = camTargetX;
-    const eyeY = Math.sin(pitchRad) * dist;
+    const eyeY = Math.sin(pitchRad) * dist + (this.anim.camera.shakeY || 0);
     const eyeZ = camTargetZ + Math.cos(pitchRad) * dist;
 
     const aspect = this.webglCanvas.width / Math.max(1, this.webglCanvas.height);
@@ -382,6 +382,8 @@ export class WebGL3DMeshRenderer {
         }
 
         const isVis = this.anim.isTileVisuallyPresent(ram, tx, tz);
+        const isExploded = this.anim.isTileExploded(tx, tz);
+        if (isExploded) continue;
 
         switch (rawTile) {
           case TileType.WALL:
@@ -550,18 +552,62 @@ export class WebGL3DMeshRenderer {
       }
     }
 
-    // 2. Render Articulated 3D Astronaut Player
-    this._renderArticulatedPlayer(t);
+    // 2. Render Articulated 3D Astronaut Player (hidden while disintegrated in 3D explosion!)
+    if (!this.anim.player.isExploding) {
+      this._renderArticulatedPlayer(t);
+    }
 
-    // 3. Render Creepy Articulated 3D Alien Hunters (Xenomorph-Arachnid Stalkers & Eldritch Shadow-Reapers)
+    // 3. Render Creepy Articulated 3D Alien Hunters (hidden if currently blasted apart!)
     for (let i = 0; i < this.anim.droids.length; i++) {
       const d = this.anim.droids[i];
-      if (!d.active) continue;
+      if (!d.active || d.explodedTimer > 0) continue;
       if (d.x < minTx - 1 || d.x > maxTx + 1 || d.z < minTz - 1 || d.z > maxTz + 1) continue;
       this._renderCreepyAlien(d, i, t);
     }
 
-    // 4. Render 3D Particle Shards & Expanding Shockwave Torus Rings
+    // 4. Render 3D Tumbling Explosion Debris Chunks (Astronaut Helmet/Torso/Limbs, Alien Legs/Claws/Thorax, Door Gates, Shrapnel)
+    for (let i = 0; i < this.anim.debrisChunks.length; i++) {
+      const dc = this.anim.debrisChunks[i];
+      const lifeRatio = 1.0 - dc.life / dc.maxLife;
+      const s = dc.scale * Math.min(1.0, lifeRatio * 1.45);
+      this._drawMesh3DRot(
+        dc.meshName,
+        dc.x,
+        dc.y,
+        dc.z,
+        dc.rx,
+        dc.ry,
+        dc.rz,
+        s,
+        s,
+        s,
+        dc.color,
+        0.55 * lifeRatio
+      );
+    }
+
+    // 5. Render Volumetric 3D Plasma Fireballs
+    for (let i = 0; i < this.anim.fireballs.length; i++) {
+      const fb = this.anim.fireballs[i];
+      const lifeRatio = 1.0 - fb.life / fb.maxLife;
+      const s = fb.scale;
+      this._drawMesh3DRot(
+        "explosionFireball",
+        fb.x,
+        fb.y,
+        fb.z,
+        fb.rx,
+        fb.ry,
+        fb.rz,
+        s,
+        s * 0.85,
+        s,
+        fb.color,
+        0.95 * lifeRatio
+      );
+    }
+
+    // 6. Render 3D Particle Shards & Expanding Shockwave Torus Rings
     for (let i = 0; i < this.anim.particles.length; i++) {
       const p = this.anim.particles[i];
       const lifeRatio = 1.0 - p.life / p.maxLife;
@@ -793,20 +839,30 @@ export class WebGL3DMeshRenderer {
     this.pointColorsFlat.fill(0);
 
     const p = this.anim.player;
-    // Light 0: Player suit & plutonium backpack light
-    this.pointLightsFlat[0] = p.x;
-    this.pointLightsFlat[1] = 1.25;
-    this.pointLightsFlat[2] = p.z;
-    this.pointLightsFlat[3] = 6.5;
-
-    if (p.plutoniumGlow > 0.05) {
-      this.pointColorsFlat[0] = 0.25;
-      this.pointColorsFlat[1] = 1.0;
-      this.pointColorsFlat[2] = 0.65;
+    // Light 0: Player suit & plutonium backpack light (or blazing Explosion Flash Light!)
+    if (p.isExploding) {
+      this.pointLightsFlat[0] = (p.explosionX + p.colliderX) * 0.5;
+      this.pointLightsFlat[1] = 1.65;
+      this.pointLightsFlat[2] = (p.explosionZ + p.colliderZ) * 0.5;
+      this.pointLightsFlat[3] = 11.5;
+      this.pointColorsFlat[0] = 1.0;
+      this.pointColorsFlat[1] = 0.65;
+      this.pointColorsFlat[2] = 0.22;
     } else {
-      this.pointColorsFlat[0] = 0.25;
-      this.pointColorsFlat[1] = 0.82;
-      this.pointColorsFlat[2] = 1.0;
+      this.pointLightsFlat[0] = p.x;
+      this.pointLightsFlat[1] = 1.25;
+      this.pointLightsFlat[2] = p.z;
+      this.pointLightsFlat[3] = 6.5;
+
+      if (p.plutoniumGlow > 0.05) {
+        this.pointColorsFlat[0] = 0.25;
+        this.pointColorsFlat[1] = 1.0;
+        this.pointColorsFlat[2] = 0.65;
+      } else {
+        this.pointColorsFlat[0] = 0.25;
+        this.pointColorsFlat[1] = 0.82;
+        this.pointColorsFlat[2] = 1.0;
+      }
     }
 
     let lightSlot = 1;
@@ -953,6 +1009,60 @@ export class WebGL3DMeshRenderer {
     m[4] = 0;       m[5] = sy; m[6] = 0;       m[7] = 0;
     m[8] = s * sz;  m[9] = 0;  m[10] = c * sz; m[11] = 0;
     m[12] = tx;     m[13] = ty; m[14] = tz;    m[15] = 1;
+
+    gl.uniformMatrix4fv(this.uniforms.uModel, false, m);
+    gl.uniform3f(this.uniforms.uTint, tint[0], tint[1], tint[2]);
+    gl.uniform1f(this.uniforms.uEmissiveBoost, emissiveBoost);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
+    const stride = 10 * 4;
+    gl.enableVertexAttribArray(this.attribs.aPosition);
+    gl.vertexAttribPointer(this.attribs.aPosition, 3, gl.FLOAT, false, stride, 0);
+
+    gl.enableVertexAttribArray(this.attribs.aNormal);
+    gl.vertexAttribPointer(this.attribs.aNormal, 3, gl.FLOAT, false, stride, 3 * 4);
+
+    gl.enableVertexAttribArray(this.attribs.aColor);
+    gl.vertexAttribPointer(this.attribs.aColor, 3, gl.FLOAT, false, stride, 6 * 4);
+
+    gl.enableVertexAttribArray(this.attribs.aEmissive);
+    gl.vertexAttribPointer(this.attribs.aEmissive, 1, gl.FLOAT, false, stride, 9 * 4);
+
+    gl.drawArrays(gl.TRIANGLES, 0, mesh.vertexCount);
+  }
+
+  /**
+   * Draws a 3D mesh with full 3-axis Euler rotation (rx, ry, rz) for tumbling 3D explosion debris & fireballs.
+   */
+  _drawMesh3DRot(meshName, tx, ty, tz, rx, ry, rz, sx, sy, sz, tint, emissiveBoost) {
+    const mesh = this.gpuMeshes[meshName];
+    if (!mesh) return;
+    const gl = this.gl;
+
+    const cx = Math.cos(rx), sxr = Math.sin(rx);
+    const cy = Math.cos(ry), syr = Math.sin(ry);
+    const cz = Math.cos(rz), szr = Math.sin(rz);
+
+    const m = this.modelMatrix;
+    m[0] = cy * cz * sx;
+    m[1] = (cx * szr + sxr * syr * cz) * sx;
+    m[2] = (sxr * szr - cx * syr * cz) * sx;
+    m[3] = 0;
+
+    m[4] = -cy * szr * sy;
+    m[5] = (cx * cz - sxr * syr * szr) * sy;
+    m[6] = (sxr * cz + cx * syr * szr) * sy;
+    m[7] = 0;
+
+    m[8] = syr * sz;
+    m[9] = -sxr * cy * sz;
+    m[10] = cx * cy * sz;
+    m[11] = 0;
+
+    m[12] = tx;
+    m[13] = ty;
+    m[14] = tz;
+    m[15] = 1;
 
     gl.uniformMatrix4fv(this.uniforms.uModel, false, m);
     gl.uniform3f(this.uniforms.uTint, tint[0], tint[1], tint[2]);
