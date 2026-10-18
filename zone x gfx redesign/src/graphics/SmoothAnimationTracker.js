@@ -315,9 +315,9 @@ export class SmoothAnimationTracker {
     this.camera.shakeIntensity = 0.78;
 
     // =========================================================================
-    // 1. SPECTACULAR 3D PLAYER (ASTRONAUT) DISINTEGRATION
+    // 1. SPECTACULAR 3D PLAYER ROBOT DISINTEGRATION
     // =========================================================================
-    // Blast the Astronaut's Helmet high into the air, spinning wildly in 3D
+    // Blast the Grey Robot's Head (with 3D Robot Face) high into the air, spinning wildly in 3D
     this.spawnDebrisChunk(
       "playerHead",
       px,
@@ -327,10 +327,10 @@ export class SmoothAnimationTracker {
       6.6,
       (Math.random() - 0.5) * 3.8,
       1.18,
-      [1.0, 0.92, 0.85],
+      [1.0, 1.0, 1.0],
       1.85
     );
-    // Blast the Astronaut's Torso & Plutonium Backpack outward
+    // Blast the Grey Robot's Torso & Backpack outward
     this.spawnDebrisChunk(
       "playerTorso",
       px,
@@ -340,10 +340,10 @@ export class SmoothAnimationTracker {
       5.2,
       (Math.random() - 0.5) * 3.2,
       1.12,
-      [1.0, 0.8, 0.65],
+      [1.0, 1.0, 1.0],
       1.85
     );
-    // Blast all 4 Astronaut Limbs (2 Arms + 2 Legs) in 4 radial directions
+    // Blast all 4 Grey Robot Limbs (2 Arms + 2 Legs) in 4 radial directions
     for (let k = 0; k < 4; k++) {
       const a = (k * Math.PI) / 2 + (Math.random() - 0.5) * 0.45;
       const spd = 3.2 + Math.random() * 2.4;
@@ -356,7 +356,7 @@ export class SmoothAnimationTracker {
         4.4 + Math.random() * 2.0,
         Math.sin(a) * spd,
         1.1,
-        [0.95, 0.88, 1.0],
+        [1.0, 1.0, 1.0],
         1.8
       );
     }

@@ -707,12 +707,28 @@ export class WebGL3DMeshRenderer {
           : [1.0, 1.0, 1.0];
     const boost = Math.max(p.hurtFlash * 0.6, p.teleportFlash * 0.7, p.plutoniumGlow * 0.35);
 
-    // 1. Torso & Backpack
+    // 1. Grey Robot Torso & Backpack
     this._drawMesh("playerTorso", px, baseY + 0.44, pz, yaw, 1, 1, 1, suitTint, boost);
 
-    // 2. Helmet + Visor (subtle head scan oscillation)
-    const headYaw = yaw + Math.sin(t * 2.5) * 0.08;
-    this._drawMesh("playerHead", px, baseY + 0.82, pz, headYaw, 1, 1, 1, suitTint, boost + 0.1);
+    // 2. Grey Robot Head with 3D Robot Face:
+    // Tilted slightly upward (rx = -0.35) toward the bird's-eye camera and swiveled (headYaw)
+    // so the robot's eyes, nose bridge, and vocoder mouth are always clearly visible!
+    const headYaw = Math.sin(yaw) * 0.45 + Math.sin(t * 2.5) * 0.08;
+    const headPitch = -0.35 + Math.cos(t * 3.0) * 0.03;
+    this._drawMesh3DRot(
+      "playerHead",
+      px,
+      baseY + 0.84,
+      pz,
+      headPitch,
+      headYaw,
+      0,
+      1.05,
+      1.05,
+      1.05,
+      suitTint,
+      boost + 0.06
+    );
 
     // 3. Articulated Arms & Legs with smooth walk-cycle swing
     const swing = Math.sin(p.walkCycle) * 0.48 * p.strideAmplitude;
@@ -914,9 +930,9 @@ export class WebGL3DMeshRenderer {
         this.pointColorsFlat[1] = 1.0;
         this.pointColorsFlat[2] = 0.32;
       } else {
-        this.pointColorsFlat[0] = 0.2;
-        this.pointColorsFlat[1] = 0.84;
-        this.pointColorsFlat[2] = 1.0;
+        this.pointColorsFlat[0] = 0.70;
+        this.pointColorsFlat[1] = 0.74;
+        this.pointColorsFlat[2] = 0.80;
       }
     }
 

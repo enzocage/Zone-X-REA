@@ -3272,20 +3272,62 @@ class MeshGeometryBuilder {
     b.addOctahedron(0, 1.12, 0, 0.22, 0.28, 0.22, CRYO_CYAN, 0.95);
     compile("exitPortal");
 
-    // 16. Articulated 3D Astronaut Player Meshes (Ceramic-White + Gunmetal-Slate + Cryo-Cyan Visor)
-    b.addBevelledBox(0, 0, 0, 0.44, 0.42, 0.28, 0.04, TITANIUM_HI, [1.0, 1.0, 1.0], 0.22);
-    b.addBox(0, 0.04, 0.15, 0.30, 0.20, 0.06, CRYO_CYAN, 0.8);
-    b.addBox(0, 0.02, -0.20, 0.34, 0.34, 0.15, SLATE_MID, 0.12);
-    b.addCylinderY(0, -0.08, 0.14, -0.25, 0.08, 0.08, 8, CRYO_CYAN, 0.85);
+    // 16. Articulated 3D Grey Player Robot (Metallic Gunmetal/Steel-Grey Chassis + Expressive 3D Robot Face)
+    const ROBOT_GREY_DARK  = [0.24, 0.26, 0.30]; // Anthracite joints, recessed face bezel, boots & backpack frame
+    const ROBOT_GREY_MID   = [0.46, 0.49, 0.54]; // Primary brushed steel-grey robot armor
+    const ROBOT_GREY_LIGHT = [0.66, 0.70, 0.75]; // Silver-grey bevel highlights, brow ridges, nose & chest trim
+    const ROBOT_FACE_DARK  = [0.10, 0.12, 0.15]; // Deep charcoal face screen & pupil core
+    const ROBOT_EYE_GLOW   = [0.82, 0.95, 1.00]; // Crisp expressive robot eyes & vocoder mouth bars
+
+    // 16A. Grey Robot Torso, Chest Armor Plate, Dual Rear Thruster Cylinders & Pelvis Joint
+    b.addBevelledBox(0, 0, 0, 0.44, 0.42, 0.28, 0.04, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.18);
+    b.addBox(0, 0.04, 0.15, 0.32, 0.22, 0.04, ROBOT_GREY_LIGHT, 0.25);
+    b.addBox(-0.085, 0.04, 0.172, 0.095, 0.14, 0.02, ROBOT_GREY_DARK, 0.12);
+    b.addBox( 0.085, 0.04, 0.172, 0.095, 0.14, 0.02, ROBOT_GREY_DARK, 0.12);
+    b.addBox(0, 0.02, -0.19, 0.34, 0.34, 0.14, ROBOT_GREY_DARK, 0.15);
+    b.addCylinderY(-0.09, -0.12, 0.16, -0.24, 0.055, 0.055, 8, ROBOT_GREY_MID, 0.22);
+    b.addCylinderY( 0.09, -0.12, 0.16, -0.24, 0.055, 0.055, 8, ROBOT_GREY_MID, 0.22);
+    b.addCylinderY(0, -0.25, -0.16, 0, 0.14, 0.16, 8, ROBOT_GREY_DARK, 0.15);
     compile("playerTorso");
 
-    b.addBevelledBox(0, 0, 0, 0.36, 0.34, 0.36, 0.06, TITANIUM_HI, [1.0, 1.0, 1.0], 0.25);
-    b.addBox(0, 0.0, 0.15, 0.28, 0.16, 0.12, CRYO_CYAN, 0.95);
-    b.addCylinderY(0.15, 0.15, 0.32, -0.05, 0.022, 0.014, 6, AMBER_GOLD, 0.75);
+    // 16B. Grey Robot Head with 3D Robot Face (Eyes, Pupils, Eyebrows, Nose Bridge, Vocoder Mouth Grille, Ears & Antenna)
+    b.addCylinderY(0, -0.22, -0.13, 0, 0.11, 0.11, 8, ROBOT_GREY_DARK, 0.15);
+    b.addBevelledBox(0, 0.02, 0, 0.42, 0.38, 0.38, 0.05, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.20);
+    // Cranial crest & top antenna
+    b.addBox(0, 0.225, 0, 0.13, 0.05, 0.28, ROBOT_GREY_LIGHT, 0.28);
+    b.addCylinderY(0, 0.22, 0.37, -0.04, 0.024, 0.015, 6, ROBOT_GREY_LIGHT, 0.32);
+    b.addOctahedron(0, 0.40, -0.04, 0.044, 0.044, 0.044, ROBOT_EYE_GLOW, 0.85);
+    // Side acoustic ear bolts
+    b.addBox(-0.23, 0.02, 0, 0.05, 0.14, 0.14, ROBOT_GREY_DARK, 0.18);
+    b.addBox( 0.23, 0.02, 0, 0.05, 0.14, 0.14, ROBOT_GREY_DARK, 0.18);
+    b.addBox(-0.26, 0.02, 0, 0.03, 0.08, 0.08, ROBOT_GREY_LIGHT, 0.32);
+    b.addBox( 0.26, 0.02, 0, 0.03, 0.08, 0.08, ROBOT_GREY_LIGHT, 0.32);
+    // Recessed dark face screen bezel on +Z
+    b.addBox(0, 0.02, 0.185, 0.35, 0.30, 0.03, ROBOT_FACE_DARK, 0.08);
+    // Left & Right 3D Eye Rims, Glowing Eyes, Pupils & Expressive Brow Ridges
+    b.addBox(-0.098, 0.078, 0.200, 0.116, 0.106, 0.032, ROBOT_GREY_LIGHT, 0.36);
+    b.addBox( 0.098, 0.078, 0.200, 0.116, 0.106, 0.032, ROBOT_GREY_LIGHT, 0.36);
+    b.addBox(-0.098, 0.078, 0.212, 0.094, 0.084, 0.034, ROBOT_EYE_GLOW, 0.95);
+    b.addBox( 0.098, 0.078, 0.212, 0.094, 0.084, 0.034, ROBOT_EYE_GLOW, 0.95);
+    b.addBox(-0.092, 0.080, 0.228, 0.038, 0.042, 0.018, ROBOT_FACE_DARK, 0.05);
+    b.addBox( 0.092, 0.080, 0.228, 0.038, 0.042, 0.018, ROBOT_FACE_DARK, 0.05);
+    b.addBox(-0.098, 0.146, 0.216, 0.126, 0.032, 0.044, ROBOT_GREY_LIGHT, 0.42);
+    b.addBox( 0.098, 0.146, 0.216, 0.126, 0.032, 0.044, ROBOT_GREY_LIGHT, 0.42);
+    // 3D Robot Nose Bridge
+    b.addBox(0, 0.016, 0.215, 0.044, 0.076, 0.044, ROBOT_GREY_LIGHT, 0.38);
+    // 3D Robot Mouth / Vocoder Grille with vertical teeth bars & chin bumper
+    b.addBox(0, -0.076, 0.200, 0.24, 0.076, 0.032, ROBOT_GREY_DARK, 0.18);
+    b.addBox(0, -0.076, 0.210, 0.21, 0.048, 0.028, ROBOT_EYE_GLOW, 0.88);
+    b.addBox(-0.055, -0.076, 0.222, 0.018, 0.054, 0.018, ROBOT_FACE_DARK, 0.08);
+    b.addBox( 0.000, -0.076, 0.222, 0.018, 0.054, 0.018, ROBOT_FACE_DARK, 0.08);
+    b.addBox( 0.055, -0.076, 0.222, 0.018, 0.054, 0.018, ROBOT_FACE_DARK, 0.08);
+    b.addBox(0, -0.145, 0.206, 0.26, 0.034, 0.040, ROBOT_GREY_LIGHT, 0.32);
     compile("playerHead");
 
-    b.addBevelledBox(0, -0.14, 0, 0.15, 0.30, 0.15, 0.02, TITANIUM, TITANIUM_HI, 0.18);
-    b.addBox(0, -0.28, 0.03, 0.17, 0.10, 0.20, SLATE_LIGHT, 0.35);
+    // 16C. Grey Robot Articulated Limb (Dark Joint Cap + Steel-Grey Strut + Anthracite Boot/Hand)
+    b.addBox(0, -0.02, 0, 0.16, 0.08, 0.16, ROBOT_GREY_DARK, 0.18);
+    b.addBevelledBox(0, -0.15, 0, 0.14, 0.26, 0.14, 0.02, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.20);
+    b.addBox(0, -0.29, 0.03, 0.17, 0.10, 0.20, ROBOT_GREY_DARK, 0.22);
     compile("playerLimb");
 
     // 17. Compact, Agile 3D Alien Hunters:
@@ -3701,9 +3743,9 @@ class SmoothAnimationTracker {
     this.camera.shakeIntensity = 0.78;
 
     // =========================================================================
-    // 1. SPECTACULAR 3D PLAYER (ASTRONAUT) DISINTEGRATION
+    // 1. SPECTACULAR 3D PLAYER ROBOT DISINTEGRATION
     // =========================================================================
-    // Blast the Astronaut's Helmet high into the air, spinning wildly in 3D
+    // Blast the Grey Robot's Head (with 3D Robot Face) high into the air, spinning wildly in 3D
     this.spawnDebrisChunk(
       "playerHead",
       px,
@@ -3713,10 +3755,10 @@ class SmoothAnimationTracker {
       6.6,
       (Math.random() - 0.5) * 3.8,
       1.18,
-      [1.0, 0.92, 0.85],
+      [1.0, 1.0, 1.0],
       1.85
     );
-    // Blast the Astronaut's Torso & Plutonium Backpack outward
+    // Blast the Grey Robot's Torso & Backpack outward
     this.spawnDebrisChunk(
       "playerTorso",
       px,
@@ -3726,10 +3768,10 @@ class SmoothAnimationTracker {
       5.2,
       (Math.random() - 0.5) * 3.2,
       1.12,
-      [1.0, 0.8, 0.65],
+      [1.0, 1.0, 1.0],
       1.85
     );
-    // Blast all 4 Astronaut Limbs (2 Arms + 2 Legs) in 4 radial directions
+    // Blast all 4 Grey Robot Limbs (2 Arms + 2 Legs) in 4 radial directions
     for (let k = 0; k < 4; k++) {
       const a = (k * Math.PI) / 2 + (Math.random() - 0.5) * 0.45;
       const spd = 3.2 + Math.random() * 2.4;
@@ -3742,7 +3784,7 @@ class SmoothAnimationTracker {
         4.4 + Math.random() * 2.0,
         Math.sin(a) * spd,
         1.1,
-        [0.95, 0.88, 1.0],
+        [1.0, 1.0, 1.0],
         1.8
       );
     }
@@ -5169,12 +5211,28 @@ class WebGL3DMeshRenderer {
           : [1.0, 1.0, 1.0];
     const boost = Math.max(p.hurtFlash * 0.6, p.teleportFlash * 0.7, p.plutoniumGlow * 0.35);
 
-    // 1. Torso & Backpack
+    // 1. Grey Robot Torso & Backpack
     this._drawMesh("playerTorso", px, baseY + 0.44, pz, yaw, 1, 1, 1, suitTint, boost);
 
-    // 2. Helmet + Visor (subtle head scan oscillation)
-    const headYaw = yaw + Math.sin(t * 2.5) * 0.08;
-    this._drawMesh("playerHead", px, baseY + 0.82, pz, headYaw, 1, 1, 1, suitTint, boost + 0.1);
+    // 2. Grey Robot Head with 3D Robot Face:
+    // Tilted slightly upward (rx = -0.35) toward the bird's-eye camera and swiveled (headYaw)
+    // so the robot's eyes, nose bridge, and vocoder mouth are always clearly visible!
+    const headYaw = Math.sin(yaw) * 0.45 + Math.sin(t * 2.5) * 0.08;
+    const headPitch = -0.35 + Math.cos(t * 3.0) * 0.03;
+    this._drawMesh3DRot(
+      "playerHead",
+      px,
+      baseY + 0.84,
+      pz,
+      headPitch,
+      headYaw,
+      0,
+      1.05,
+      1.05,
+      1.05,
+      suitTint,
+      boost + 0.06
+    );
 
     // 3. Articulated Arms & Legs with smooth walk-cycle swing
     const swing = Math.sin(p.walkCycle) * 0.48 * p.strideAmplitude;
@@ -5376,9 +5434,9 @@ class WebGL3DMeshRenderer {
         this.pointColorsFlat[1] = 1.0;
         this.pointColorsFlat[2] = 0.32;
       } else {
-        this.pointColorsFlat[0] = 0.2;
-        this.pointColorsFlat[1] = 0.84;
-        this.pointColorsFlat[2] = 1.0;
+        this.pointColorsFlat[0] = 0.70;
+        this.pointColorsFlat[1] = 0.74;
+        this.pointColorsFlat[2] = 0.80;
       }
     }
 
