@@ -3288,58 +3288,70 @@ class MeshGeometryBuilder {
     b.addBox(0, -0.28, 0.03, 0.17, 0.10, 0.20, SLATE_LIGHT, 0.35);
     compile("playerLimb");
 
-    // 17. Harmonized Biomechanical 3D Alien Hunters (Obsidian-Graphite Carapace + Pure Crimson-Red Eyes & Blades — No Green/Pink Clash!)
-    // 17a. Xenomorph-Arachnid Stalker Body
-    b.addBevelledBox(0, 0.06, 0.08, 0.34, 0.24, 0.42, 0.05, OBSIDIAN, OBSIDIAN_HI, 0.12);
-    b.addOctahedron(0, 0.14, -0.26, 0.26, 0.24, 0.32, OBSIDIAN_HI, 0.15);
-    b.addOctahedron(0, 0.20, -0.26, 0.16, 0.16, 0.20, CRIMSON_RED, 0.9);
-    b.addCylinderY(0, 0.16, 0.40, 0.12, 0.05, 0.01, 6, SLATE_LIGHT, 0.35);
-    b.addCylinderY(0, 0.18, 0.46, -0.04, 0.06, 0.01, 6, CRIMSON_RED, 0.75);
-    b.addCylinderY(0, 0.20, 0.42, -0.20, 0.05, 0.01, 6, SLATE_LIGHT, 0.35);
-    // 6 Glowing Crimson-Red Arachnid Eyes
-    b.addBox(-0.09, 0.10, 0.30, 0.06, 0.05, 0.05, CRIMSON_RED, 1.0);
-    b.addBox(0.09, 0.10, 0.30, 0.06, 0.05, 0.05, CRIMSON_RED, 1.0);
-    b.addBox(-0.15, 0.14, 0.26, 0.05, 0.04, 0.05, CRIMSON_RED, 0.95);
-    b.addBox(0.15, 0.14, 0.26, 0.05, 0.04, 0.05, CRIMSON_RED, 0.95);
-    b.addBox(-0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [1.0, 0.45, 0.2], 1.0);
-    b.addBox(0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [1.0, 0.45, 0.2], 1.0);
+    // 17. Compact, Agile 3D Alien Hunters:
+    // - Normal Alien (Type 0): Monochrome "Grau-in-Grau" (Anthracite / Ash-Grey / Brushed Silver-Grey)
+    // - Fast Alien   (Type 1): "Dunkelblau" (Deep Navy / Midnight Cobalt / Steel-Blue)
+    const ALIEN_GREY_DARK  = [0.28, 0.30, 0.33];
+    const ALIEN_GREY_MID   = [0.46, 0.49, 0.53];
+    const ALIEN_GREY_LIGHT = [0.68, 0.71, 0.76];
+    const ALIEN_GREY_EYE   = [0.88, 0.91, 0.95];
+
+    const ALIEN_BLUE_DEEP  = [0.07, 0.14, 0.32];
+    const ALIEN_BLUE_MID   = [0.13, 0.25, 0.52];
+    const ALIEN_BLUE_HI    = [0.22, 0.40, 0.74];
+    const ALIEN_BLUE_EYE   = [0.48, 0.74, 0.98];
+
+    // 17a. Normal Alien Body ("Grau-in-Grau" Compact Arachnid Stalker)
+    b.addBevelledBox(0, 0.05, 0.06, 0.24, 0.17, 0.30, 0.035, ALIEN_GREY_DARK, ALIEN_GREY_MID, 0.10);
+    b.addOctahedron(0, 0.10, -0.18, 0.18, 0.16, 0.22, ALIEN_GREY_MID, 0.14);
+    b.addOctahedron(0, 0.14, -0.18, 0.11, 0.11, 0.14, ALIEN_GREY_LIGHT, 0.28);
+    b.addCylinderY(0, 0.11, 0.28, 0.08, 0.035, 0.008, 6, ALIEN_GREY_LIGHT, 0.22);
+    b.addCylinderY(0, 0.13, 0.32, -0.03, 0.04, 0.008, 6, ALIEN_GREY_EYE, 0.30);
+    b.addCylinderY(0, 0.14, 0.29, -0.14, 0.035, 0.008, 6, ALIEN_GREY_LIGHT, 0.22);
+    // 6 Pale Silver-Grey Arachnid Eyes
+    b.addBox(-0.06, 0.07, 0.21, 0.04, 0.035, 0.035, ALIEN_GREY_EYE, 0.65);
+    b.addBox(0.06, 0.07, 0.21, 0.04, 0.035, 0.035, ALIEN_GREY_EYE, 0.65);
+    b.addBox(-0.10, 0.10, 0.18, 0.035, 0.03, 0.035, ALIEN_GREY_LIGHT, 0.55);
+    b.addBox(0.10, 0.10, 0.18, 0.035, 0.03, 0.035, ALIEN_GREY_LIGHT, 0.55);
+    b.addBox(-0.03, 0.11, 0.22, 0.03, 0.03, 0.03, [0.95, 0.97, 1.0], 0.75);
+    b.addBox(0.03, 0.11, 0.22, 0.03, 0.03, 0.03, [0.95, 0.97, 1.0], 0.75);
     compile("droidCore");
 
-    // 17b. Articulated Alien Spider Leg (Obsidian Femur + Titanium Joint + Crimson Claw Tip)
-    b.addBox(0.14, 0.14, 0, 0.26, 0.055, 0.055, OBSIDIAN_HI, 0.15);
-    b.addOctahedron(0.27, 0.19, 0, 0.055, 0.08, 0.055, SLATE_LIGHT, 0.35);
-    b.addCylinderY(0.36, -0.26, 0.19, 0, 0.015, 0.045, 5, OBSIDIAN, 0.2);
-    b.addOctahedron(0.36, -0.26, 0, 0.04, 0.08, 0.04, CRIMSON_RED, 0.9);
+    // 17b. Compact Articulated Alien Spider Leg (Neutral Grey-Steel base so tinting yields Grey-on-Grey or Dark-Blue)
+    b.addBox(0.10, 0.10, 0, 0.18, 0.04, 0.04, [0.50, 0.53, 0.57], 0.12);
+    b.addOctahedron(0.19, 0.13, 0, 0.04, 0.055, 0.04, [0.70, 0.74, 0.79], 0.22);
+    b.addCylinderY(0.25, -0.18, 0.13, 0, 0.012, 0.032, 5, [0.38, 0.41, 0.45], 0.12);
+    b.addOctahedron(0.25, -0.18, 0, 0.028, 0.055, 0.028, [0.82, 0.85, 0.90], 0.35);
     compile("alienSpiderLeg");
 
-    // 17c. Articulated Serrated Mandible
-    b.addBox(0, 0.0, 0.12, 0.055, 0.045, 0.20, OBSIDIAN_HI, 0.2);
-    b.addOctahedron(0, 0.0, 0.23, 0.04, 0.04, 0.08, TITANIUM_HI, 0.85);
+    // 17c. Compact Serrated Mandible ("Grau-in-Grau")
+    b.addBox(0, 0.0, 0.08, 0.04, 0.035, 0.14, ALIEN_GREY_MID, 0.15);
+    b.addOctahedron(0, 0.0, 0.16, 0.03, 0.03, 0.055, ALIEN_GREY_EYE, 0.45);
     compile("alienMandible");
 
-    // 17d. Eldritch Shadow-Reaper Body (Fast Alien: Obsidian-Titanium Biomech + Blazing Crimson-Amber Core)
-    b.addBevelledBox(0, 0.16, 0.02, 0.38, 0.34, 0.46, 0.06, OBSIDIAN, OBSIDIAN_HI, 0.15);
-    b.addOctahedron(0, 0.32, -0.22, 0.22, 0.18, 0.38, SLATE_DARK, 0.2);
-    b.addCylinderY(-0.17, 0.26, 0.52, -0.10, 0.045, 0.01, 6, TITANIUM, 0.65);
-    b.addCylinderY(0.17, 0.26, 0.52, -0.10, 0.045, 0.01, 6, TITANIUM, 0.65);
-    b.addOctahedron(0, 0.14, 0.24, 0.13, 0.15, 0.10, CRIMSON_RED, 0.95);
-    b.addBox(-0.10, 0.28, 0.26, 0.07, 0.045, 0.06, CRIMSON_RED, 1.0);
-    b.addBox(0.10, 0.28, 0.26, 0.07, 0.045, 0.06, CRIMSON_RED, 1.0);
-    b.addBox(0, 0.33, 0.27, 0.05, 0.045, 0.05, AMBER_GOLD, 1.0);
+    // 17d. Fast Alien Body ("Dunkelblau" — Deep Navy / Midnight Cobalt Hunter)
+    b.addBevelledBox(0, 0.11, 0.02, 0.26, 0.23, 0.32, 0.04, ALIEN_BLUE_DEEP, ALIEN_BLUE_MID, 0.15);
+    b.addOctahedron(0, 0.22, -0.15, 0.15, 0.12, 0.26, ALIEN_BLUE_MID, 0.20);
+    b.addCylinderY(-0.12, 0.18, 0.36, -0.07, 0.032, 0.008, 6, ALIEN_BLUE_HI, 0.35);
+    b.addCylinderY(0.12, 0.18, 0.36, -0.07, 0.032, 0.008, 6, ALIEN_BLUE_HI, 0.35);
+    b.addOctahedron(0, 0.10, 0.17, 0.09, 0.10, 0.07, ALIEN_BLUE_HI, 0.55);
+    b.addBox(-0.07, 0.19, 0.18, 0.05, 0.035, 0.04, ALIEN_BLUE_EYE, 0.80);
+    b.addBox(0.07, 0.19, 0.18, 0.05, 0.035, 0.04, ALIEN_BLUE_EYE, 0.80);
+    b.addBox(0, 0.23, 0.19, 0.035, 0.035, 0.035, [0.72, 0.88, 1.0], 0.85);
     compile("fastDroidBody");
 
-    // 17e. Articulated Scythe Claw Arm (Obsidian Arm + Titanium/Crimson Blade)
-    b.addBox(0, 0.14, 0.16, 0.065, 0.07, 0.30, OBSIDIAN_HI, 0.2);
-    b.addOctahedron(0, 0.04, 0.33, 0.045, 0.22, 0.16, CRIMSON_RED, 0.9);
+    // 17e. Compact Scythe Claw Arm ("Dunkelblau" Cobalt Blade)
+    b.addBox(0, 0.10, 0.11, 0.045, 0.05, 0.21, ALIEN_BLUE_MID, 0.18);
+    b.addOctahedron(0, 0.03, 0.23, 0.032, 0.15, 0.11, ALIEN_BLUE_HI, 0.55);
     compile("alienScytheClaw");
 
-    // 17f. Whipping Scorpion Tail with Crimson Stinger
-    b.addCylinderY(0, 0.08, 0.46, -0.30, 0.055, 0.022, 6, OBSIDIAN_HI, 0.25);
-    b.addOctahedron(0, 0.48, -0.25, 0.055, 0.075, 0.13, CRIMSON_RED, 0.95);
+    // 17f. Compact Scorpion Tail ("Dunkelblau" Cobalt Stinger)
+    b.addCylinderY(0, 0.06, 0.32, -0.21, 0.038, 0.016, 6, ALIEN_BLUE_MID, 0.20);
+    b.addOctahedron(0, 0.34, -0.17, 0.038, 0.05, 0.09, ALIEN_BLUE_EYE, 0.65);
     compile("alienTailStinger");
 
-    // 17g. Pulsing Dark Bio-Aura Ring
-    b.addTorusXZ(0, 0.04, 0, 0.42, 0.03, 12, 6, CRIMSON_RED, 0.75);
+    // 17g. Subtle Dark Aura Ring
+    b.addTorusXZ(0, 0.03, 0, 0.28, 0.02, 12, 6, ALIEN_GREY_MID, 0.35);
     compile("droidRing");
 
     // 18. 3D Particle Crystal Shard, Volumetric Fireball, Armor Shrapnel & Shockwave Ring
@@ -3362,9 +3374,9 @@ class MeshGeometryBuilder {
     b.addOctahedron(0.08, 0.04, 0, 0.12, 0.08, 0.10, CRIMSON_RED, 0.85);
     compile("debrisArmorChunk");
 
-    // 21. Exploded Alien Chitin Carapace & Glowing Crimson Core Fragment
-    b.addBevelledBox(0, 0, 0, 0.24, 0.12, 0.28, 0.03, OBSIDIAN, OBSIDIAN_HI, 0.45);
-    b.addOctahedron(0, 0.06, 0, 0.14, 0.14, 0.14, CRIMSON_RED, 0.95);
+    // 21. Exploded Alien Chitin Carapace Fragment (Neutral Grey/Steel so tinting matches Grey or Dark-Blue alien)
+    b.addBevelledBox(0, 0, 0, 0.20, 0.10, 0.22, 0.025, [0.52, 0.55, 0.60], [0.74, 0.78, 0.84], 0.35);
+    b.addOctahedron(0, 0.05, 0, 0.11, 0.11, 0.11, [0.85, 0.88, 0.94], 0.55);
     compile("alienBioChunk");
 
     return meshes;
@@ -3796,6 +3808,7 @@ class SmoothAnimationTracker {
         );
 
         // Blast all 6 Articulated Spider Legs outward in 6 directions, spinning in 3D!
+        const alienTint = isFast ? [0.24, 0.44, 0.86] : [0.88, 0.90, 0.94];
         for (let leg = 0; leg < 6; leg++) {
           const la = (leg * Math.PI) / 3 + (Math.random() - 0.5) * 0.3;
           const lSpd = 3.5 + Math.random() * 3.0;
@@ -3807,8 +3820,8 @@ class SmoothAnimationTracker {
             Math.cos(la) * lSpd,
             4.2 + Math.random() * 2.8,
             Math.sin(la) * lSpd,
-            1.25,
-            isFast ? [0.95, 0.4, 1.0] : [1.0, 0.45, 0.45],
+            1.0,
+            alienTint,
             1.8
           );
         }
@@ -3825,7 +3838,7 @@ class SmoothAnimationTracker {
               Math.sin(ma) * 4.2,
               4.8,
               Math.cos(ma) * 4.2,
-              1.35,
+              1.05,
               [1, 1, 1],
               1.7
             );
@@ -3841,7 +3854,7 @@ class SmoothAnimationTracker {
               Math.sin(ca) * 4.6,
               5.2,
               Math.cos(ca) * 4.6,
-              1.3,
+              1.05,
               [1, 1, 1],
               1.75
             );
@@ -3854,13 +3867,13 @@ class SmoothAnimationTracker {
             (Math.random() - 0.5) * 4.0,
             6.2,
             (Math.random() - 0.5) * 4.0,
-            1.3,
+            1.05,
             [1, 1, 1],
             1.8
           );
         }
 
-        // 14 Chitin & Bio-Plasma Fragments + Volumetric Bio-Fireballs + Shockwaves at Alien
+        // 14 Chitin Fragments + Volumetric Fireballs + Shockwaves at Alien
         for (let k = 0; k < 14; k++) {
           const ba = (k / 14) * Math.PI * 2;
           const bSpd = 2.6 + Math.random() * 4.0;
@@ -3872,17 +3885,17 @@ class SmoothAnimationTracker {
             Math.cos(ba) * bSpd,
             3.4 + Math.random() * 3.8,
             Math.sin(ba) * bSpd,
-            0.95 + Math.random() * 0.5,
-            [1, 1, 1],
+            0.85 + Math.random() * 0.45,
+            alienTint,
             1.6
           );
         }
-        this.spawnFireball(ax, 0.45, az, 2.45, 0.72, [0.25, 1.0, 0.2], 1.2);
-        this.spawnFireball(ax, 0.6, az, 2.1, 0.64, isFast ? [1.0, 0.15, 0.65] : [1.0, 0.22, 0.12], 1.6);
-        this.spawnShockwave(ax, az, [0.2, 1.0, 0.25], 4.2, 0.68, 0.2);
-        this.spawnShockwave(ax, az, [1.0, 0.15, 0.35], 3.3, 0.55, 0.45);
-        this.spawnParticleBurst(ax, az, 45, [0.2, 1.0, 0.18], 6.2, 0.42, 8.5, 1.3);
-        this.spawnParticleBurst(ax, az, 35, [1.0, 0.15, 0.28], 5.8, 0.45, 8.0, 1.2);
+        this.spawnFireball(ax, 0.45, az, 2.35, 0.70, isFast ? [0.22, 0.52, 1.0] : [0.78, 0.82, 0.90], 1.2);
+        this.spawnFireball(ax, 0.6, az, 2.0, 0.62, [1.0, 0.55, 0.18], 1.6);
+        this.spawnShockwave(ax, az, alienTint, 4.0, 0.65, 0.2);
+        this.spawnShockwave(ax, az, [1.0, 0.65, 0.25], 3.2, 0.52, 0.45);
+        this.spawnParticleBurst(ax, az, 45, alienTint, 6.0, 0.42, 8.5, 1.25);
+        this.spawnParticleBurst(ax, az, 35, [1.0, 0.72, 0.25], 5.6, 0.45, 8.0, 1.15);
       }
     }
 
@@ -5225,14 +5238,14 @@ class WebGL3DMeshRenderer {
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
 
-    const gaitFreq = isFast ? 22.0 : 16.0;
+    const gaitFreq = isFast ? 24.0 : 17.0;
     const gaitPhaseBase = t * gaitFreq + index * 1.9;
-    const scuttleBob = Math.abs(Math.sin(gaitPhaseBase)) * 0.06;
-    const baseY = 0.22 + scuttleBob;
-    const breathe = 1.0 + 0.06 * Math.sin(t * 9.0 + index);
-    const pulseBoost = 0.25 + 0.25 * Math.sin(t * (isFast ? 14.0 : 8.5) + index);
+    const scuttleBob = Math.abs(Math.sin(gaitPhaseBase)) * 0.04;
+    const baseY = 0.15 + scuttleBob;
+    const breathe = 1.0 + 0.05 * Math.sin(t * 9.0 + index);
+    const pulseBoost = 0.12 + 0.12 * Math.sin(t * (isFast ? 14.0 : 8.5) + index);
 
-    // 1. Render Central Alien Thorax / Abdomen / Skull
+    // 1. Render Compact Central Alien Thorax / Abdomen / Skull (Normal = Grau-in-Grau, Fast = Dunkelblau)
     if (!isFast) {
       this._drawMesh(
         "droidCore",
@@ -5240,54 +5253,54 @@ class WebGL3DMeshRenderer {
         baseY,
         az,
         yaw,
-        1.12 * breathe,
-        1.12,
-        1.12 / breathe,
+        0.86 * breathe,
+        0.86,
+        0.86 / breathe,
         [1, 1, 1],
         pulseBoost
       );
 
-      // 2. Snapping Razor Mandible Pincers (Left & Right)
-      const jawOpen = 0.12 + 0.34 * Math.abs(Math.sin(t * 10.5 + index * 1.3));
-      const lJawX = ax - rightX * 0.11 + fwdX * 0.05;
-      const lJawZ = az - rightZ * 0.11 + fwdZ * 0.05;
-      const rJawX = ax + rightX * 0.11 + fwdX * 0.05;
-      const rJawZ = az + rightZ * 0.11 + fwdZ * 0.05;
-      this._drawMesh("alienMandible", lJawX, baseY, lJawZ, yaw - jawOpen, 1.15, 1.15, 1.15, [1, 1, 1], 0.35);
-      this._drawMesh("alienMandible", rJawX, baseY, rJawZ, yaw + jawOpen, 1.15, 1.15, 1.15, [1, 1, 1], 0.35);
+      // 2. Snapping Mandible Pincers (Left & Right, Grau-in-Grau)
+      const jawOpen = 0.10 + 0.28 * Math.abs(Math.sin(t * 10.5 + index * 1.3));
+      const lJawX = ax - rightX * 0.075 + fwdX * 0.04;
+      const lJawZ = az - rightZ * 0.075 + fwdZ * 0.04;
+      const rJawX = ax + rightX * 0.075 + fwdX * 0.04;
+      const rJawZ = az + rightZ * 0.075 + fwdZ * 0.04;
+      this._drawMesh("alienMandible", lJawX, baseY, lJawZ, yaw - jawOpen, 0.88, 0.88, 0.88, [1, 1, 1], 0.18);
+      this._drawMesh("alienMandible", rJawX, baseY, rJawZ, yaw + jawOpen, 0.88, 0.88, 0.88, [1, 1, 1], 0.18);
     } else {
-      // Eldritch Shadow-Reaper Torso & Horned Xenomorph Skull
+      // Fast Alien Torso & Skull (Dunkelblau)
       this._drawMesh(
         "fastDroidBody",
         ax,
-        baseY + 0.03,
+        baseY + 0.02,
         az,
         yaw,
-        1.16 * breathe,
-        1.16,
-        1.16,
+        0.88 * breathe,
+        0.88,
+        0.88,
         [1, 1, 1],
-        pulseBoost + 0.1
+        pulseBoost + 0.06
       );
 
-      // 2. Giant Slashing Praying-Mantis / Necromorph Scythe Claws (Left & Right)
-      const slash = Math.sin(t * 15.0 + index) * 0.48;
-      const lClawX = ax - rightX * 0.22 + fwdX * 0.04;
-      const lClawZ = az - rightZ * 0.22 + fwdZ * 0.04;
-      const rClawX = ax + rightX * 0.22 + fwdX * 0.04;
-      const rClawZ = az + rightZ * 0.22 + fwdZ * 0.04;
-      this._drawMesh("alienScytheClaw", lClawX, baseY + 0.04, lClawZ, yaw + 0.18 + slash, 1.18, 1.18, 1.18, [1, 1, 1], 0.55);
-      this._drawMesh("alienScytheClaw", rClawX, baseY + 0.04, rClawZ, yaw - 0.18 - slash, 1.18, 1.18, 1.18, [1, 1, 1], 0.55);
+      // 2. Slashing Scythe Claws (Left & Right, Dunkelblau)
+      const slash = Math.sin(t * 15.0 + index) * 0.44;
+      const lClawX = ax - rightX * 0.14 + fwdX * 0.03;
+      const lClawZ = az - rightZ * 0.14 + fwdZ * 0.03;
+      const rClawX = ax + rightX * 0.14 + fwdX * 0.03;
+      const rClawZ = az + rightZ * 0.14 + fwdZ * 0.03;
+      this._drawMesh("alienScytheClaw", lClawX, baseY + 0.02, lClawZ, yaw + 0.16 + slash, 0.88, 0.88, 0.88, [1, 1, 1], 0.25);
+      this._drawMesh("alienScytheClaw", rClawX, baseY + 0.02, rClawZ, yaw - 0.16 - slash, 0.88, 0.88, 0.88, [1, 1, 1], 0.25);
 
-      // 3. Whipping Scorpion Stinger Tail
-      const tailWhip = Math.sin(t * 12.5 + index * 0.7) * 0.42;
-      this._drawMesh("alienTailStinger", ax, baseY + 0.05, az, yaw + tailWhip, 1.2, 1.2, 1.2, [1, 1, 1], 0.5);
+      // 3. Whipping Scorpion Stinger Tail (Dunkelblau)
+      const tailWhip = Math.sin(t * 12.5 + index * 0.7) * 0.38;
+      this._drawMesh("alienTailStinger", ax, baseY + 0.03, az, yaw + tailWhip, 0.88, 0.88, 0.88, [1, 1, 1], 0.25);
     }
 
-    // 4. 6 Articulated Spider Legs in Alternating Tripod Gait (3 Left, 3 Right)
-    const zOffsets = [0.16, 0.0, -0.16];
+    // 4. 6 Compact Articulated Spider Legs in Alternating Tripod Gait (Normal = Grau-in-Grau, Fast = Dunkelblau)
+    const zOffsets = [0.11, 0.0, -0.11];
     const spreadAngles = [-0.46, 0.0, 0.46];
-    const legTint = [1.0, 1.0, 1.0];
+    const legTint = isFast ? [0.24, 0.44, 0.86] : [0.92, 0.94, 0.97];
 
     for (let pair = 0; pair < 3; pair++) {
       const zOff = zOffsets[pair];
@@ -5297,15 +5310,15 @@ class WebGL3DMeshRenderer {
       const rPhase = gaitPhaseBase + (pair % 2 === 0 ? 0 : Math.PI);
       const lPhase = gaitPhaseBase + (pair % 2 === 0 ? Math.PI : 0);
 
-      const rSwing = Math.sin(rPhase) * 0.36;
-      const lSwing = Math.sin(lPhase) * 0.36;
-      const rLift = Math.max(0, Math.cos(rPhase)) * 0.09;
-      const lLift = Math.max(0, Math.cos(lPhase)) * 0.09;
+      const rSwing = Math.sin(rPhase) * 0.34;
+      const lSwing = Math.sin(lPhase) * 0.34;
+      const rLift = Math.max(0, Math.cos(rPhase)) * 0.06;
+      const lLift = Math.max(0, Math.cos(lPhase)) * 0.06;
 
-      const rLegX = ax + rightX * 0.08 + fwdX * zOff;
-      const rLegZ = az + rightZ * 0.08 + fwdZ * zOff;
-      const lLegX = ax - rightX * 0.08 + fwdX * zOff;
-      const lLegZ = az - rightZ * 0.08 + fwdZ * zOff;
+      const rLegX = ax + rightX * 0.055 + fwdX * zOff;
+      const rLegZ = az + rightZ * 0.055 + fwdZ * zOff;
+      const lLegX = ax - rightX * 0.055 + fwdX * zOff;
+      const lLegZ = az - rightZ * 0.055 + fwdZ * zOff;
 
       this._drawMesh(
         "alienSpiderLeg",
@@ -5313,11 +5326,11 @@ class WebGL3DMeshRenderer {
         baseY + rLift,
         rLegZ,
         yaw + spread + rSwing,
-        1.12,
-        1.12,
-        1.12,
+        0.86,
+        0.86,
+        0.86,
         legTint,
-        0.15
+        0.10
       );
       this._drawMesh(
         "alienSpiderLeg",
@@ -5325,11 +5338,11 @@ class WebGL3DMeshRenderer {
         baseY + lLift,
         lLegZ,
         yaw + Math.PI - spread - lSwing,
-        1.12,
-        1.12,
-        1.12,
+        0.86,
+        0.86,
+        0.86,
         legTint,
-        0.15
+        0.10
       );
     }
   }
@@ -5370,7 +5383,7 @@ class WebGL3DMeshRenderer {
     }
 
     let lightSlot = 1;
-    // Add nearest active droids as menacing crimson point lights
+    // Add nearest active droids as subtle cool grey (Normal) or deep blue (Fast) point lights
     for (let i = 0; i < this.anim.droids.length && lightSlot < 3; i++) {
       const d = this.anim.droids[i];
       if (!d.active) continue;
@@ -5378,12 +5391,18 @@ class WebGL3DMeshRenderer {
         const b4 = lightSlot * 4;
         const b3 = lightSlot * 3;
         this.pointLightsFlat[b4] = d.x;
-        this.pointLightsFlat[b4 + 1] = 0.85;
+        this.pointLightsFlat[b4 + 1] = 0.7;
         this.pointLightsFlat[b4 + 2] = d.z;
-        this.pointLightsFlat[b4 + 3] = 4.2;
-        this.pointColorsFlat[b3] = 1.0;
-        this.pointColorsFlat[b3 + 1] = 0.18;
-        this.pointColorsFlat[b3 + 2] = 0.22;
+        this.pointLightsFlat[b4 + 3] = 2.8;
+        if (d.type === 0) {
+          this.pointColorsFlat[b3] = 0.55;
+          this.pointColorsFlat[b3 + 1] = 0.58;
+          this.pointColorsFlat[b3 + 2] = 0.64;
+        } else {
+          this.pointColorsFlat[b3] = 0.18;
+          this.pointColorsFlat[b3 + 1] = 0.38;
+          this.pointColorsFlat[b3 + 2] = 0.85;
+        }
         lightSlot++;
       }
     }

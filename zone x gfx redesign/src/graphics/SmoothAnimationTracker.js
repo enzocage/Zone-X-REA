@@ -422,6 +422,7 @@ export class SmoothAnimationTracker {
         );
 
         // Blast all 6 Articulated Spider Legs outward in 6 directions, spinning in 3D!
+        const alienTint = isFast ? [0.24, 0.44, 0.86] : [0.88, 0.90, 0.94];
         for (let leg = 0; leg < 6; leg++) {
           const la = (leg * Math.PI) / 3 + (Math.random() - 0.5) * 0.3;
           const lSpd = 3.5 + Math.random() * 3.0;
@@ -433,8 +434,8 @@ export class SmoothAnimationTracker {
             Math.cos(la) * lSpd,
             4.2 + Math.random() * 2.8,
             Math.sin(la) * lSpd,
-            1.25,
-            isFast ? [0.95, 0.4, 1.0] : [1.0, 0.45, 0.45],
+            1.0,
+            alienTint,
             1.8
           );
         }
@@ -451,7 +452,7 @@ export class SmoothAnimationTracker {
               Math.sin(ma) * 4.2,
               4.8,
               Math.cos(ma) * 4.2,
-              1.35,
+              1.05,
               [1, 1, 1],
               1.7
             );
@@ -467,7 +468,7 @@ export class SmoothAnimationTracker {
               Math.sin(ca) * 4.6,
               5.2,
               Math.cos(ca) * 4.6,
-              1.3,
+              1.05,
               [1, 1, 1],
               1.75
             );
@@ -480,13 +481,13 @@ export class SmoothAnimationTracker {
             (Math.random() - 0.5) * 4.0,
             6.2,
             (Math.random() - 0.5) * 4.0,
-            1.3,
+            1.05,
             [1, 1, 1],
             1.8
           );
         }
 
-        // 14 Chitin & Bio-Plasma Fragments + Volumetric Bio-Fireballs + Shockwaves at Alien
+        // 14 Chitin Fragments + Volumetric Fireballs + Shockwaves at Alien
         for (let k = 0; k < 14; k++) {
           const ba = (k / 14) * Math.PI * 2;
           const bSpd = 2.6 + Math.random() * 4.0;
@@ -498,17 +499,17 @@ export class SmoothAnimationTracker {
             Math.cos(ba) * bSpd,
             3.4 + Math.random() * 3.8,
             Math.sin(ba) * bSpd,
-            0.95 + Math.random() * 0.5,
-            [1, 1, 1],
+            0.85 + Math.random() * 0.45,
+            alienTint,
             1.6
           );
         }
-        this.spawnFireball(ax, 0.45, az, 2.45, 0.72, [0.25, 1.0, 0.2], 1.2);
-        this.spawnFireball(ax, 0.6, az, 2.1, 0.64, isFast ? [1.0, 0.15, 0.65] : [1.0, 0.22, 0.12], 1.6);
-        this.spawnShockwave(ax, az, [0.2, 1.0, 0.25], 4.2, 0.68, 0.2);
-        this.spawnShockwave(ax, az, [1.0, 0.15, 0.35], 3.3, 0.55, 0.45);
-        this.spawnParticleBurst(ax, az, 45, [0.2, 1.0, 0.18], 6.2, 0.42, 8.5, 1.3);
-        this.spawnParticleBurst(ax, az, 35, [1.0, 0.15, 0.28], 5.8, 0.45, 8.0, 1.2);
+        this.spawnFireball(ax, 0.45, az, 2.35, 0.70, isFast ? [0.22, 0.52, 1.0] : [0.78, 0.82, 0.90], 1.2);
+        this.spawnFireball(ax, 0.6, az, 2.0, 0.62, [1.0, 0.55, 0.18], 1.6);
+        this.spawnShockwave(ax, az, alienTint, 4.0, 0.65, 0.2);
+        this.spawnShockwave(ax, az, [1.0, 0.65, 0.25], 3.2, 0.52, 0.45);
+        this.spawnParticleBurst(ax, az, 45, alienTint, 6.0, 0.42, 8.5, 1.25);
+        this.spawnParticleBurst(ax, az, 35, [1.0, 0.72, 0.25], 5.6, 0.45, 8.0, 1.15);
       }
     }
 

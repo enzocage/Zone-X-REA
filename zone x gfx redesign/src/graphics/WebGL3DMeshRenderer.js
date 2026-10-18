@@ -776,14 +776,14 @@ export class WebGL3DMeshRenderer {
     const rightX = Math.cos(yaw);
     const rightZ = -Math.sin(yaw);
 
-    const gaitFreq = isFast ? 22.0 : 16.0;
+    const gaitFreq = isFast ? 24.0 : 17.0;
     const gaitPhaseBase = t * gaitFreq + index * 1.9;
-    const scuttleBob = Math.abs(Math.sin(gaitPhaseBase)) * 0.06;
-    const baseY = 0.22 + scuttleBob;
-    const breathe = 1.0 + 0.06 * Math.sin(t * 9.0 + index);
-    const pulseBoost = 0.25 + 0.25 * Math.sin(t * (isFast ? 14.0 : 8.5) + index);
+    const scuttleBob = Math.abs(Math.sin(gaitPhaseBase)) * 0.04;
+    const baseY = 0.15 + scuttleBob;
+    const breathe = 1.0 + 0.05 * Math.sin(t * 9.0 + index);
+    const pulseBoost = 0.12 + 0.12 * Math.sin(t * (isFast ? 14.0 : 8.5) + index);
 
-    // 1. Render Central Alien Thorax / Abdomen / Skull
+    // 1. Render Compact Central Alien Thorax / Abdomen / Skull (Normal = Grau-in-Grau, Fast = Dunkelblau)
     if (!isFast) {
       this._drawMesh(
         "droidCore",
@@ -791,54 +791,54 @@ export class WebGL3DMeshRenderer {
         baseY,
         az,
         yaw,
-        1.12 * breathe,
-        1.12,
-        1.12 / breathe,
+        0.86 * breathe,
+        0.86,
+        0.86 / breathe,
         [1, 1, 1],
         pulseBoost
       );
 
-      // 2. Snapping Razor Mandible Pincers (Left & Right)
-      const jawOpen = 0.12 + 0.34 * Math.abs(Math.sin(t * 10.5 + index * 1.3));
-      const lJawX = ax - rightX * 0.11 + fwdX * 0.05;
-      const lJawZ = az - rightZ * 0.11 + fwdZ * 0.05;
-      const rJawX = ax + rightX * 0.11 + fwdX * 0.05;
-      const rJawZ = az + rightZ * 0.11 + fwdZ * 0.05;
-      this._drawMesh("alienMandible", lJawX, baseY, lJawZ, yaw - jawOpen, 1.15, 1.15, 1.15, [1, 1, 1], 0.35);
-      this._drawMesh("alienMandible", rJawX, baseY, rJawZ, yaw + jawOpen, 1.15, 1.15, 1.15, [1, 1, 1], 0.35);
+      // 2. Snapping Mandible Pincers (Left & Right, Grau-in-Grau)
+      const jawOpen = 0.10 + 0.28 * Math.abs(Math.sin(t * 10.5 + index * 1.3));
+      const lJawX = ax - rightX * 0.075 + fwdX * 0.04;
+      const lJawZ = az - rightZ * 0.075 + fwdZ * 0.04;
+      const rJawX = ax + rightX * 0.075 + fwdX * 0.04;
+      const rJawZ = az + rightZ * 0.075 + fwdZ * 0.04;
+      this._drawMesh("alienMandible", lJawX, baseY, lJawZ, yaw - jawOpen, 0.88, 0.88, 0.88, [1, 1, 1], 0.18);
+      this._drawMesh("alienMandible", rJawX, baseY, rJawZ, yaw + jawOpen, 0.88, 0.88, 0.88, [1, 1, 1], 0.18);
     } else {
-      // Eldritch Shadow-Reaper Torso & Horned Xenomorph Skull
+      // Fast Alien Torso & Skull (Dunkelblau)
       this._drawMesh(
         "fastDroidBody",
         ax,
-        baseY + 0.03,
+        baseY + 0.02,
         az,
         yaw,
-        1.16 * breathe,
-        1.16,
-        1.16,
+        0.88 * breathe,
+        0.88,
+        0.88,
         [1, 1, 1],
-        pulseBoost + 0.1
+        pulseBoost + 0.06
       );
 
-      // 2. Giant Slashing Praying-Mantis / Necromorph Scythe Claws (Left & Right)
-      const slash = Math.sin(t * 15.0 + index) * 0.48;
-      const lClawX = ax - rightX * 0.22 + fwdX * 0.04;
-      const lClawZ = az - rightZ * 0.22 + fwdZ * 0.04;
-      const rClawX = ax + rightX * 0.22 + fwdX * 0.04;
-      const rClawZ = az + rightZ * 0.22 + fwdZ * 0.04;
-      this._drawMesh("alienScytheClaw", lClawX, baseY + 0.04, lClawZ, yaw + 0.18 + slash, 1.18, 1.18, 1.18, [1, 1, 1], 0.55);
-      this._drawMesh("alienScytheClaw", rClawX, baseY + 0.04, rClawZ, yaw - 0.18 - slash, 1.18, 1.18, 1.18, [1, 1, 1], 0.55);
+      // 2. Slashing Scythe Claws (Left & Right, Dunkelblau)
+      const slash = Math.sin(t * 15.0 + index) * 0.44;
+      const lClawX = ax - rightX * 0.14 + fwdX * 0.03;
+      const lClawZ = az - rightZ * 0.14 + fwdZ * 0.03;
+      const rClawX = ax + rightX * 0.14 + fwdX * 0.03;
+      const rClawZ = az + rightZ * 0.14 + fwdZ * 0.03;
+      this._drawMesh("alienScytheClaw", lClawX, baseY + 0.02, lClawZ, yaw + 0.16 + slash, 0.88, 0.88, 0.88, [1, 1, 1], 0.25);
+      this._drawMesh("alienScytheClaw", rClawX, baseY + 0.02, rClawZ, yaw - 0.16 - slash, 0.88, 0.88, 0.88, [1, 1, 1], 0.25);
 
-      // 3. Whipping Scorpion Stinger Tail
-      const tailWhip = Math.sin(t * 12.5 + index * 0.7) * 0.42;
-      this._drawMesh("alienTailStinger", ax, baseY + 0.05, az, yaw + tailWhip, 1.2, 1.2, 1.2, [1, 1, 1], 0.5);
+      // 3. Whipping Scorpion Stinger Tail (Dunkelblau)
+      const tailWhip = Math.sin(t * 12.5 + index * 0.7) * 0.38;
+      this._drawMesh("alienTailStinger", ax, baseY + 0.03, az, yaw + tailWhip, 0.88, 0.88, 0.88, [1, 1, 1], 0.25);
     }
 
-    // 4. 6 Articulated Spider Legs in Alternating Tripod Gait (3 Left, 3 Right)
-    const zOffsets = [0.16, 0.0, -0.16];
+    // 4. 6 Compact Articulated Spider Legs in Alternating Tripod Gait (Normal = Grau-in-Grau, Fast = Dunkelblau)
+    const zOffsets = [0.11, 0.0, -0.11];
     const spreadAngles = [-0.46, 0.0, 0.46];
-    const legTint = [1.0, 1.0, 1.0];
+    const legTint = isFast ? [0.24, 0.44, 0.86] : [0.92, 0.94, 0.97];
 
     for (let pair = 0; pair < 3; pair++) {
       const zOff = zOffsets[pair];
@@ -848,15 +848,15 @@ export class WebGL3DMeshRenderer {
       const rPhase = gaitPhaseBase + (pair % 2 === 0 ? 0 : Math.PI);
       const lPhase = gaitPhaseBase + (pair % 2 === 0 ? Math.PI : 0);
 
-      const rSwing = Math.sin(rPhase) * 0.36;
-      const lSwing = Math.sin(lPhase) * 0.36;
-      const rLift = Math.max(0, Math.cos(rPhase)) * 0.09;
-      const lLift = Math.max(0, Math.cos(lPhase)) * 0.09;
+      const rSwing = Math.sin(rPhase) * 0.34;
+      const lSwing = Math.sin(lPhase) * 0.34;
+      const rLift = Math.max(0, Math.cos(rPhase)) * 0.06;
+      const lLift = Math.max(0, Math.cos(lPhase)) * 0.06;
 
-      const rLegX = ax + rightX * 0.08 + fwdX * zOff;
-      const rLegZ = az + rightZ * 0.08 + fwdZ * zOff;
-      const lLegX = ax - rightX * 0.08 + fwdX * zOff;
-      const lLegZ = az - rightZ * 0.08 + fwdZ * zOff;
+      const rLegX = ax + rightX * 0.055 + fwdX * zOff;
+      const rLegZ = az + rightZ * 0.055 + fwdZ * zOff;
+      const lLegX = ax - rightX * 0.055 + fwdX * zOff;
+      const lLegZ = az - rightZ * 0.055 + fwdZ * zOff;
 
       this._drawMesh(
         "alienSpiderLeg",
@@ -864,11 +864,11 @@ export class WebGL3DMeshRenderer {
         baseY + rLift,
         rLegZ,
         yaw + spread + rSwing,
-        1.12,
-        1.12,
-        1.12,
+        0.86,
+        0.86,
+        0.86,
         legTint,
-        0.15
+        0.10
       );
       this._drawMesh(
         "alienSpiderLeg",
@@ -876,11 +876,11 @@ export class WebGL3DMeshRenderer {
         baseY + lLift,
         lLegZ,
         yaw + Math.PI - spread - lSwing,
-        1.12,
-        1.12,
-        1.12,
+        0.86,
+        0.86,
+        0.86,
         legTint,
-        0.15
+        0.10
       );
     }
   }
@@ -921,7 +921,7 @@ export class WebGL3DMeshRenderer {
     }
 
     let lightSlot = 1;
-    // Add nearest active droids as menacing crimson point lights
+    // Add nearest active droids as subtle cool grey (Normal) or deep blue (Fast) point lights
     for (let i = 0; i < this.anim.droids.length && lightSlot < 3; i++) {
       const d = this.anim.droids[i];
       if (!d.active) continue;
@@ -929,12 +929,18 @@ export class WebGL3DMeshRenderer {
         const b4 = lightSlot * 4;
         const b3 = lightSlot * 3;
         this.pointLightsFlat[b4] = d.x;
-        this.pointLightsFlat[b4 + 1] = 0.85;
+        this.pointLightsFlat[b4 + 1] = 0.7;
         this.pointLightsFlat[b4 + 2] = d.z;
-        this.pointLightsFlat[b4 + 3] = 4.2;
-        this.pointColorsFlat[b3] = 1.0;
-        this.pointColorsFlat[b3 + 1] = 0.18;
-        this.pointColorsFlat[b3 + 2] = 0.22;
+        this.pointLightsFlat[b4 + 3] = 2.8;
+        if (d.type === 0) {
+          this.pointColorsFlat[b3] = 0.55;
+          this.pointColorsFlat[b3 + 1] = 0.58;
+          this.pointColorsFlat[b3 + 2] = 0.64;
+        } else {
+          this.pointColorsFlat[b3] = 0.18;
+          this.pointColorsFlat[b3 + 1] = 0.38;
+          this.pointColorsFlat[b3 + 2] = 0.85;
+        }
         lightSlot++;
       }
     }

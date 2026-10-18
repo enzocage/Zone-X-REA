@@ -526,58 +526,70 @@ export class MeshGeometryBuilder {
     b.addBox(0, -0.28, 0.03, 0.17, 0.10, 0.20, SLATE_LIGHT, 0.35);
     compile("playerLimb");
 
-    // 17. Harmonized Biomechanical 3D Alien Hunters (Obsidian-Graphite Carapace + Pure Crimson-Red Eyes & Blades — No Green/Pink Clash!)
-    // 17a. Xenomorph-Arachnid Stalker Body
-    b.addBevelledBox(0, 0.06, 0.08, 0.34, 0.24, 0.42, 0.05, OBSIDIAN, OBSIDIAN_HI, 0.12);
-    b.addOctahedron(0, 0.14, -0.26, 0.26, 0.24, 0.32, OBSIDIAN_HI, 0.15);
-    b.addOctahedron(0, 0.20, -0.26, 0.16, 0.16, 0.20, CRIMSON_RED, 0.9);
-    b.addCylinderY(0, 0.16, 0.40, 0.12, 0.05, 0.01, 6, SLATE_LIGHT, 0.35);
-    b.addCylinderY(0, 0.18, 0.46, -0.04, 0.06, 0.01, 6, CRIMSON_RED, 0.75);
-    b.addCylinderY(0, 0.20, 0.42, -0.20, 0.05, 0.01, 6, SLATE_LIGHT, 0.35);
-    // 6 Glowing Crimson-Red Arachnid Eyes
-    b.addBox(-0.09, 0.10, 0.30, 0.06, 0.05, 0.05, CRIMSON_RED, 1.0);
-    b.addBox(0.09, 0.10, 0.30, 0.06, 0.05, 0.05, CRIMSON_RED, 1.0);
-    b.addBox(-0.15, 0.14, 0.26, 0.05, 0.04, 0.05, CRIMSON_RED, 0.95);
-    b.addBox(0.15, 0.14, 0.26, 0.05, 0.04, 0.05, CRIMSON_RED, 0.95);
-    b.addBox(-0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [1.0, 0.45, 0.2], 1.0);
-    b.addBox(0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [1.0, 0.45, 0.2], 1.0);
+    // 17. Compact, Agile 3D Alien Hunters:
+    // - Normal Alien (Type 0): Monochrome "Grau-in-Grau" (Anthracite / Ash-Grey / Brushed Silver-Grey)
+    // - Fast Alien   (Type 1): "Dunkelblau" (Deep Navy / Midnight Cobalt / Steel-Blue)
+    const ALIEN_GREY_DARK  = [0.28, 0.30, 0.33];
+    const ALIEN_GREY_MID   = [0.46, 0.49, 0.53];
+    const ALIEN_GREY_LIGHT = [0.68, 0.71, 0.76];
+    const ALIEN_GREY_EYE   = [0.88, 0.91, 0.95];
+
+    const ALIEN_BLUE_DEEP  = [0.07, 0.14, 0.32];
+    const ALIEN_BLUE_MID   = [0.13, 0.25, 0.52];
+    const ALIEN_BLUE_HI    = [0.22, 0.40, 0.74];
+    const ALIEN_BLUE_EYE   = [0.48, 0.74, 0.98];
+
+    // 17a. Normal Alien Body ("Grau-in-Grau" Compact Arachnid Stalker)
+    b.addBevelledBox(0, 0.05, 0.06, 0.24, 0.17, 0.30, 0.035, ALIEN_GREY_DARK, ALIEN_GREY_MID, 0.10);
+    b.addOctahedron(0, 0.10, -0.18, 0.18, 0.16, 0.22, ALIEN_GREY_MID, 0.14);
+    b.addOctahedron(0, 0.14, -0.18, 0.11, 0.11, 0.14, ALIEN_GREY_LIGHT, 0.28);
+    b.addCylinderY(0, 0.11, 0.28, 0.08, 0.035, 0.008, 6, ALIEN_GREY_LIGHT, 0.22);
+    b.addCylinderY(0, 0.13, 0.32, -0.03, 0.04, 0.008, 6, ALIEN_GREY_EYE, 0.30);
+    b.addCylinderY(0, 0.14, 0.29, -0.14, 0.035, 0.008, 6, ALIEN_GREY_LIGHT, 0.22);
+    // 6 Pale Silver-Grey Arachnid Eyes
+    b.addBox(-0.06, 0.07, 0.21, 0.04, 0.035, 0.035, ALIEN_GREY_EYE, 0.65);
+    b.addBox(0.06, 0.07, 0.21, 0.04, 0.035, 0.035, ALIEN_GREY_EYE, 0.65);
+    b.addBox(-0.10, 0.10, 0.18, 0.035, 0.03, 0.035, ALIEN_GREY_LIGHT, 0.55);
+    b.addBox(0.10, 0.10, 0.18, 0.035, 0.03, 0.035, ALIEN_GREY_LIGHT, 0.55);
+    b.addBox(-0.03, 0.11, 0.22, 0.03, 0.03, 0.03, [0.95, 0.97, 1.0], 0.75);
+    b.addBox(0.03, 0.11, 0.22, 0.03, 0.03, 0.03, [0.95, 0.97, 1.0], 0.75);
     compile("droidCore");
 
-    // 17b. Articulated Alien Spider Leg (Obsidian Femur + Titanium Joint + Crimson Claw Tip)
-    b.addBox(0.14, 0.14, 0, 0.26, 0.055, 0.055, OBSIDIAN_HI, 0.15);
-    b.addOctahedron(0.27, 0.19, 0, 0.055, 0.08, 0.055, SLATE_LIGHT, 0.35);
-    b.addCylinderY(0.36, -0.26, 0.19, 0, 0.015, 0.045, 5, OBSIDIAN, 0.2);
-    b.addOctahedron(0.36, -0.26, 0, 0.04, 0.08, 0.04, CRIMSON_RED, 0.9);
+    // 17b. Compact Articulated Alien Spider Leg (Neutral Grey-Steel base so tinting yields Grey-on-Grey or Dark-Blue)
+    b.addBox(0.10, 0.10, 0, 0.18, 0.04, 0.04, [0.50, 0.53, 0.57], 0.12);
+    b.addOctahedron(0.19, 0.13, 0, 0.04, 0.055, 0.04, [0.70, 0.74, 0.79], 0.22);
+    b.addCylinderY(0.25, -0.18, 0.13, 0, 0.012, 0.032, 5, [0.38, 0.41, 0.45], 0.12);
+    b.addOctahedron(0.25, -0.18, 0, 0.028, 0.055, 0.028, [0.82, 0.85, 0.90], 0.35);
     compile("alienSpiderLeg");
 
-    // 17c. Articulated Serrated Mandible
-    b.addBox(0, 0.0, 0.12, 0.055, 0.045, 0.20, OBSIDIAN_HI, 0.2);
-    b.addOctahedron(0, 0.0, 0.23, 0.04, 0.04, 0.08, TITANIUM_HI, 0.85);
+    // 17c. Compact Serrated Mandible ("Grau-in-Grau")
+    b.addBox(0, 0.0, 0.08, 0.04, 0.035, 0.14, ALIEN_GREY_MID, 0.15);
+    b.addOctahedron(0, 0.0, 0.16, 0.03, 0.03, 0.055, ALIEN_GREY_EYE, 0.45);
     compile("alienMandible");
 
-    // 17d. Eldritch Shadow-Reaper Body (Fast Alien: Obsidian-Titanium Biomech + Blazing Crimson-Amber Core)
-    b.addBevelledBox(0, 0.16, 0.02, 0.38, 0.34, 0.46, 0.06, OBSIDIAN, OBSIDIAN_HI, 0.15);
-    b.addOctahedron(0, 0.32, -0.22, 0.22, 0.18, 0.38, SLATE_DARK, 0.2);
-    b.addCylinderY(-0.17, 0.26, 0.52, -0.10, 0.045, 0.01, 6, TITANIUM, 0.65);
-    b.addCylinderY(0.17, 0.26, 0.52, -0.10, 0.045, 0.01, 6, TITANIUM, 0.65);
-    b.addOctahedron(0, 0.14, 0.24, 0.13, 0.15, 0.10, CRIMSON_RED, 0.95);
-    b.addBox(-0.10, 0.28, 0.26, 0.07, 0.045, 0.06, CRIMSON_RED, 1.0);
-    b.addBox(0.10, 0.28, 0.26, 0.07, 0.045, 0.06, CRIMSON_RED, 1.0);
-    b.addBox(0, 0.33, 0.27, 0.05, 0.045, 0.05, AMBER_GOLD, 1.0);
+    // 17d. Fast Alien Body ("Dunkelblau" — Deep Navy / Midnight Cobalt Hunter)
+    b.addBevelledBox(0, 0.11, 0.02, 0.26, 0.23, 0.32, 0.04, ALIEN_BLUE_DEEP, ALIEN_BLUE_MID, 0.15);
+    b.addOctahedron(0, 0.22, -0.15, 0.15, 0.12, 0.26, ALIEN_BLUE_MID, 0.20);
+    b.addCylinderY(-0.12, 0.18, 0.36, -0.07, 0.032, 0.008, 6, ALIEN_BLUE_HI, 0.35);
+    b.addCylinderY(0.12, 0.18, 0.36, -0.07, 0.032, 0.008, 6, ALIEN_BLUE_HI, 0.35);
+    b.addOctahedron(0, 0.10, 0.17, 0.09, 0.10, 0.07, ALIEN_BLUE_HI, 0.55);
+    b.addBox(-0.07, 0.19, 0.18, 0.05, 0.035, 0.04, ALIEN_BLUE_EYE, 0.80);
+    b.addBox(0.07, 0.19, 0.18, 0.05, 0.035, 0.04, ALIEN_BLUE_EYE, 0.80);
+    b.addBox(0, 0.23, 0.19, 0.035, 0.035, 0.035, [0.72, 0.88, 1.0], 0.85);
     compile("fastDroidBody");
 
-    // 17e. Articulated Scythe Claw Arm (Obsidian Arm + Titanium/Crimson Blade)
-    b.addBox(0, 0.14, 0.16, 0.065, 0.07, 0.30, OBSIDIAN_HI, 0.2);
-    b.addOctahedron(0, 0.04, 0.33, 0.045, 0.22, 0.16, CRIMSON_RED, 0.9);
+    // 17e. Compact Scythe Claw Arm ("Dunkelblau" Cobalt Blade)
+    b.addBox(0, 0.10, 0.11, 0.045, 0.05, 0.21, ALIEN_BLUE_MID, 0.18);
+    b.addOctahedron(0, 0.03, 0.23, 0.032, 0.15, 0.11, ALIEN_BLUE_HI, 0.55);
     compile("alienScytheClaw");
 
-    // 17f. Whipping Scorpion Tail with Crimson Stinger
-    b.addCylinderY(0, 0.08, 0.46, -0.30, 0.055, 0.022, 6, OBSIDIAN_HI, 0.25);
-    b.addOctahedron(0, 0.48, -0.25, 0.055, 0.075, 0.13, CRIMSON_RED, 0.95);
+    // 17f. Compact Scorpion Tail ("Dunkelblau" Cobalt Stinger)
+    b.addCylinderY(0, 0.06, 0.32, -0.21, 0.038, 0.016, 6, ALIEN_BLUE_MID, 0.20);
+    b.addOctahedron(0, 0.34, -0.17, 0.038, 0.05, 0.09, ALIEN_BLUE_EYE, 0.65);
     compile("alienTailStinger");
 
-    // 17g. Pulsing Dark Bio-Aura Ring
-    b.addTorusXZ(0, 0.04, 0, 0.42, 0.03, 12, 6, CRIMSON_RED, 0.75);
+    // 17g. Subtle Dark Aura Ring
+    b.addTorusXZ(0, 0.03, 0, 0.28, 0.02, 12, 6, ALIEN_GREY_MID, 0.35);
     compile("droidRing");
 
     // 18. 3D Particle Crystal Shard, Volumetric Fireball, Armor Shrapnel & Shockwave Ring
@@ -600,9 +612,9 @@ export class MeshGeometryBuilder {
     b.addOctahedron(0.08, 0.04, 0, 0.12, 0.08, 0.10, CRIMSON_RED, 0.85);
     compile("debrisArmorChunk");
 
-    // 21. Exploded Alien Chitin Carapace & Glowing Crimson Core Fragment
-    b.addBevelledBox(0, 0, 0, 0.24, 0.12, 0.28, 0.03, OBSIDIAN, OBSIDIAN_HI, 0.45);
-    b.addOctahedron(0, 0.06, 0, 0.14, 0.14, 0.14, CRIMSON_RED, 0.95);
+    // 21. Exploded Alien Chitin Carapace Fragment (Neutral Grey/Steel so tinting matches Grey or Dark-Blue alien)
+    b.addBevelledBox(0, 0, 0, 0.20, 0.10, 0.22, 0.025, [0.52, 0.55, 0.60], [0.74, 0.78, 0.84], 0.35);
+    b.addOctahedron(0, 0.05, 0, 0.11, 0.11, 0.11, [0.85, 0.88, 0.94], 0.55);
     compile("alienBioChunk");
 
     return meshes;
