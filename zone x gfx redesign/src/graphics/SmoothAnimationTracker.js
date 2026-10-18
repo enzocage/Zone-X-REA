@@ -442,11 +442,21 @@ export class SmoothAnimationTracker {
           origTile === TileType.LASER_DOOR_2A ||
           origTile === TileType.LASER_DOOR_2B
         ) {
-          // Check if the inner beam characters are active
-          const charCol = (tx + 1) * 2;
-          const r0 = 0x1c00 + ty * 2 * GridConfig.PLAYFIELD_ROW_STRIDE + charCol;
-          const beamActive = (ram[r0] !== 0 || ram[r0 + 1] !== 0) ? 1.0 : 0.0;
-          this.laserIntensity[idx] += (beamActive - this.laserIntensity[idx]) * laserLerp;
+          // Read exact hardware closure state (0 = 100% OPEN/SAFE, 1..6 = CLOSING/CLOSED & DEADLY)
+          let rawClosure = 0;
+          if (origTile === TileType.LASER_DOOR_1A) rawClosure = ram[0x0587] & 0x07;
+          else if (origTile === TileType.LASER_DOOR_1B) rawClosure = ram[0x0588] & 0x07;
+          else if (origTile === TileType.LASER_DOOR_2A) rawClosure = ram[0x0589] & 0x07;
+          else if (origTile === TileType.LASER_DOOR_2B) rawClosure = ram[0x058a] & 0x07;
+
+          const targetClosure = Math.min(1.0, rawClosure / 6.0);
+          if (rawClosure === 0 && this.laserIntensity[idx] < 0.12) {
+            this.laserIntensity[idx] = 0.0;
+          } else {
+            const diff = targetClosure - this.laserIntensity[idx];
+            const step = Math.min(Math.abs(diff), 4.8 * dt);
+            this.laserIntensity[idx] += Math.sign(diff) * step;
+          }
         } else if (this.prevTileOccupied[idx] === 1 && isVis === 0) {
           // A tile at (tx, ty) was just dug, collected, or unlocked!
           this.prevTileOccupied[idx] = 0;

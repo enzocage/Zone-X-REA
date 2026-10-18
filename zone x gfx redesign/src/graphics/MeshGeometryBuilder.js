@@ -325,16 +325,31 @@ export class MeshGeometryBuilder {
     b.addOctahedron(0, 0.45, 0, 0.18, 0.18, 0.24, [0.2, 1.0, 0.65], 0.95);
     compile("proximityDoor");
 
-    // 11. Laser Door Pylons & Plasma Beam Segment
-    b.addCylinderY(-0.36, 0, 0.76, 0, 0.14, 0.1, 8, [0.35, 0.45, 0.6], 0.15);
-    b.addCylinderY(0.36, 0, 0.76, 0, 0.14, 0.1, 8, [0.35, 0.45, 0.6], 0.15);
-    b.addOctahedron(-0.36, 0.52, 0, 0.14, 0.14, 0.14, [1.0, 0.25, 0.4], 0.9);
-    b.addOctahedron(0.36, 0.52, 0, 0.14, 0.14, 0.14, [1.0, 0.25, 0.4], 0.9);
+    // 11. Automatic Laser/Blast Door:
+    // Low-profile floor threshold rails at North (-Z) and South (+Z) edges so OPEN doors are 100% clear!
+    b.addBox(0, 0.05, -0.43, 0.94, 0.1, 0.12, [0.28, 0.36, 0.48], 0.15);
+    b.addBox(0, 0.05, 0.43, 0.94, 0.1, 0.12, [0.28, 0.36, 0.48], 0.15);
     compile("laserPylons");
 
-    b.addCylinderX(-0.38, 0.38, 0.24, 0, 0.055, 8, [1.0, 0.2, 0.35], 1.0);
-    b.addCylinderX(-0.38, 0.38, 0.46, 0, 0.065, 8, [0.25, 0.9, 1.0], 1.0);
-    b.addCylinderX(-0.38, 0.38, 0.66, 0, 0.055, 8, [1.0, 0.2, 0.35], 1.0);
+    // OPEN / SAFE indicator: Flat emerald-green walkthrough floor pad + high-visibility overhead green beacons
+    b.addBox(0, 0.03, 0, 0.88, 0.04, 0.72, [0.1, 1.0, 0.45], 0.95);
+    b.addBox(-0.28, 0.06, 0, 0.12, 0.03, 0.68, [0.4, 1.0, 0.75], 1.0);
+    b.addBox(0.28, 0.06, 0, 0.12, 0.03, 0.68, [0.4, 1.0, 0.75], 1.0);
+    b.addOctahedron(0, 0.88, -0.42, 0.15, 0.15, 0.15, [0.15, 1.0, 0.5], 1.0);
+    b.addOctahedron(0, 0.88, 0.42, 0.15, 0.15, 0.15, [0.15, 1.0, 0.5], 1.0);
+    compile("laserSafeOpen");
+
+    // CLOSED / CLOSING DANGER indicator: Crimson floor warning pad + high-visibility overhead red alarm diamonds
+    b.addBox(0, 0.03, 0, 0.88, 0.04, 0.72, [1.0, 0.08, 0.18], 0.95);
+    b.addOctahedron(0, 0.92, -0.42, 0.18, 0.2, 0.18, [1.0, 0.12, 0.2], 1.0);
+    b.addOctahedron(0, 0.92, 0.42, 0.18, 0.2, 0.18, [1.0, 0.12, 0.2], 1.0);
+    compile("laserDangerClosed");
+
+    // Sliding Deadly Door Leaf (slides from North -Z and South +Z sills to seal the corridor up to Y=0.84)
+    b.addBevelledBox(0, 0.44, 0, 0.9, 0.8, 0.36, 0.03, [0.95, 0.12, 0.22], [1.0, 0.35, 0.2], 0.85);
+    b.addBox(0, 0.24, 0, 0.94, 0.09, 0.38, [1.0, 0.55, 0.1], 1.0);
+    b.addBox(0, 0.5, 0, 0.94, 0.09, 0.38, [1.0, 0.9, 0.2], 1.0);
+    b.addBox(0, 0.74, 0, 0.94, 0.09, 0.38, [1.0, 0.55, 0.1], 1.0);
     compile("laserBeams");
 
     // 12. Warp Pad & Warp Frame

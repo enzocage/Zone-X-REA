@@ -3087,16 +3087,31 @@ class MeshGeometryBuilder {
     b.addOctahedron(0, 0.45, 0, 0.18, 0.18, 0.24, [0.2, 1.0, 0.65], 0.95);
     compile("proximityDoor");
 
-    // 11. Laser Door Pylons & Plasma Beam Segment
-    b.addCylinderY(-0.36, 0, 0.76, 0, 0.14, 0.1, 8, [0.35, 0.45, 0.6], 0.15);
-    b.addCylinderY(0.36, 0, 0.76, 0, 0.14, 0.1, 8, [0.35, 0.45, 0.6], 0.15);
-    b.addOctahedron(-0.36, 0.52, 0, 0.14, 0.14, 0.14, [1.0, 0.25, 0.4], 0.9);
-    b.addOctahedron(0.36, 0.52, 0, 0.14, 0.14, 0.14, [1.0, 0.25, 0.4], 0.9);
+    // 11. Automatic Laser/Blast Door:
+    // Low-profile floor threshold rails at North (-Z) and South (+Z) edges so OPEN doors are 100% clear!
+    b.addBox(0, 0.05, -0.43, 0.94, 0.1, 0.12, [0.28, 0.36, 0.48], 0.15);
+    b.addBox(0, 0.05, 0.43, 0.94, 0.1, 0.12, [0.28, 0.36, 0.48], 0.15);
     compile("laserPylons");
 
-    b.addCylinderX(-0.38, 0.38, 0.24, 0, 0.055, 8, [1.0, 0.2, 0.35], 1.0);
-    b.addCylinderX(-0.38, 0.38, 0.46, 0, 0.065, 8, [0.25, 0.9, 1.0], 1.0);
-    b.addCylinderX(-0.38, 0.38, 0.66, 0, 0.055, 8, [1.0, 0.2, 0.35], 1.0);
+    // OPEN / SAFE indicator: Flat emerald-green walkthrough floor pad + high-visibility overhead green beacons
+    b.addBox(0, 0.03, 0, 0.88, 0.04, 0.72, [0.1, 1.0, 0.45], 0.95);
+    b.addBox(-0.28, 0.06, 0, 0.12, 0.03, 0.68, [0.4, 1.0, 0.75], 1.0);
+    b.addBox(0.28, 0.06, 0, 0.12, 0.03, 0.68, [0.4, 1.0, 0.75], 1.0);
+    b.addOctahedron(0, 0.88, -0.42, 0.15, 0.15, 0.15, [0.15, 1.0, 0.5], 1.0);
+    b.addOctahedron(0, 0.88, 0.42, 0.15, 0.15, 0.15, [0.15, 1.0, 0.5], 1.0);
+    compile("laserSafeOpen");
+
+    // CLOSED / CLOSING DANGER indicator: Crimson floor warning pad + high-visibility overhead red alarm diamonds
+    b.addBox(0, 0.03, 0, 0.88, 0.04, 0.72, [1.0, 0.08, 0.18], 0.95);
+    b.addOctahedron(0, 0.92, -0.42, 0.18, 0.2, 0.18, [1.0, 0.12, 0.2], 1.0);
+    b.addOctahedron(0, 0.92, 0.42, 0.18, 0.2, 0.18, [1.0, 0.12, 0.2], 1.0);
+    compile("laserDangerClosed");
+
+    // Sliding Deadly Door Leaf (slides from North -Z and South +Z sills to seal the corridor up to Y=0.84)
+    b.addBevelledBox(0, 0.44, 0, 0.9, 0.8, 0.36, 0.03, [0.95, 0.12, 0.22], [1.0, 0.35, 0.2], 0.85);
+    b.addBox(0, 0.24, 0, 0.94, 0.09, 0.38, [1.0, 0.55, 0.1], 1.0);
+    b.addBox(0, 0.5, 0, 0.94, 0.09, 0.38, [1.0, 0.9, 0.2], 1.0);
+    b.addBox(0, 0.74, 0, 0.94, 0.09, 0.38, [1.0, 0.55, 0.1], 1.0);
     compile("laserBeams");
 
     // 12. Warp Pad & Warp Frame
@@ -3623,11 +3638,21 @@ class SmoothAnimationTracker {
           origTile === TileType.LASER_DOOR_2A ||
           origTile === TileType.LASER_DOOR_2B
         ) {
-          // Check if the inner beam characters are active
-          const charCol = (tx + 1) * 2;
-          const r0 = 0x1c00 + ty * 2 * GridConfig.PLAYFIELD_ROW_STRIDE + charCol;
-          const beamActive = (ram[r0] !== 0 || ram[r0 + 1] !== 0) ? 1.0 : 0.0;
-          this.laserIntensity[idx] += (beamActive - this.laserIntensity[idx]) * laserLerp;
+          // Read exact hardware closure state (0 = 100% OPEN/SAFE, 1..6 = CLOSING/CLOSED & DEADLY)
+          let rawClosure = 0;
+          if (origTile === TileType.LASER_DOOR_1A) rawClosure = ram[0x0587] & 0x07;
+          else if (origTile === TileType.LASER_DOOR_1B) rawClosure = ram[0x0588] & 0x07;
+          else if (origTile === TileType.LASER_DOOR_2A) rawClosure = ram[0x0589] & 0x07;
+          else if (origTile === TileType.LASER_DOOR_2B) rawClosure = ram[0x058a] & 0x07;
+
+          const targetClosure = Math.min(1.0, rawClosure / 6.0);
+          if (rawClosure === 0 && this.laserIntensity[idx] < 0.12) {
+            this.laserIntensity[idx] = 0.0;
+          } else {
+            const diff = targetClosure - this.laserIntensity[idx];
+            const step = Math.min(Math.abs(diff), 4.8 * dt);
+            this.laserIntensity[idx] += Math.sign(diff) * step;
+          }
         } else if (this.prevTileOccupied[idx] === 1 && isVis === 0) {
           // A tile at (tx, ty) was just dug, collected, or unlocked!
           this.prevTileOccupied[idx] = 0;
@@ -4206,22 +4231,27 @@ class WebGL3DMeshRenderer {
           case TileType.LASER_DOOR_1B:
           case TileType.LASER_DOOR_2A:
           case TileType.LASER_DOOR_2B: {
+            // 1. Low-profile North & South floor threshold rails
             this._drawMesh("laserPylons", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.15);
-            const beamScale = this.anim.laserIntensity[idx];
-            if (beamScale > 0.03) {
-              const shimmer = 0.85 + 0.25 * Math.sin(t * 24.0 + tx * 2.0);
-              this._drawMesh(
-                "laserBeams",
-                tx,
-                0,
-                tz,
-                0,
-                1.0,
-                beamScale * shimmer,
-                beamScale * shimmer,
-                [1, 1, 1],
-                0.45
-              );
+
+            // Check exact hardware state (0 = SAFE/OPEN, 1..6 = DEADLY/CLOSING-OR-CLOSED)
+            let rawClosure = 0;
+            if (rawTile === TileType.LASER_DOOR_1A) rawClosure = ram[0x0587] & 0x07;
+            else if (rawTile === TileType.LASER_DOOR_1B) rawClosure = ram[0x0588] & 0x07;
+            else if (rawTile === TileType.LASER_DOOR_2A) rawClosure = ram[0x0589] & 0x07;
+            else if (rawTile === TileType.LASER_DOOR_2B) rawClosure = ram[0x058a] & 0x07;
+
+            if (rawClosure === 0) {
+              // 100% OPEN & SAFE: Completely unobstructed corridor with glowing emerald-green walkway + overhead green beacons
+              this._drawMesh("laserSafeOpen", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.65);
+            } else {
+              // CLOSING OR CLOSED & DEADLY: Flashing crimson danger beacons + North/South 3D laser blast gates sliding shut
+              this._drawMesh("laserDangerClosed", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.75);
+              const closure = Math.max(0.22, this.anim.laserIntensity[idx]);
+              const northZ = tz - 0.36 + closure * 0.18;
+              const southZ = tz + 0.36 - closure * 0.18;
+              this._drawMesh("laserBeams", tx, 0, northZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.65);
+              this._drawMesh("laserBeams", tx, 0, southZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.65);
             }
             break;
           }
