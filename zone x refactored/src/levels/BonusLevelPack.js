@@ -80,7 +80,7 @@ function buildZone14ExcavationSiteAlpha() {
   });
 
   map.fillRect(2, 2, 12, 8, TileType.FLOOR);
-  map.setTile(10, 4, TileType.SPADE);
+  map.setTile(10, 4, TileType.RADIATION_CAPSULE);
   map.setTile(10, 6, TileType.EXTRA_TIME);
 
   map.drawBorder(16, 3, 28, 13, TileType.WALL);
@@ -313,6 +313,12 @@ function buildZone18TheBridgeBuilder() {
     map.setTile(40, y, TileType.FORCEFIELD);
     map.setTile(41, y, TileType.FORCEFIELD);
   }
+  for (const y of [10, 15, 21]) {
+    map.setTile(20, y, TileType.CRUMBLY_DIRT);
+    map.setTile(21, y, TileType.CRUMBLY_DIRT);
+    map.setTile(40, y, TileType.CRUMBLY_DIRT);
+    map.setTile(41, y, TileType.CRUMBLY_DIRT);
+  }
 
   for (const x of [28, 30, 32]) {
     map.setTile(x, 12, TileType.INSULATING_MAT);
@@ -418,7 +424,7 @@ function buildZone20CrumblyCatacombs() {
     }
   }
 
-  map.setTile(8, 4, TileType.SPADE);
+  map.setTile(8, 4, TileType.RADIATION_CAPSULE);
   map.setTile(18, 4, TileType.EXTRA_TIME);
 
   map.setTile(30, 4, TileType.PLUTONIUM);
@@ -462,11 +468,12 @@ function buildZone21FortressGremlin() {
   map.setTile(33, 24, TileType.LOCKED_DOOR);
 
   map.fillRect(4, 3, 16, 10, TileType.CRUMBLY_DIRT);
-  map.setTile(22, 4, TileType.SPADE);
+  map.setTile(22, 4, TileType.RADIATION_CAPSULE);
   map.setTile(8, 6, TileType.KEY);
   map.setTile(12, 6, TileType.PLUTONIUM);
 
   map.drawVerticalLine(16, 19, 30, TileType.FORCEFIELD);
+  map.setTile(16, 24, TileType.CRUMBLY_DIRT);
   map.setTile(22, 22, TileType.INSULATING_MAT);
   map.setTile(24, 22, TileType.INSULATING_MAT);
   map.setTile(8, 22, TileType.KEY);
@@ -533,7 +540,7 @@ function buildZone22OmegaCoreMeltdown() {
   map.setTile(51, 25, TileType.PLUTONIUM);
   map.setTile(53, 25, TileType.RADIATION_CAPSULE);
 
-  map.setTile(21, 9, TileType.SPADE);
+  map.setTile(21, 9, TileType.RADIATION_CAPSULE);
   map.setTile(39, 9, TileType.INSULATING_MAT);
   map.setTile(39, 22, TileType.INSULATING_MAT);
   map.setTile(21, 22, TileType.PLUTONIUM);

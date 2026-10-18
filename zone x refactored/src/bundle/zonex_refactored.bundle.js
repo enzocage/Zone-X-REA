@@ -409,16 +409,20 @@ class GameState {
     this.ram.fill(0);
     if (!this.bundle || !this.bundle.charsets) return;
 
-    const loadCharset = (b64, targetAddr) => {
-      if (!b64) return;
-      const binStr = atob(b64);
-      for (let i = 0; i < binStr.length; i++) {
-        this.ram[targetAddr + i] = binStr.charCodeAt(i) & 0xFF;
+    const inGame = this.bundle.charsets.in_game;
+    const hud4000 = this.bundle.charsets.hud_4000;
+    if (Array.isArray(inGame)) {
+      for (let i = 0; i < 1024; i++) {
+        const val = inGame[i] & 0xFF;
+        this.ram[0x706C + i] = val;
+        this.ram[0x1800 + i] = val;
       }
-    };
-
-    loadCharset(this.bundle.charsets.game_1800_b64, 0x1800);
-    loadCharset(this.bundle.charsets.title_4000_b64, 0x4000);
+    }
+    if (Array.isArray(hud4000)) {
+      for (let i = 0; i < 1024; i++) {
+        this.ram[0x4000 + i] = hud4000[i] & 0xFF;
+      }
+    }
 
     this.ram[SystemAddressMap.COLOR0_SHADOW + 0] = 0x26;
     this.ram[SystemAddressMap.COLOR0_SHADOW + 1] = 0xCA;
@@ -612,7 +616,7 @@ function buildZone14ExcavationSiteAlpha() {
   });
 
   map.fillRect(2, 2, 12, 8, TileType.FLOOR);
-  map.setTile(10, 4, TileType.SPADE);
+  map.setTile(10, 4, TileType.RADIATION_CAPSULE);
   map.setTile(10, 6, TileType.EXTRA_TIME);
 
   map.drawBorder(16, 3, 28, 13, TileType.WALL);
@@ -845,6 +849,12 @@ function buildZone18TheBridgeBuilder() {
     map.setTile(40, y, TileType.FORCEFIELD);
     map.setTile(41, y, TileType.FORCEFIELD);
   }
+  for (const y of [10, 15, 21]) {
+    map.setTile(20, y, TileType.CRUMBLY_DIRT);
+    map.setTile(21, y, TileType.CRUMBLY_DIRT);
+    map.setTile(40, y, TileType.CRUMBLY_DIRT);
+    map.setTile(41, y, TileType.CRUMBLY_DIRT);
+  }
 
   for (const x of [28, 30, 32]) {
     map.setTile(x, 12, TileType.INSULATING_MAT);
@@ -950,7 +960,7 @@ function buildZone20CrumblyCatacombs() {
     }
   }
 
-  map.setTile(8, 4, TileType.SPADE);
+  map.setTile(8, 4, TileType.RADIATION_CAPSULE);
   map.setTile(18, 4, TileType.EXTRA_TIME);
 
   map.setTile(30, 4, TileType.PLUTONIUM);
@@ -994,11 +1004,12 @@ function buildZone21FortressGremlin() {
   map.setTile(33, 24, TileType.LOCKED_DOOR);
 
   map.fillRect(4, 3, 16, 10, TileType.CRUMBLY_DIRT);
-  map.setTile(22, 4, TileType.SPADE);
+  map.setTile(22, 4, TileType.RADIATION_CAPSULE);
   map.setTile(8, 6, TileType.KEY);
   map.setTile(12, 6, TileType.PLUTONIUM);
 
   map.drawVerticalLine(16, 19, 30, TileType.FORCEFIELD);
+  map.setTile(16, 24, TileType.CRUMBLY_DIRT);
   map.setTile(22, 22, TileType.INSULATING_MAT);
   map.setTile(24, 22, TileType.INSULATING_MAT);
   map.setTile(8, 22, TileType.KEY);
@@ -1065,7 +1076,7 @@ function buildZone22OmegaCoreMeltdown() {
   map.setTile(51, 25, TileType.PLUTONIUM);
   map.setTile(53, 25, TileType.RADIATION_CAPSULE);
 
-  map.setTile(21, 9, TileType.SPADE);
+  map.setTile(21, 9, TileType.RADIATION_CAPSULE);
   map.setTile(39, 9, TileType.INSULATING_MAT);
   map.setTile(39, 22, TileType.INSULATING_MAT);
   map.setTile(21, 22, TileType.PLUTONIUM);
@@ -1751,7 +1762,7 @@ class AtariDisplayRenderer {
           const glyphByte = ram[(chbase + (charIndex << 3) + (scanlineInRow & 0x07)) & 0xFFFF];
           const bitPair = (glyphByte >> (6 - (px << 1))) & 0x03;
 
-          const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3);
+          const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3, charIndex);
           this.drawDoublePixel(buf, scanlineY, this.xOffset + dx, this.palPalette[colorReg], pfType);
         }
         scanlineY++;
@@ -1769,7 +1780,7 @@ class AtariDisplayRenderer {
 
           for (let px = 0; px < 4; px++) {
             const bitPair = (glyphByte >> (6 - (px << 1))) & 0x03;
-            const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3);
+            const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3, charIndex);
             this.drawDoublePixel(
               buf,
               scanlineY,
@@ -1786,10 +1797,15 @@ class AtariDisplayRenderer {
     return { scanlineY, curLms };
   }
 
-  resolveMode4Color(regs, bitPair, usePF3) {
+  resolveMode4Color(regs, bitPair, usePF3, charIndex = 0) {
     if (bitPair === 0) return { colorReg: regs.COLBK, pfType: 0 };
     if (bitPair === 1) return { colorReg: regs.COLPF0, pfType: 1 };
-    if (bitPair === 2) return { colorReg: regs.COLPF1, pfType: 2 };
+    if (bitPair === 2) {
+      const isLethalHazard =
+        (charIndex >= 0x20 && charIndex <= 0x27) ||
+        (charIndex >= 0x48 && charIndex <= 0x7F);
+      return { colorReg: regs.COLPF1, pfType: isLethalHazard ? 2 : 0 };
+    }
     return {
       colorReg: usePF3 ? regs.COLPF3 : regs.COLPF2,
       pfType: usePF3 ? 4 : 3,
@@ -2049,37 +2065,14 @@ class AtariDisplayRenderer {
  * Clean Keyboard, Joystick & Atari Console Button Input Controller.
  */
 
-const KEY_TO_ATARI_SCAN_CODE = Object.freeze({
-  KeyP: 0x0A,
-  KeyA: 0x3F,
-  KeyB: 0x15,
-  KeyC: 0x12,
-  KeyD: 0x3A,
-  KeyE: 0x2A,
-  KeyF: 0x38,
-  KeyG: 0x3D,
-  KeyH: 0x39,
-  KeyI: 0x0D,
-  KeyJ: 0x01,
-  KeyK: 0x05,
-  KeyL: 0x00,
-  KeyM: 0x25,
-  KeyN: 0x23,
-  KeyO: 0x08,
-  KeyQ: 0x2F,
-  KeyR: 0x28,
-  KeyS: 0x3E,
-  KeyT: 0x2D,
-  KeyU: 0x0B,
-  KeyV: 0x10,
-  KeyW: 0x2E,
-  KeyX: 0x16,
-  KeyY: 0x2B,
-  KeyZ: 0x17,
-  Enter: 0x0C,
-  Backspace: 0x34,
-  Escape: 0x1C,
-});
+const ATARI_AZ_KEYCODES = Object.freeze([
+  0x3F, 0x15, 0x12, 0x3A, 0x2A, 0x38, 0x3D, 0x39, 0x0D, 0x01, 0x05, 0x00, 0x25,
+  0x23, 0x08, 0x0A, 0x2F, 0x28, 0x3E, 0x2D, 0x0B, 0x10, 0x2E, 0x16, 0x2B, 0x17,
+]);
+
+const ATARI_09_KEYCODES = Object.freeze([
+  0x32, 0x1F, 0x1E, 0x1A, 0x18, 0x1D, 0x1B, 0x33, 0x35, 0x30,
+]);
 class InputController {
   constructor(gameState) {
     this.state = gameState;
@@ -2113,30 +2106,59 @@ class InputController {
           "F4",
         ].includes(e.code)
       ) {
-        e.preventDefault();
+        if (document.activeElement && document.activeElement.tagName !== "SELECT") {
+          e.preventDefault();
+        }
       }
       this.pressedKeys.add(e.code);
 
       if (e.code === "F2") {
-        this.consoleState &= ~0x02; // SELECT
+        this.consoleState = 0x05; // SELECT
       } else if (e.code === "F3") {
-        this.consoleState &= ~0x04; // OPTION
+        this.consoleState = 0x03; // OPTION
       } else if (e.code === "F4") {
-        this.consoleState &= ~0x01; // START
-      } else if (KEY_TO_ATARI_SCAN_CODE[e.code] !== undefined) {
-        this.lastKeyCode = KEY_TO_ATARI_SCAN_CODE[e.code];
-        this.state.ram[SystemAddressMap.CH_KEY] = this.lastKeyCode;
+        this.consoleState = 0x06; // START
+      }
+
+      // In-game special keys: P = Pause ($21), K = Abort Life ($3F)
+      if (e.code === "KeyP") {
+        this.lastKeyCode = 0x21;
+        this.state.ram[SystemAddressMap.CH_KEY] = 0x21;
+      } else if (e.code === "KeyK") {
+        this.lastKeyCode = 0x3F;
+        this.state.ram[SystemAddressMap.CH_KEY] = 0x3F;
+      }
+
+      // Hall of Fame ($8F08) keyboard name entry ($91C8..$923D)
+      const dlAddr = this.state.displayListAddress;
+      if (
+        dlAddr === DisplayListAddress[ScreenMode.HALL_OF_FAME] &&
+        this.state.ram[0x05D5] === 0
+      ) {
+        if (e.code === "Enter") {
+          this.state.ram[SystemAddressMap.CH_KEY] = 0x0C;
+        } else if (e.code === "Backspace") {
+          this.state.ram[SystemAddressMap.CH_KEY] = 0x34;
+        } else if (e.code === "Space") {
+          this.state.ram[SystemAddressMap.CH_KEY] = 0x21;
+        } else if (e.code.startsWith("Key") && e.code.length === 4) {
+          const chIdx = e.code.charCodeAt(3) - 65;
+          if (chIdx >= 0 && chIdx < 26) {
+            this.state.ram[SystemAddressMap.CH_KEY] = ATARI_AZ_KEYCODES[chIdx];
+          }
+        } else if (e.code.startsWith("Digit") && e.code.length === 6) {
+          const dIdx = e.code.charCodeAt(5) - 48;
+          if (dIdx >= 0 && dIdx < 10) {
+            this.state.ram[SystemAddressMap.CH_KEY] = ATARI_09_KEYCODES[dIdx];
+          }
+        }
       }
     });
 
     window.addEventListener("keyup", (e) => {
       this.pressedKeys.delete(e.code);
-      if (e.code === "F2") {
-        this.consoleState |= 0x02;
-      } else if (e.code === "F3") {
-        this.consoleState |= 0x04;
-      } else if (e.code === "F4") {
-        this.consoleState |= 0x01;
+      if (e.code === "F2" || e.code === "F3" || e.code === "F4") {
+        this.consoleState = 0x07;
       }
     });
   }
@@ -2152,7 +2174,8 @@ class InputController {
       this.pressedKeys.has("Space") ||
       this.pressedKeys.has("ControlLeft") ||
       this.pressedKeys.has("ControlRight") ||
-      this.pressedKeys.has("KeyZ")
+      this.pressedKeys.has("KeyZ") ||
+      this.pressedKeys.has("KeyX")
         ? 0
         : 1;
 
@@ -2163,7 +2186,7 @@ class InputController {
     const { stick, strig, consol } = this.readJoystickState();
     const ram = this.state.ram;
     ram[SystemAddressMap.STICK0] = stick;
-    ram[0xD300] = (ram[0xD300] & 0xF0) | (stick & 0x0F);
+    ram[0xD300] = (stick << 4) | (stick & 0x0F);
     ram[SystemAddressMap.STRIG0] = strig;
     ram[0xD010] = strig;
     ram[SystemAddressMap.CONSOL] = consol;
@@ -2391,15 +2414,17 @@ class GameEngine {
   read8(addr) {
     addr &= 0xFFFF;
     if (addr === 0xD20A) {
-      const bit = ((this.rng & 1) ^ ((this.rng >> 5) & 1)) & 1;
-      this.rng = (this.rng >> 1) | (bit << 16);
+      for (let i = 0; i < 8; i++) {
+        const bit = ((this.rng & 1) ^ ((this.rng >> 5) & 1)) & 1;
+        this.rng = (this.rng >> 1) | (bit << 16);
+      }
       return this.rng & 0xFF;
     }
-    if (addr === 0xD004) return (this.state.collisionP0PF || 0) & 0x0F;
-    if (addr === 0xD005) return (this.state.collisionP1PF || 0) & 0x0F;
+    if (addr === 0xD004) return (this.state.collisionP0PF ?? this.ram[0xD004]) & 0x0F;
+    if (addr === 0xD005) return (this.state.collisionP1PF ?? this.ram[0xD005]) & 0x0F;
     if (addr === 0xD010) return this.ram[SystemAddressMap.STRIG0] & 0x01;
     if (addr === 0xD300) return this.ram[SystemAddressMap.STICK0] & 0x0F;
-    if (addr === 0xD40B) return (this.cycles >> 1) & 0x7F;
+    if (addr === 0xD40B) return ((this.frameCycles / 228) | 0) & 0xFF;
     return this.ram[addr];
   }
 
@@ -2772,47 +2797,56 @@ class GameEngine {
     this.setZN(diff & 0xFF);
   }
 
-  adc(val) {
+  adc(v) {
     if (this.flagD) {
-      let lo = (this.a & 0x0F) + (val & 0x0F) + this.flagC;
-      let hi = (this.a >> 4) + (val >> 4);
+      let lo = (this.a & 0x0F) + (v & 0x0F) + this.flagC;
+      let cLo = 0;
       if (lo > 9) {
         lo += 6;
-        hi++;
+        cLo = 1;
       }
-      this.flagZ = ((this.a + val + this.flagC) & 0xFF) === 0 ? 1 : 0;
-      this.flagN = hi & 0x08 ? 1 : 0;
-      this.flagV = ~((this.a ^ val) & 0x80) & ((this.a ^ (hi << 4)) & 0x80) ? 1 : 0;
-      if (hi > 9) hi += 6;
-      this.flagC = hi > 15 ? 1 : 0;
+      let hi = (this.a >> 4) + (v >> 4) + cLo;
+      let cHi = 0;
+      if (hi > 9) {
+        hi += 6;
+        cHi = 1;
+      }
+      this.flagC = cHi;
       this.a = ((hi & 0x0F) << 4) | (lo & 0x0F);
+      this.setZN(this.a);
     } else {
-      const sum = this.a + val + this.flagC;
+      const sum = this.a + v + this.flagC;
+      this.flagV = (~(this.a ^ v) & (this.a ^ sum) & 0x80) !== 0 ? 1 : 0;
       this.flagC = sum > 0xFF ? 1 : 0;
-      const res = sum & 0xFF;
-      this.flagV = ~((this.a ^ val) & 0x80) & ((this.a ^ res) & 0x80) ? 1 : 0;
-      this.a = res;
+      this.a = sum & 0xFF;
       this.setZN(this.a);
     }
   }
 
-  sbc(val) {
+  sbc(v) {
     if (this.flagD) {
-      const carryIn = 1 - this.flagC;
-      const binDiff = this.a - val - carryIn;
-      let lo = (this.a & 0x0F) - (val & 0x0F) - carryIn;
-      let hi = (this.a >> 4) - (val >> 4);
+      const borrow = this.flagC ? 0 : 1;
+      let lo = (this.a & 0x0F) - (v & 0x0F) - borrow;
+      let bLo = 0;
       if (lo < 0) {
         lo -= 6;
-        hi--;
+        bLo = 1;
       }
-      if (hi < 0) hi -= 6;
-      this.flagC = binDiff >= 0 ? 1 : 0;
-      this.flagV = (this.a ^ val) & (this.a ^ (binDiff & 0xFF)) & 0x80 ? 1 : 0;
+      let hi = (this.a >> 4) - (v >> 4) - bLo;
+      let bHi = 0;
+      if (hi < 0) {
+        hi -= 6;
+        bHi = 1;
+      }
+      this.flagC = bHi ? 0 : 1;
       this.a = ((hi & 0x0F) << 4) | (lo & 0x0F);
-      this.setZN(binDiff & 0xFF);
+      this.setZN(this.a);
     } else {
-      this.adc(val ^ 0xFF);
+      const diff = this.a - v - (this.flagC ? 0 : 1);
+      this.flagV = ((this.a ^ v) & (this.a ^ diff) & 0x80) !== 0 ? 1 : 0;
+      this.flagC = diff < 0 ? 0 : 1;
+      this.a = diff & 0xFF;
+      this.setZN(this.a);
     }
   }
 
@@ -2851,23 +2885,16 @@ class GameEngine {
     this.ram[0xD402] = this.ram[SystemAddressMap.DLIST_PTR_LO];
     this.ram[0xD403] = this.ram[SystemAddressMap.DLIST_PTR_HI];
     this.ram[0xD409] = this.ram[0x02F4];
+    this.ram[0xD01B] = this.ram[0x026F];
     for (let i = 0; i < 4; i++) {
       this.ram[0xD012 + i] = this.ram[0x02C0 + i];
+    }
+    for (let i = 0; i < 5; i++) {
       this.ram[0xD016 + i] = this.ram[SystemAddressMap.COLOR0_SHADOW + i];
     }
-    this.ram[0xD01A] = this.ram[0x02C8];
-    this.ram[0xD01B] = this.ram[0x026F];
   }
 
   runVbi() {
-    this.ram[0x0014] = (this.ram[0x0014] + 1) & 0xFF;
-    if (this.ram[0x0014] === 0) {
-      this.ram[0x0013] = (this.ram[0x0013] + 1) & 0xFF;
-    }
-    if (this.ram[0x004D] < 0x80) {
-      this.ram[0x004D] = (this.ram[0x004D] + 1) & 0x7F;
-    }
-
     const nmiEn = this.ram[0xD40E];
     if ((nmiEn & 0x40) === 0) {
       this.syncShadowRegisters();
@@ -2886,9 +2913,44 @@ class GameEngine {
     this.recordingPokey = true;
     this.transitionOccurred = false;
 
+    const prevZoneIdx = this.ram[SystemAddressMap.SELECTED_ZONE_IDX];
     let used = 0;
     let guard = 0;
     while (!this.stopped && used < mainCycles && guard < 25000) {
+      if (this.pc === 0x60E5) {
+        let unpackSteps = 0;
+        while (!this.stopped && this.pc !== 0x6447 && unpackSteps < 1000000) {
+          this.step();
+          unpackSteps++;
+        }
+        this.state.collisionP0PF = 0;
+        this.state.collisionP1PF = 0;
+        if (this.activeCustomZone && this.ram[SystemAddressMap.SELECTED_ZONE_IDX] === prevZoneIdx) {
+          this.applyCustomZoneOverlay(this.activeCustomZone);
+        } else {
+          this.activeCustomZone = null;
+        }
+        break;
+      }
+      if (this.pc === 0x62D7 && this.activeCustomZone) {
+        let respawnSteps = 0;
+        while (!this.stopped && this.pc !== 0x6447 && respawnSteps < 50000) {
+          this.step();
+          respawnSteps++;
+        }
+        this.state.collisionP0PF = 0;
+        this.state.collisionP1PF = 0;
+        if (Array.isArray(this.activeCustomZone.colors) && this.activeCustomZone.colors.length >= 4) {
+          for (let i = 0; i < 4; i++) {
+            this.ram[SystemAddressMap.COLOR0_SHADOW + i] = this.activeCustomZone.colors[i] & 0xFF;
+          }
+        }
+        const zNum = this.activeCustomZone.zone || 13;
+        const bcdZone = ((((zNum / 10) | 0) << 4) | (zNum % 10)) & 0xFF;
+        this.ram[SystemAddressMap.HUD_ZONE_BCD] = bcdZone;
+        this.ram[SystemAddressMap.ACTIVE_ZONE_BCD] = bcdZone;
+        break;
+      }
       used += this.step();
       guard++;
     }
@@ -2919,10 +2981,12 @@ class GameEngine {
     this.pc = resetLivesAndScore ? 0x60B9 : 0x60E5;
 
     let steps = 0;
-    while (!this.stopped && this.pc !== 0x6447 && steps < 300000) {
+    while (!this.stopped && this.pc !== 0x6447 && steps < 1000000) {
       this.step();
       steps++;
     }
+    this.state.collisionP0PF = 0;
+    this.state.collisionP1PF = 0;
     this.silencePokeyAndSfx();
     this.ram[SystemAddressMap.DOOR_TIMER_A] = 0x16;
     this.ram[SystemAddressMap.DOOR_TIMER_B] = 0x0C;
@@ -3035,6 +3099,7 @@ class GameEngine {
     this.ram[SystemAddressMap.PLUTONIUM_REMAINING] = Math.max(1, plutoniumCount);
     this.ram[SystemAddressMap.CONTAINERS_REMAINING] = Math.max(1, containerCount);
     this.ram[SystemAddressMap.DOOR_COUNT] = doorCount & 0xFF;
+    this.ram[0x05C1] = 0x09;
 
     if (Array.isArray(zoneData.colors) && zoneData.colors.length >= 4) {
       for (let i = 0; i < 4; i++) {
@@ -3045,6 +3110,10 @@ class GameEngine {
     for (let i = 0; i < 0x0300; i++) {
       this.ram[0x0600 + i] = 0;
     }
+    this.ram[0x05A3] = 0x00;
+    this.ram[0x05A4] = 0x00;
+    this.ram[0x05A5] = 0xFF;
+    this.ram[0x05A6] = 0xFF;
     const maxRobots = Math.min(GridConfig.MAX_MOVING_ENEMIES, robots.length);
     this.ram[SystemAddressMap.ACTIVE_ROBOT_COUNT] = maxRobots;
     for (let i = 0; i < maxRobots; i++) {
@@ -3064,7 +3133,7 @@ class GameEngine {
       this.ram[base + 6] = (scrPtr >> 8) & 0xFF;
       this.ram[base + 7] = 0;
 
-      const cBase = etype === 0 ? 0xD4 : 0x60;
+      const cBase = etype === 0 ? 0xC8 : 0x4C;
       this.ram[scrPtr] = cBase;
       this.ram[scrPtr + 1] = cBase + 1;
       this.ram[scrPtr + 128] = cBase + 2;
@@ -3107,6 +3176,8 @@ class GameEngine {
     this.callSubroutine(0x435F, 5000);
     this.callSubroutine(0x4462, 5000);
     this.callSubroutine(0x47A0, 5000);
+    this.state.collisionP0PF = 0;
+    this.state.collisionP1PF = 0;
     this.silencePokeyAndSfx();
     this.runVbi();
     this.runVbi();

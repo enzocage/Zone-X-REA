@@ -37,16 +37,20 @@ export class GameState {
     this.ram.fill(0);
     if (!this.bundle || !this.bundle.charsets) return;
 
-    const loadCharset = (b64, targetAddr) => {
-      if (!b64) return;
-      const binStr = atob(b64);
-      for (let i = 0; i < binStr.length; i++) {
-        this.ram[targetAddr + i] = binStr.charCodeAt(i) & 0xFF;
+    const inGame = this.bundle.charsets.in_game;
+    const hud4000 = this.bundle.charsets.hud_4000;
+    if (Array.isArray(inGame)) {
+      for (let i = 0; i < 1024; i++) {
+        const val = inGame[i] & 0xFF;
+        this.ram[0x706C + i] = val;
+        this.ram[0x1800 + i] = val;
       }
-    };
-
-    loadCharset(this.bundle.charsets.game_1800_b64, 0x1800);
-    loadCharset(this.bundle.charsets.title_4000_b64, 0x4000);
+    }
+    if (Array.isArray(hud4000)) {
+      for (let i = 0; i < 1024; i++) {
+        this.ram[0x4000 + i] = hud4000[i] & 0xFF;
+      }
+    }
 
     this.ram[SystemAddressMap.COLOR0_SHADOW + 0] = 0x26;
     this.ram[SystemAddressMap.COLOR0_SHADOW + 1] = 0xCA;

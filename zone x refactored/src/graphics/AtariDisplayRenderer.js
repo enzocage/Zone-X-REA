@@ -219,7 +219,7 @@ export class AtariDisplayRenderer {
           const glyphByte = ram[(chbase + (charIndex << 3) + (scanlineInRow & 0x07)) & 0xFFFF];
           const bitPair = (glyphByte >> (6 - (px << 1))) & 0x03;
 
-          const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3);
+          const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3, charIndex);
           this.drawDoublePixel(buf, scanlineY, this.xOffset + dx, this.palPalette[colorReg], pfType);
         }
         scanlineY++;
@@ -237,7 +237,7 @@ export class AtariDisplayRenderer {
 
           for (let px = 0; px < 4; px++) {
             const bitPair = (glyphByte >> (6 - (px << 1))) & 0x03;
-            const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3);
+            const { colorReg, pfType } = this.resolveMode4Color(regs, bitPair, usePF3, charIndex);
             this.drawDoublePixel(
               buf,
               scanlineY,
@@ -254,10 +254,15 @@ export class AtariDisplayRenderer {
     return { scanlineY, curLms };
   }
 
-  resolveMode4Color(regs, bitPair, usePF3) {
+  resolveMode4Color(regs, bitPair, usePF3, charIndex = 0) {
     if (bitPair === 0) return { colorReg: regs.COLBK, pfType: 0 };
     if (bitPair === 1) return { colorReg: regs.COLPF0, pfType: 1 };
-    if (bitPair === 2) return { colorReg: regs.COLPF1, pfType: 2 };
+    if (bitPair === 2) {
+      const isLethalHazard =
+        (charIndex >= 0x20 && charIndex <= 0x27) ||
+        (charIndex >= 0x48 && charIndex <= 0x7F);
+      return { colorReg: regs.COLPF1, pfType: isLethalHazard ? 2 : 0 };
+    }
     return {
       colorReg: usePF3 ? regs.COLPF3 : regs.COLPF2,
       pfType: usePF3 ? 4 : 3,

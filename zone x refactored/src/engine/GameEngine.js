@@ -218,15 +218,17 @@ export class GameEngine {
   read8(addr) {
     addr &= 0xFFFF;
     if (addr === 0xD20A) {
-      const bit = ((this.rng & 1) ^ ((this.rng >> 5) & 1)) & 1;
-      this.rng = (this.rng >> 1) | (bit << 16);
+      for (let i = 0; i < 8; i++) {
+        const bit = ((this.rng & 1) ^ ((this.rng >> 5) & 1)) & 1;
+        this.rng = (this.rng >> 1) | (bit << 16);
+      }
       return this.rng & 0xFF;
     }
-    if (addr === 0xD004) return (this.state.collisionP0PF || 0) & 0x0F;
-    if (addr === 0xD005) return (this.state.collisionP1PF || 0) & 0x0F;
+    if (addr === 0xD004) return (this.state.collisionP0PF ?? this.ram[0xD004]) & 0x0F;
+    if (addr === 0xD005) return (this.state.collisionP1PF ?? this.ram[0xD005]) & 0x0F;
     if (addr === 0xD010) return this.ram[SystemAddressMap.STRIG0] & 0x01;
     if (addr === 0xD300) return this.ram[SystemAddressMap.STICK0] & 0x0F;
-    if (addr === 0xD40B) return (this.cycles >> 1) & 0x7F;
+    if (addr === 0xD40B) return ((this.frameCycles / 228) | 0) & 0xFF;
     return this.ram[addr];
   }
 
@@ -599,47 +601,56 @@ export class GameEngine {
     this.setZN(diff & 0xFF);
   }
 
-  adc(val) {
+  adc(v) {
     if (this.flagD) {
-      let lo = (this.a & 0x0F) + (val & 0x0F) + this.flagC;
-      let hi = (this.a >> 4) + (val >> 4);
+      let lo = (this.a & 0x0F) + (v & 0x0F) + this.flagC;
+      let cLo = 0;
       if (lo > 9) {
         lo += 6;
-        hi++;
+        cLo = 1;
       }
-      this.flagZ = ((this.a + val + this.flagC) & 0xFF) === 0 ? 1 : 0;
-      this.flagN = hi & 0x08 ? 1 : 0;
-      this.flagV = ~((this.a ^ val) & 0x80) & ((this.a ^ (hi << 4)) & 0x80) ? 1 : 0;
-      if (hi > 9) hi += 6;
-      this.flagC = hi > 15 ? 1 : 0;
+      let hi = (this.a >> 4) + (v >> 4) + cLo;
+      let cHi = 0;
+      if (hi > 9) {
+        hi += 6;
+        cHi = 1;
+      }
+      this.flagC = cHi;
       this.a = ((hi & 0x0F) << 4) | (lo & 0x0F);
+      this.setZN(this.a);
     } else {
-      const sum = this.a + val + this.flagC;
+      const sum = this.a + v + this.flagC;
+      this.flagV = (~(this.a ^ v) & (this.a ^ sum) & 0x80) !== 0 ? 1 : 0;
       this.flagC = sum > 0xFF ? 1 : 0;
-      const res = sum & 0xFF;
-      this.flagV = ~((this.a ^ val) & 0x80) & ((this.a ^ res) & 0x80) ? 1 : 0;
-      this.a = res;
+      this.a = sum & 0xFF;
       this.setZN(this.a);
     }
   }
 
-  sbc(val) {
+  sbc(v) {
     if (this.flagD) {
-      const carryIn = 1 - this.flagC;
-      const binDiff = this.a - val - carryIn;
-      let lo = (this.a & 0x0F) - (val & 0x0F) - carryIn;
-      let hi = (this.a >> 4) - (val >> 4);
+      const borrow = this.flagC ? 0 : 1;
+      let lo = (this.a & 0x0F) - (v & 0x0F) - borrow;
+      let bLo = 0;
       if (lo < 0) {
         lo -= 6;
-        hi--;
+        bLo = 1;
       }
-      if (hi < 0) hi -= 6;
-      this.flagC = binDiff >= 0 ? 1 : 0;
-      this.flagV = (this.a ^ val) & (this.a ^ (binDiff & 0xFF)) & 0x80 ? 1 : 0;
+      let hi = (this.a >> 4) - (v >> 4) - bLo;
+      let bHi = 0;
+      if (hi < 0) {
+        hi -= 6;
+        bHi = 1;
+      }
+      this.flagC = bHi ? 0 : 1;
       this.a = ((hi & 0x0F) << 4) | (lo & 0x0F);
-      this.setZN(binDiff & 0xFF);
+      this.setZN(this.a);
     } else {
-      this.adc(val ^ 0xFF);
+      const diff = this.a - v - (this.flagC ? 0 : 1);
+      this.flagV = ((this.a ^ v) & (this.a ^ diff) & 0x80) !== 0 ? 1 : 0;
+      this.flagC = diff < 0 ? 0 : 1;
+      this.a = diff & 0xFF;
+      this.setZN(this.a);
     }
   }
 
@@ -678,23 +689,16 @@ export class GameEngine {
     this.ram[0xD402] = this.ram[SystemAddressMap.DLIST_PTR_LO];
     this.ram[0xD403] = this.ram[SystemAddressMap.DLIST_PTR_HI];
     this.ram[0xD409] = this.ram[0x02F4];
+    this.ram[0xD01B] = this.ram[0x026F];
     for (let i = 0; i < 4; i++) {
       this.ram[0xD012 + i] = this.ram[0x02C0 + i];
+    }
+    for (let i = 0; i < 5; i++) {
       this.ram[0xD016 + i] = this.ram[SystemAddressMap.COLOR0_SHADOW + i];
     }
-    this.ram[0xD01A] = this.ram[0x02C8];
-    this.ram[0xD01B] = this.ram[0x026F];
   }
 
   runVbi() {
-    this.ram[0x0014] = (this.ram[0x0014] + 1) & 0xFF;
-    if (this.ram[0x0014] === 0) {
-      this.ram[0x0013] = (this.ram[0x0013] + 1) & 0xFF;
-    }
-    if (this.ram[0x004D] < 0x80) {
-      this.ram[0x004D] = (this.ram[0x004D] + 1) & 0x7F;
-    }
-
     const nmiEn = this.ram[0xD40E];
     if ((nmiEn & 0x40) === 0) {
       this.syncShadowRegisters();
@@ -713,9 +717,44 @@ export class GameEngine {
     this.recordingPokey = true;
     this.transitionOccurred = false;
 
+    const prevZoneIdx = this.ram[SystemAddressMap.SELECTED_ZONE_IDX];
     let used = 0;
     let guard = 0;
     while (!this.stopped && used < mainCycles && guard < 25000) {
+      if (this.pc === 0x60E5) {
+        let unpackSteps = 0;
+        while (!this.stopped && this.pc !== 0x6447 && unpackSteps < 1000000) {
+          this.step();
+          unpackSteps++;
+        }
+        this.state.collisionP0PF = 0;
+        this.state.collisionP1PF = 0;
+        if (this.activeCustomZone && this.ram[SystemAddressMap.SELECTED_ZONE_IDX] === prevZoneIdx) {
+          this.applyCustomZoneOverlay(this.activeCustomZone);
+        } else {
+          this.activeCustomZone = null;
+        }
+        break;
+      }
+      if (this.pc === 0x62D7 && this.activeCustomZone) {
+        let respawnSteps = 0;
+        while (!this.stopped && this.pc !== 0x6447 && respawnSteps < 50000) {
+          this.step();
+          respawnSteps++;
+        }
+        this.state.collisionP0PF = 0;
+        this.state.collisionP1PF = 0;
+        if (Array.isArray(this.activeCustomZone.colors) && this.activeCustomZone.colors.length >= 4) {
+          for (let i = 0; i < 4; i++) {
+            this.ram[SystemAddressMap.COLOR0_SHADOW + i] = this.activeCustomZone.colors[i] & 0xFF;
+          }
+        }
+        const zNum = this.activeCustomZone.zone || 13;
+        const bcdZone = ((((zNum / 10) | 0) << 4) | (zNum % 10)) & 0xFF;
+        this.ram[SystemAddressMap.HUD_ZONE_BCD] = bcdZone;
+        this.ram[SystemAddressMap.ACTIVE_ZONE_BCD] = bcdZone;
+        break;
+      }
       used += this.step();
       guard++;
     }
@@ -746,10 +785,12 @@ export class GameEngine {
     this.pc = resetLivesAndScore ? 0x60B9 : 0x60E5;
 
     let steps = 0;
-    while (!this.stopped && this.pc !== 0x6447 && steps < 300000) {
+    while (!this.stopped && this.pc !== 0x6447 && steps < 1000000) {
       this.step();
       steps++;
     }
+    this.state.collisionP0PF = 0;
+    this.state.collisionP1PF = 0;
     this.silencePokeyAndSfx();
     this.ram[SystemAddressMap.DOOR_TIMER_A] = 0x16;
     this.ram[SystemAddressMap.DOOR_TIMER_B] = 0x0C;
@@ -862,6 +903,7 @@ export class GameEngine {
     this.ram[SystemAddressMap.PLUTONIUM_REMAINING] = Math.max(1, plutoniumCount);
     this.ram[SystemAddressMap.CONTAINERS_REMAINING] = Math.max(1, containerCount);
     this.ram[SystemAddressMap.DOOR_COUNT] = doorCount & 0xFF;
+    this.ram[0x05C1] = 0x09;
 
     if (Array.isArray(zoneData.colors) && zoneData.colors.length >= 4) {
       for (let i = 0; i < 4; i++) {
@@ -872,6 +914,10 @@ export class GameEngine {
     for (let i = 0; i < 0x0300; i++) {
       this.ram[0x0600 + i] = 0;
     }
+    this.ram[0x05A3] = 0x00;
+    this.ram[0x05A4] = 0x00;
+    this.ram[0x05A5] = 0xFF;
+    this.ram[0x05A6] = 0xFF;
     const maxRobots = Math.min(GridConfig.MAX_MOVING_ENEMIES, robots.length);
     this.ram[SystemAddressMap.ACTIVE_ROBOT_COUNT] = maxRobots;
     for (let i = 0; i < maxRobots; i++) {
@@ -891,7 +937,7 @@ export class GameEngine {
       this.ram[base + 6] = (scrPtr >> 8) & 0xFF;
       this.ram[base + 7] = 0;
 
-      const cBase = etype === 0 ? 0xD4 : 0x60;
+      const cBase = etype === 0 ? 0xC8 : 0x4C;
       this.ram[scrPtr] = cBase;
       this.ram[scrPtr + 1] = cBase + 1;
       this.ram[scrPtr + 128] = cBase + 2;
@@ -934,6 +980,8 @@ export class GameEngine {
     this.callSubroutine(0x435F, 5000);
     this.callSubroutine(0x4462, 5000);
     this.callSubroutine(0x47A0, 5000);
+    this.state.collisionP0PF = 0;
+    this.state.collisionP1PF = 0;
     this.silencePokeyAndSfx();
     this.runVbi();
     this.runVbi();

@@ -171,7 +171,11 @@ export class AnticGtiaRenderer {
                 pfType = 1;
               } else if (bitPair === 2) {
                 colorReg = regs.COLPF1;
-                pfType = 2;
+                pfType =
+                  (charIndex >= 0x20 && charIndex <= 0x27) ||
+                  (charIndex >= 0x48 && charIndex <= 0x7F)
+                    ? 2
+                    : 0;
               } else {
                 colorReg = usePF3 ? regs.COLPF3 : regs.COLPF2;
                 pfType = usePF3 ? 4 : 3;
@@ -202,7 +206,11 @@ export class AnticGtiaRenderer {
                   pfType = 1;
                 } else if (bitPair === 2) {
                   colorReg = regs.COLPF1;
-                  pfType = 2;
+                  pfType =
+                    (charIndex >= 0x20 && charIndex <= 0x27) ||
+                    (charIndex >= 0x48 && charIndex <= 0x7F)
+                      ? 2
+                      : 0;
                 } else {
                   colorReg = usePF3 ? regs.COLPF3 : regs.COLPF2;
                   pfType = usePF3 ? 4 : 3;

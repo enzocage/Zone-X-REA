@@ -814,9 +814,44 @@ class Mos6502Core {
     this.recordingPokey = true;
     this.transitionOccurred = false;
 
+    const prevZoneIdx = this.ram[0x0554];
     let used = 0;
     let guard = 0;
     while (!this.stopped && used < mainCycles && guard < 25000) {
+      if (this.pc === 0x60E5) {
+        let unpackSteps = 0;
+        while (!this.stopped && this.pc !== 0x6447 && unpackSteps < 1000000) {
+          this.step();
+          unpackSteps++;
+        }
+        this.memory.collisionP0PF = 0;
+        this.memory.collisionP1PF = 0;
+        if (this.activeCustomZone && this.ram[0x0554] === prevZoneIdx) {
+          this.applyCustomZoneOverlay(this.activeCustomZone);
+        } else {
+          this.activeCustomZone = null;
+        }
+        break;
+      }
+      if (this.pc === 0x62D7 && this.activeCustomZone) {
+        let respawnSteps = 0;
+        while (!this.stopped && this.pc !== 0x6447 && respawnSteps < 50000) {
+          this.step();
+          respawnSteps++;
+        }
+        this.memory.collisionP0PF = 0;
+        this.memory.collisionP1PF = 0;
+        if (Array.isArray(this.activeCustomZone.colors) && this.activeCustomZone.colors.length >= 4) {
+          for (let i = 0; i < 4; i++) {
+            this.ram[0x02C4 + i] = this.activeCustomZone.colors[i] & 0xFF;
+          }
+        }
+        const zNum = this.activeCustomZone.zone || 13;
+        const bcdZone = ((((zNum / 10) | 0) << 4) | (zNum % 10)) & 0xFF;
+        this.ram[0x0597] = bcdZone;
+        this.ram[0x0559] = bcdZone;
+        break;
+      }
       used += this.step();
       guard++;
     }
@@ -851,10 +886,12 @@ class Mos6502Core {
     this.pc = resetLivesAndScore ? 0x60B9 : 0x60E5;
 
     let steps = 0;
-    while (!this.stopped && this.pc !== 0x6447 && steps < 300000) {
+    while (!this.stopped && this.pc !== 0x6447 && steps < 1000000) {
       this.step();
       steps++;
     }
+    this.memory.collisionP0PF = 0;
+    this.memory.collisionP1PF = 0;
     // Ensure no hanging POKEY tones from Title/Hall-of-Fame or previous zone survive into the new zone
     this.silencePokeyAndSfx();
     // Shorten initial automatic door timers ($058D/$058E) so door opening/closing is visible right after load
@@ -972,6 +1009,7 @@ class Mos6502Core {
     this.ram[0x0598] = Math.max(1, plutoniumCount);
     this.ram[0x05B3] = Math.max(1, containerCount);
     this.ram[0x0570] = doorCount & 0xFF;
+    this.ram[0x05C1] = 0x09;
 
     // 4. Zone Palette ($02C4..$02C7)
     if (Array.isArray(zoneData.colors) && zoneData.colors.length >= 4) {
@@ -984,6 +1022,10 @@ class Mos6502Core {
     for (let i = 0; i < 0x0300; i++) {
       this.ram[0x0600 + i] = 0;
     }
+    this.ram[0x05A3] = 0x00;
+    this.ram[0x05A4] = 0x00;
+    this.ram[0x05A5] = 0xFF;
+    this.ram[0x05A6] = 0xFF;
     const maxRobots = Math.min(32, robots.length);
     this.ram[0x05A0] = maxRobots;
     for (let i = 0; i < maxRobots; i++) {
@@ -1003,8 +1045,8 @@ class Mos6502Core {
       this.ram[base + 6] = (scrPtr >> 8) & 0xFF;
       this.ram[base + 7] = 0;
 
-      // Stamp initial 2x2 enemy characters ($54..$57 or $60..$63)
-      const cBase = etype === 0 ? 0xD4 : 0x60;
+      // Stamp initial 2x2 idle enemy characters ($C8..$CB or $4C..$4F)
+      const cBase = etype === 0 ? 0xC8 : 0x4C;
       this.ram[scrPtr] = cBase;
       this.ram[scrPtr + 1] = cBase + 1;
       this.ram[scrPtr + 128] = cBase + 2;
@@ -1049,6 +1091,8 @@ class Mos6502Core {
     this.callSubroutine(0x435F, 5000);
     this.callSubroutine(0x4462, 5000);
     this.callSubroutine(0x47A0, 5000);
+    this.memory.collisionP0PF = 0;
+    this.memory.collisionP1PF = 0;
     this.silencePokeyAndSfx();
     this.runVbi();
     this.runVbi();
@@ -3505,7 +3549,11 @@ class AnticGtiaRenderer {
                 pfType = 1;
               } else if (bitPair === 2) {
                 colorReg = regs.COLPF1;
-                pfType = 2;
+                pfType =
+                  (charIndex >= 0x20 && charIndex <= 0x27) ||
+                  (charIndex >= 0x48 && charIndex <= 0x7F)
+                    ? 2
+                    : 0;
               } else {
                 colorReg = usePF3 ? regs.COLPF3 : regs.COLPF2;
                 pfType = usePF3 ? 4 : 3;
@@ -3536,7 +3584,11 @@ class AnticGtiaRenderer {
                   pfType = 1;
                 } else if (bitPair === 2) {
                   colorReg = regs.COLPF1;
-                  pfType = 2;
+                  pfType =
+                    (charIndex >= 0x20 && charIndex <= 0x27) ||
+                    (charIndex >= 0x48 && charIndex <= 0x7F)
+                      ? 2
+                      : 0;
                 } else {
                   colorReg = usePF3 ? regs.COLPF3 : regs.COLPF2;
                   pfType = usePF3 ? 4 : 3;
