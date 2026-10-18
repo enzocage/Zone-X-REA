@@ -208,6 +208,40 @@ export class SmoothAnimationTracker {
   }
 
   /**
+   * Computes the exact continuous sub-pixel player and camera coordinates in 3D tile space
+   * directly from the Atari ANTIC Display List LMS0 ($3C94/$3C95), fine scroll registers
+   * HSCROL ($D404) & VSCROL ($D405), and GTIA Player/Missile position HPOSP0 ($D000/$055D)
+   * & PMGY ($055E).
+   */
+  readExactHardwarePlayerAndCamera(ram) {
+    const lms0 =
+      ram[SystemAddressMap.IN_GAME_LMS0_LO] |
+      (ram[SystemAddressMap.IN_GAME_LMS0_HI] << 8);
+    if (lms0 >= 0x1c00 && lms0 < 0x3c00) {
+      const lmsCharX = (lms0 - 0x1c00) & 0x7f;
+      const lmsCharY = (lms0 - 0x1c00) >> 7;
+      const hscrol = ram[SystemAddressMap.HSCROL] & 0x0f;
+      const vscrol = ram[SystemAddressMap.VSCROL] & 0x07;
+      const hpos = ram[0xd000] || ram[0x055d] || 120;
+      const pmgY = ram[0x055e] || 112;
+
+      const vpLeftPx = lmsCharX * 8 + (16 - hscrol) * 2 - 16;
+      const vpTopPx = lmsCharY * 8 + vscrol;
+
+      const playerX = Math.max(0, Math.min(61, (vpLeftPx + (hpos - 48) * 2) / 16.0));
+      const playerZ = Math.max(0, Math.min(31, (vpTopPx + (pmgY - 32)) / 16.0));
+      const camX = Math.max(0, Math.min(61, (vpLeftPx + 144) / 16.0));
+      const camZ = Math.max(0, Math.min(31, (vpTopPx + 80) / 16.0));
+
+      return { playerX, playerZ, camX, camZ };
+    }
+
+    const fallbackX = Math.max(0, Math.min(61, (ram[SystemAddressMap.PLAYER_CHAR_X] - 2) * 0.5));
+    const fallbackZ = Math.max(0, Math.min(31, ram[SystemAddressMap.PLAYER_CHAR_Y] * 0.5));
+    return { playerX: fallbackX, playerZ: fallbackZ, camX: fallbackX, camZ: fallbackZ };
+  }
+
+  /**
    * Resets tracking snapshot when a new Zone starts or respawns.
    */
   resetZoneSnapshot(ram) {
@@ -224,14 +258,13 @@ export class SmoothAnimationTracker {
       }
     }
 
-    const rawX = Math.max(0, (ram[SystemAddressMap.PLAYER_CHAR_X] - 2) * 0.5);
-    const rawZ = Math.max(0, ram[SystemAddressMap.PLAYER_CHAR_Y] * 0.5);
-    this.player.x = rawX;
-    this.player.z = rawZ;
-    this.player.targetX = rawX;
-    this.player.targetZ = rawZ;
-    this.camera.x = rawX;
-    this.camera.z = rawZ;
+    const hw = this.readExactHardwarePlayerAndCamera(ram);
+    this.player.x = hw.playerX;
+    this.player.z = hw.playerZ;
+    this.player.targetX = hw.playerX;
+    this.player.targetZ = hw.playerZ;
+    this.camera.x = hw.camX;
+    this.camera.z = hw.camZ;
 
     this.prevLives = ram[SystemAddressMap.LIVES_COUNT];
     this.prevPlutonium = ram[SystemAddressMap.PLUTONIUM_REMAINING];
@@ -264,9 +297,10 @@ export class SmoothAnimationTracker {
       this.spawnShockwave(this.player.x, this.player.z, [0.2, 0.95, 1.0], 3.2, 0.65);
     }
 
-    // 1. Update & Interpolate Player Position, Facing Angle, and Walk Cycle
-    const rawX = Math.max(0, Math.min(61, (ram[SystemAddressMap.PLAYER_CHAR_X] - 2) * 0.5));
-    const rawZ = Math.max(0, Math.min(31, ram[SystemAddressMap.PLAYER_CHAR_Y] * 0.5));
+    // 1. Update & Interpolate Continuous Hardware-Scrolled Player & Camera Position
+    const hw = this.readExactHardwarePlayerAndCamera(ram);
+    const rawX = hw.playerX;
+    const rawZ = hw.playerZ;
 
     const jumpDist = Math.hypot(rawX - this.player.targetX, rawZ - this.player.targetZ);
     if (jumpDist > 3.5) {
@@ -275,28 +309,47 @@ export class SmoothAnimationTracker {
       this.spawnParticleBurst(this.player.x, this.player.z, 22, [0.3, 0.95, 1.0], 4.0);
       this.player.x = rawX;
       this.player.z = rawZ;
+      this.camera.x = hw.camX;
+      this.camera.z = hw.camZ;
       this.player.teleportFlash = 1.0;
       this.spawnShockwave(rawX, rawZ, [0.2, 0.95, 1.0], 3.0, 0.55);
       this.spawnParticleBurst(rawX, rawZ, 26, [0.75, 0.4, 1.0], 4.2);
       if (this.fmSynth) this.fmSynth.playTeleportSound();
     }
 
+    const stepDx = rawX - this.player.targetX;
+    const stepDz = rawZ - this.player.targetZ;
+    this.player.targetX = rawX;
+    this.player.targetZ = rawZ;
+
     const moveDx = rawX - this.player.x;
     const moveDz = rawZ - this.player.z;
     const distToTarget = Math.hypot(moveDx, moveDz);
 
-    this.player.targetX = rawX;
-    this.player.targetZ = rawZ;
+    // Constant-velocity linear interpolation across the 2-frame (0.125 tile) Atari scroll steps
+    // Guarantees 100% continuous, uniform motion on every single frame without stop-and-go
+    if (distToTarget > 0.0001) {
+      const linearSpeed = 3.45 + Math.max(0, distToTarget - 0.125) * 20.0;
+      const step = Math.min(distToTarget, linearSpeed * dt);
+      this.player.x += (moveDx / distToTarget) * step;
+      this.player.z += (moveDz / distToTarget) * step;
+    }
 
-    // Butter-smooth exponential position interpolation
-    const lerpFactor = 1.0 - Math.exp(-22.0 * dt);
-    this.player.x += moveDx * lerpFactor;
-    this.player.z += moveDz * lerpFactor;
+    // Continuous 3D Camera Scroll synchronized 1:1 with the Atari viewport scroll
+    const camDx = hw.camX - this.camera.x;
+    const camDz = hw.camZ - this.camera.z;
+    const camDist = Math.hypot(camDx, camDz);
+    if (camDist > 0.0001) {
+      const camLinearSpeed = 3.45 + Math.max(0, camDist - 0.125) * 20.0;
+      const camStep = Math.min(camDist, camLinearSpeed * dt);
+      this.camera.x += (camDx / camDist) * camStep;
+      this.camera.z += (camDz / camDist) * camStep;
+    }
 
-    if (distToTarget > 0.015) {
+    if (distToTarget > 0.002 || Math.hypot(stepDx, stepDz) > 0.001) {
       this.player.targetAngle = Math.atan2(moveDx, moveDz);
-      this.player.walkCycle += dt * 15.5;
-      this.player.strideAmplitude = Math.min(1.0, this.player.strideAmplitude + dt * 10.0);
+      this.player.walkCycle += dt * 16.5;
+      this.player.strideAmplitude = Math.min(1.0, this.player.strideAmplitude + dt * 12.0);
       this.player.bobY = Math.abs(Math.sin(this.player.walkCycle)) * 0.09;
       if (this.fmSynth) this.fmSynth.playFootstep();
     } else {
@@ -308,7 +361,7 @@ export class SmoothAnimationTracker {
     let angleDiff = this.player.targetAngle - this.player.facingAngle;
     while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
     while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-    this.player.facingAngle += angleDiff * (1.0 - Math.exp(-18.0 * dt));
+    this.player.facingAngle += angleDiff * (1.0 - Math.exp(-20.0 * dt));
 
     this.player.hurtFlash = Math.max(0, this.player.hurtFlash - dt * 2.5);
     this.player.teleportFlash = Math.max(0, this.player.teleportFlash - dt * 2.5);
@@ -320,11 +373,6 @@ export class SmoothAnimationTracker {
     this.player.plutoniumGlow = isCarryingPlutonium
       ? 0.65 + 0.35 * Math.sin(this.time * 12.0)
       : 0.0;
-
-    // 2. Smoothly Follow Player with 3D Camera (damped spring follow)
-    const camLerp = 1.0 - Math.exp(-8.5 * dt);
-    this.camera.x += (this.player.x - this.camera.x) * camLerp;
-    this.camera.z += (this.player.z - this.camera.z) * camLerp;
 
     // 3. Detect Gameplay Events (Lives, Plutonium, Containers, Inventory, Dug Tiles)
     const curLives = ram[SystemAddressMap.LIVES_COUNT];
@@ -453,13 +501,20 @@ export class SmoothAnimationTracker {
 
       const dx = targetX - droid.x;
       const dz = targetZ - droid.z;
+      const dDist = Math.hypot(dx, dz);
       droid.type = rType;
       droid.targetX = targetX;
       droid.targetZ = targetZ;
-      droid.x += dx * droidLerp;
-      droid.z += dz * droidLerp;
 
-      if (Math.hypot(dx, dz) > 0.01) {
+      if (dDist > 0.0001) {
+        const baseDroidSpeed = rType === 0 ? 3.35 : 6.6;
+        const droidSpeed = baseDroidSpeed + Math.max(0, dDist - 0.5) * 16.0;
+        const dStep = Math.min(dDist, droidSpeed * dt);
+        droid.x += (dx / dDist) * dStep;
+        droid.z += (dz / dDist) * dStep;
+      }
+
+      if (dDist > 0.005) {
         const targetAngle = Math.atan2(dx, dz);
         let aDiff = targetAngle - droid.facingAngle;
         while (aDiff > Math.PI) aDiff -= Math.PI * 2;
