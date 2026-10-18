@@ -87,8 +87,13 @@ export class Mos6502Core {
     this.flagN = 0;
     this.cycles = 0;
     this.stopped = false;
-    this.rng = 0x5A;
+    this.rng = 0x1FFFF;
     this.hofInitialized = false;
+    this.totalCycles = 0;
+    this.frameCycles = 0;
+    this.lastFrameTotalCycles = 27000;
+    this.recordingPokey = false;
+    this.pokeyEvents = [];
   }
 
   loadBaseBinary() {
@@ -176,11 +181,13 @@ export class Mos6502Core {
   read8(addr) {
     addr &= 0xFFFF;
     if (addr === 0xD20A) {
-      // POKEY RANDOM register
-      const bit = ((this.rng >> 7) ^ (this.rng >> 5) ^ (this.rng >> 4) ^ (this.rng >> 3)) & 1;
-      this.rng = ((this.rng << 1) | bit) & 0xFF;
-      if (this.rng === 0) this.rng = 0x5A;
-      return this.rng;
+      // POKEY 17-bit polynomial RANDOM register (steps 8 master bits per read)
+      for (let b = 0; b < 8; b++) {
+        const bit = ((this.rng >> 16) ^ (this.rng >> 11) ^ 1) & 1;
+        this.rng = ((this.rng << 1) | bit) & 0x1FFFF;
+      }
+      if (this.rng === 0) this.rng = 0x15A3C;
+      return ((this.rng >> 4) ^ (this.totalCycles & 0xFF)) & 0xFF;
     }
     if (addr === 0xD004) {
       // GTIA P0PF (Player 0 to Playfield collision latch)
@@ -200,6 +207,12 @@ export class Mos6502Core {
       // GTIA HITCLR clears all collision latches
       this.memory.collisionP0PF = 0;
       this.memory.collisionP1PF = 0;
+    } else if (this.recordingPokey && addr >= 0xD200 && addr <= 0xD20F) {
+      this.pokeyEvents.push({
+        cycle: this.frameCycles,
+        addr,
+        val,
+      });
     }
     this.ram[addr] = val;
   }
@@ -553,6 +566,8 @@ export class Mos6502Core {
         break;
     }
 
+    this.totalCycles += baseCycles;
+    this.frameCycles += baseCycles;
     return baseCycles;
   }
 
@@ -611,14 +626,21 @@ export class Mos6502Core {
     this.syncShadowRegisters();
   }
 
-  runFrame(mainCycles = 18000) {
+  runFrame(mainCycles = 23500) {
+    this.frameCycles = 0;
+    this.pokeyEvents = [];
+    this.recordingPokey = true;
+
     let used = 0;
     let guard = 0;
-    while (!this.stopped && used < mainCycles && guard < 12000) {
+    while (!this.stopped && used < mainCycles && guard < 25000) {
       used += this.step();
       guard++;
     }
     this.runVbi();
+
+    this.recordingPokey = false;
+    this.lastFrameTotalCycles = Math.max(1, this.frameCycles);
   }
 
   /**
@@ -679,7 +701,7 @@ export class Mos6502Core {
     this.pc = 0x6054;
 
     let steps = 0;
-    while (!this.stopped && this.pc !== 0x75F2 && steps < 50000) {
+    while (!this.stopped && this.pc !== 0x75F2 && steps < 250000) {
       this.step();
       steps++;
     }

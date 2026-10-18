@@ -41,6 +41,10 @@ export class ZoneXApplication {
     this.targetHz = 50;
     this.FRAME_DT = 1000.0 / this.targetHz; // 50.00 Hz PAL VBI (20.0 ms) or 60.00 Hz NTSC (16.67 ms)
 
+    if (!this.isLockstep) {
+      this.pokey.setFrameStepper(() => this.stepInteractiveCpuFrame());
+    }
+
     this.bindUI();
     this.api = installLockstepAPI(this);
 
@@ -52,10 +56,22 @@ export class ZoneXApplication {
     }
   }
 
+  stepInteractiveCpuFrame() {
+    this.inputBridge.consumeFrameInput(null);
+    const mainCycles = this.targetHz === 60 ? 19500 : 23500;
+    this.cpu.runFrame(mainCycles);
+    this.renderer.renderFrame();
+    return {
+      events: this.cpu.pokeyEvents,
+      totalCycles: this.cpu.lastFrameTotalCycles,
+    };
+  }
+
   setRefreshRate(hz) {
     this.targetHz = hz === 60 ? 60 : 50;
     this.FRAME_DT = 1000.0 / this.targetHz;
     this.accumulator = 0.0;
+    this.pokey.setTargetHz(this.targetHz);
 
     const btnHz = document.getElementById("btn-hz-toggle");
     if (btnHz) {
@@ -74,6 +90,7 @@ export class ZoneXApplication {
   loadInteractiveZone(zoneNumber = 1, optionLevel = 1, resetLivesAndScore = false) {
     this.screens.activeScreen = "ingame";
     this.cpu.startZone(zoneNumber, optionLevel, resetLivesAndScore);
+    this.pokey.syncRegistersFromRam();
     this.renderer.renderFrame();
     this.renderer.renderFullZoneMapIfPresent();
     this.updateTelemetryUI();
@@ -95,6 +112,7 @@ export class ZoneXApplication {
     } else {
       this.cpu.startZone(zNum, lNum, false);
     }
+    this.pokey.syncRegistersFromRam();
     this.renderer.renderFrame();
     this.updateTelemetryUI();
   }
@@ -308,17 +326,25 @@ export class ZoneXApplication {
 
     const tick = (now) => {
       if (this.autoLoopEnabled) {
-        let delta = now - this.lastTime;
-        if (delta > 100) delta = 100;
-        this.lastTime = now;
-        this.accumulator += delta;
+        if (this.pokey.isAudioClockActive()) {
+          // Sample-locked audio clock is driving stepInteractiveCpuFrame() at exact 20.000ms (50Hz) / 16.667ms (60Hz) boundaries
+          this.lastTime = now;
+          this.accumulator = 0.0;
+          if (this.pokey.consumeRenderedFrameFlag()) {
+            this.updateTelemetryUI();
+          }
+        } else {
+          let delta = now - this.lastTime;
+          if (delta > 100) delta = 100;
+          this.lastTime = now;
+          this.accumulator += delta;
 
-        while (this.accumulator >= this.FRAME_DT) {
-          this.inputBridge.consumeFrameInput(null);
-          this.cpu.runFrame(18000);
-          this.renderer.renderFrame();
-          this.updateTelemetryUI();
-          this.accumulator -= this.FRAME_DT;
+          while (this.accumulator >= this.FRAME_DT) {
+            const info = this.stepInteractiveCpuFrame();
+            this.pokey.enqueueFrameEvents(info.events, info.totalCycles);
+            this.updateTelemetryUI();
+            this.accumulator -= this.FRAME_DT;
+          }
         }
       }
       requestAnimationFrame(tick);
