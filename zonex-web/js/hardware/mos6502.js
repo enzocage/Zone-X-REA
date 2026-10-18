@@ -648,6 +648,7 @@ export class Mos6502Core {
    * using the genuine 6502 routine ($60B9..$63D0 -> $6447).
    */
   startZone(zoneNumber = 1, optionLevel = 1, resetLivesAndScore = true) {
+    this.activeCustomZone = null;
     this.loadBaseBinary();
     const zIdx = Math.max(0, Math.min(11, (zoneNumber | 0) - 1));
     const diffIdx = Math.max(0, Math.min(2, (optionLevel | 0) - 1));
@@ -680,9 +681,198 @@ export class Mos6502Core {
   }
 
   /**
+   * Loads a Bonus Level (Zones 13..22) or Custom Level Editor Zone directly into the genuine 6502 engine.
+   */
+  startCustomZone(zoneData, optionLevel = 1, resetLivesAndScore = false) {
+    this.startZone(1, optionLevel, resetLivesAndScore);
+    this.activeCustomZone = zoneData;
+    this.applyCustomZoneOverlay(zoneData);
+  }
+
+  applyCustomZoneOverlay(zoneData) {
+    if (!zoneData || !zoneData.playfield_bytes) return;
+    const W = 62;
+    const H = 32;
+
+    // 1. Clear playfield borders ($1C00..$3BFF)
+    for (let r = 0; r < 64; r++) {
+      const rowBase = 0x1C00 + r * 128;
+      this.ram[rowBase + 0] = 0x81;
+      this.ram[rowBase + 1] = 0x81;
+      this.ram[rowBase + 126] = 0x81;
+      this.ram[rowBase + 127] = 0x81;
+    }
+
+    const writeTileToRam = (tx, ty, tileId) => {
+      if (tx < 0 || tx >= W || ty < 0 || ty >= H) return;
+      const t = tileId & 0x1F;
+      this.ram[0x0B00 + ty * W + tx] = t;
+      const mb = 0x6D42 + t * 4;
+      const charCol = (tx + 1) * 2;
+      const r0 = 0x1C00 + (ty * 2) * 128 + charCol;
+      const r1 = 0x1C00 + (ty * 2 + 1) * 128 + charCol;
+      this.ram[r0] = this.ram[mb];
+      this.ram[r0 + 1] = this.ram[mb + 1];
+      this.ram[r1] = this.ram[mb + 2];
+      this.ram[r1 + 1] = this.ram[mb + 3];
+    };
+
+    let plutoniumCount = 0;
+    let containerCount = 0;
+    let doorCount = 0;
+    const robots = [];
+
+    for (let ty = 0; ty < H; ty++) {
+      for (let tx = 0; tx < W; tx++) {
+        const rawTile = zoneData.playfield_bytes[ty * W + tx] & 0x1F;
+        if (rawTile === 26 || rawTile === 27) {
+          // Underlying playfield tile under a moving robot is FLOOR (0)
+          writeTileToRam(tx, ty, 0);
+          robots.push({ x: tx, y: ty, type: rawTile === 26 ? 0 : 1 });
+        } else {
+          writeTileToRam(tx, ty, rawTile);
+          if (rawTile === 6) plutoniumCount++;
+          else if (rawTile === 16) containerCount++;
+          else if (rawTile === 7 || rawTile === 9) doorCount++;
+        }
+      }
+    }
+
+    // 2. Player Start (Tile 11) and Exit Pos (Tile 22)
+    const px = zoneData.player_start ? zoneData.player_start.x : 30;
+    const py = zoneData.player_start ? zoneData.player_start.y : 15;
+    const ex = zoneData.exit_pos ? zoneData.exit_pos.x : 31;
+    const ey = zoneData.exit_pos ? zoneData.exit_pos.y : 15;
+
+    writeTileToRam(px, py, 11);
+    writeTileToRam(ex, ey, 22);
+
+    const startOffset = (py * W + px) & 0xFFFF;
+    const exitOffset = (ey * W + ex) & 0xFFFF;
+    const charX = ((px + 1) * 2) & 0xFF;
+    const charY = (py * 2) & 0xFF;
+
+    const lmsX = charX < 0x16 ? 0 : Math.min(0x54, charX - 0x14);
+    const lmsY = charY < 0x0C ? 0 : Math.min(0x28, charY - 0x0A);
+    const hpos = (40 + (charX - lmsX) * 4) & 0xFF;
+    const pmgY = (32 + (charY - lmsY) * 8) & 0xFF;
+
+    // Store start/exit records in $05B4..$05BB (used on life-loss respawn at $62D7 and exit spawn at $654D)
+    this.ram[0x05B4] = startOffset & 0xFF;
+    this.ram[0x05B5] = (startOffset >> 8) & 0xFF;
+    this.ram[0x05B6] = hpos;
+    this.ram[0x05B7] = pmgY;
+    this.ram[0x05B8] = exitOffset & 0xFF;
+    this.ram[0x05B9] = (exitOffset >> 8) & 0xFF;
+
+    const exitScr = (0x1C00 + (ey * 2) * 128 + (ex + 1) * 2) & 0xFFFF;
+    this.ram[0x05BA] = exitScr & 0xFF;
+    this.ram[0x05BB] = (exitScr >> 8) & 0xFF;
+
+    this.ram[0x055B] = startOffset & 0xFF;
+    this.ram[0x055C] = (startOffset >> 8) & 0xFF;
+    this.ram[0x055D] = hpos;
+    this.ram[0xD000] = hpos;
+    this.ram[0xD001] = hpos;
+    this.ram[0x055E] = pmgY;
+    this.ram[0x0560] = charX;
+    this.ram[0x0561] = charY;
+    this.ram[0x0568] = 0x00;
+    this.ram[0x056B] = 0x08;
+    this.ram[0x056C] = 0x00;
+    this.ram[0xD404] = 0x08;
+    this.ram[0xD405] = 0x00;
+
+    // 3. Plutonium & Container counters
+    this.ram[0x0598] = Math.max(1, plutoniumCount);
+    this.ram[0x05B3] = Math.max(1, containerCount);
+    this.ram[0x0570] = doorCount & 0xFF;
+
+    // 4. Zone Palette ($02C4..$02C7)
+    if (Array.isArray(zoneData.colors) && zoneData.colors.length >= 4) {
+      for (let i = 0; i < 4; i++) {
+        this.ram[0x02C4 + i] = zoneData.colors[i] & 0xFF;
+      }
+    }
+
+    // 5. Initialize Moving Enemies ($0600..$0AFF)
+    for (let i = 0; i < 0x0300; i++) {
+      this.ram[0x0600 + i] = 0;
+    }
+    const maxRobots = Math.min(32, robots.length);
+    this.ram[0x05A0] = maxRobots;
+    for (let i = 0; i < maxRobots; i++) {
+      const r = robots[i];
+      const base = 0x0600 + i * 8;
+      const rCharX = ((r.x + 1) * 2) & 0xFF;
+      const rCharY = (r.y * 2) & 0xFF;
+      const scrPtr = (0x1C00 + rCharY * 128 + rCharX) & 0xFFFF;
+      const etype = r.type & 1;
+
+      this.ram[base + 0] = etype;
+      this.ram[base + 1] = 1; // active
+      this.ram[base + 2] = 0xFF; // pick direction on first step
+      this.ram[base + 3] = rCharX;
+      this.ram[base + 4] = rCharY;
+      this.ram[base + 5] = scrPtr & 0xFF;
+      this.ram[base + 6] = (scrPtr >> 8) & 0xFF;
+      this.ram[base + 7] = 0;
+
+      // Stamp initial 2x2 enemy characters ($54..$57 or $60..$63)
+      const cBase = etype === 0 ? 0xD4 : 0x60;
+      this.ram[scrPtr] = cBase;
+      this.ram[scrPtr + 1] = cBase + 1;
+      this.ram[scrPtr + 128] = cBase + 2;
+      this.ram[scrPtr + 129] = cBase + 3;
+    }
+
+    // 6. Initialize Warp Gates ($47CB reads pointer from $A3D8 + internal_z * 2 and count from $056F)
+    const warps = Array.isArray(zoneData.warps) ? zoneData.warps : [];
+    const internalZ = this.ram[0x0555] & 0x0F;
+    const warpTableAddr = 0x0900; // Free RAM inside upper $0600..$0AFF block
+    this.ram[0xA3D8 + internalZ * 2] = warpTableAddr & 0xFF;
+    this.ram[0xA3D8 + internalZ * 2 + 1] = (warpTableAddr >> 8) & 0xFF;
+    this.ram[0x056F] = warps.length & 0xFF;
+
+    for (let w = 0; w < warps.length && w < 24; w++) {
+      const wp = warps[w];
+      const sOff = (wp.src_y * W + wp.src_x) & 0xFFFF;
+      const dOff = (wp.dst_y * W + wp.dst_x) & 0xFFFF;
+      const dCharX = ((wp.dst_x + 1) * 2) & 0xFF;
+      const dCharY = (wp.dst_y * 2) & 0xFF;
+      const dLmsX = dCharX < 0x16 ? 0 : Math.min(0x54, dCharX - 0x14);
+      const dLmsY = dCharY < 0x0C ? 0 : Math.min(0x28, dCharY - 0x0A);
+      const dHpos = (40 + (dCharX - dLmsX) * 4) & 0xFF;
+      const dPmgY = (32 + (dCharY - dLmsY) * 8) & 0xFF;
+
+      const p = warpTableAddr + w * 6;
+      this.ram[p + 0] = sOff & 0xFF;
+      this.ram[p + 1] = (sOff >> 8) & 0xFF;
+      this.ram[p + 2] = dOff & 0xFF;
+      this.ram[p + 3] = (dOff >> 8) & 0xFF;
+      this.ram[p + 4] = dHpos;
+      this.ram[p + 5] = dPmgY;
+    }
+
+    // 7. Update HUD Zone number ($0597 BCD) & Camera LMS pointers
+    const zNum = zoneData.zone || 13;
+    const bcdZone = ((((zNum / 10) | 0) << 4) | (zNum % 10)) & 0xFF;
+    this.ram[0x0597] = bcdZone;
+    this.ram[0x0559] = bcdZone;
+
+    this.callSubroutine(0x43BF, 5000);
+    this.callSubroutine(0x435F, 5000);
+    this.callSubroutine(0x4462, 5000);
+    this.callSubroutine(0x47A0, 5000);
+    this.runVbi();
+    this.runVbi();
+  }
+
+  /**
    * Boots the genuine 6502 Title Screen ($6054..$60B0 -> $75F2 with VBI $5D1F).
    */
   bootTitleScreen(zoneNumber = 1, optionLevel = 1) {
+    this.activeCustomZone = null;
     this.loadBaseBinary();
     const zIdx = Math.max(0, Math.min(11, (zoneNumber | 0) - 1));
     const diffIdx = Math.max(0, Math.min(2, (optionLevel | 0) - 1));
@@ -712,13 +902,14 @@ export class Mos6502Core {
    * Boots the genuine 6502 Features Showcase Screen ($60B3 -> $9325 with VBI $937C and DLI $9670).
    */
   bootFeaturesScreen() {
+    this.activeCustomZone = null;
     this.loadBaseBinary();
     this.sp = 0xFF;
     this.stopped = false;
     this.pc = 0x60B3;
 
     let steps = 0;
-    while (!this.stopped && this.pc !== 0x9368 && steps < 100000) {
+    while (!this.stopped && this.pc !== 0x9368 && steps < 250000) {
       this.step();
       steps++;
     }
@@ -730,6 +921,7 @@ export class Mos6502Core {
    * Boots the genuine 6502 Hall of Fame Screen ($6491..$64AD -> $8F7C with VBI $5FD6).
    */
   bootHallOfFameScreen() {
+    this.activeCustomZone = null;
     this.loadBaseBinary();
     this.ram[0x05D5] = 0x01; // Display mode (skip name entry unless triggered at Game Over)
     this.sp = 0xFF;

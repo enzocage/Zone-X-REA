@@ -1,9 +1,11 @@
 /**
  * zonex-web/js/main.js
- * Main entry point & 50.00 Hz PAL Timestep Accumulator (dt = 20.0 ms).
- * Runs the cycle-accurate Mos6502Core ($3C80..$BFFF) in interactive mode for 100% authentic
- * gameplay, hardware HSCROL/VSCROL soft-scrolling, animated moving enemies, and live POKEY audio,
- * while preserving the deterministic Lockstep API (?lockstep=1) for Phase 5 Oracle verification.
+ * Main entry point & 50.00 Hz PAL / 60.00 Hz NTSC Timestep Engine.
+ * - Boots into the authentic Atari 800XL Title / Intro Screen ($3CE5, $75F2 music) by default,
+ *   transitioning through the Features Intro ($939C) into the game on START / FIRE.
+ * - Includes 10 new innovative Bonus Levels (Zones 13–22) + Interactive Level Editor (Zones 23–27),
+ *   all playable directly via the level selector or in-game progression.
+ * - Preserves deterministic Lockstep API (?lockstep=1) for Phase 5 Oracle verification.
  */
 
 import { MemoryState, MAP_WIDTH, MAP_HEIGHT } from "./engine/memory_state.js";
@@ -12,6 +14,8 @@ import { PlayerPhysics } from "./engine/player_physics.js";
 import { FeatureStateMachine } from "./engine/feature_state_machine.js";
 import { RobotAI } from "./engine/robot_ai.js";
 import { ScreenManager } from "./engine/screens.js";
+import { generateBonusLevels } from "./engine/bonus_levels.js";
+import { LevelEditor } from "./editor/level_editor.js";
 import { AnticGtiaRenderer } from "./hardware/antic_gtia.js";
 import { PokeyDriver } from "./hardware/pokey_driver.js";
 import { InputBridge } from "./hardware/input_bridge.js";
@@ -35,31 +39,85 @@ export class ZoneXApplication {
     this.renderer = new AnticGtiaRenderer(this.canvas, this.memory, bundle);
     this.cpu = new Mos6502Core(this.memory, bundle);
 
+    this.bonusLevels = generateBonusLevels();
+    this.levelEditor = new LevelEditor(this);
+    this.currentSelectedZone = 1;
+
     this.autoLoopEnabled = true;
     this.lastTime = performance.now();
     this.accumulator = 0.0;
     this.targetHz = 50;
-    this.FRAME_DT = 1000.0 / this.targetHz; // 50.00 Hz PAL VBI (20.0 ms) or 60.00 Hz NTSC (16.67 ms)
+    this.FRAME_DT = 1000.0 / this.targetHz;
 
     if (!this.isLockstep) {
       this.pokey.setFrameStepper(() => this.stepInteractiveCpuFrame());
     }
 
+    this.refreshZoneDropdown();
     this.bindUI();
     this.api = installLockstepAPI(this);
 
-    // Load Zone 1 (Option Level 1) initially
     if (this.isLockstep) {
       this.api.loadZone(1, 1);
     } else {
-      this.loadInteractiveZone(1, 1, true);
+      // Boot into the original Atari 800XL Intro / Title Screen first!
+      this.loadInteractiveScreen("title");
+    }
+  }
+
+  getZoneDataByNumber(zoneNumber) {
+    const z = zoneNumber | 0;
+    if (z >= 1 && z <= 12) {
+      return this.bundle.zones[z - 1];
+    }
+    if (z >= 13 && z <= 22) {
+      return this.bonusLevels[z - 13];
+    }
+    if (z >= 23 && z <= 27 && this.levelEditor) {
+      const slot = this.levelEditor.customSlots[z - 23];
+      if (slot) return slot;
+    }
+    return this.bundle.zones[0];
+  }
+
+  refreshZoneDropdown(selectZoneNum = null) {
+    const group = document.getElementById("ui-custom-zones-group");
+    const zoneSelect = document.getElementById("ui-zone-select");
+    if (group && this.levelEditor) {
+      group.innerHTML = "";
+      this.levelEditor.customSlots.forEach((slot, idx) => {
+        if (slot) {
+          const opt = document.createElement("option");
+          const zNum = 23 + idx;
+          opt.value = String(zNum);
+          opt.textContent = `Zone ${zNum} 🛠 ${slot.title || "Custom Level " + (idx + 1)}`;
+          group.appendChild(opt);
+        }
+      });
+    }
+    if (selectZoneNum !== null && zoneSelect) {
+      zoneSelect.value = String(selectZoneNum);
+      this.currentSelectedZone = selectZoneNum;
     }
   }
 
   stepInteractiveCpuFrame() {
     this.inputBridge.consumeFrameInput(null);
+    const prevDl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
     const mainCycles = this.targetHz === 60 ? 19500 : 23500;
     this.cpu.runFrame(mainCycles);
+    const newDl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+
+    // If the 6502 transitioned natively from Intro/Features ($3CE5/$939C) into In-Game ($3C8B)
+    // while a Bonus/Custom Zone (13..27) was selected in the UI, apply that Bonus/Custom Zone!
+    if (prevDl !== 0x3C8B && newDl === 0x3C8B && this.currentSelectedZone >= 13) {
+      const zData = this.getZoneDataByNumber(this.currentSelectedZone);
+      if (zData) {
+        this.cpu.activeCustomZone = zData;
+        this.cpu.applyCustomZoneOverlay(zData);
+      }
+    }
+
     this.renderer.renderFrame();
     return {
       events: this.cpu.pokeyEvents,
@@ -87,13 +145,26 @@ export class ZoneXApplication {
     }
   }
 
-  loadInteractiveZone(zoneNumber = 1, optionLevel = 1, resetLivesAndScore = false) {
+  loadAnyZone(zoneNumber = 1, optionLevel = 1, resetLivesAndScore = false) {
+    this.currentSelectedZone = zoneNumber | 0;
+    const screenSelect = document.getElementById("ui-screen-select");
+    if (screenSelect) screenSelect.value = "ingame";
     this.screens.activeScreen = "ingame";
-    this.cpu.startZone(zoneNumber, optionLevel, resetLivesAndScore);
+
+    if (this.currentSelectedZone >= 13) {
+      const zData = this.getZoneDataByNumber(this.currentSelectedZone);
+      this.cpu.startCustomZone(zData, optionLevel, resetLivesAndScore);
+    } else {
+      this.cpu.startZone(this.currentSelectedZone, optionLevel, resetLivesAndScore);
+    }
     this.pokey.syncRegistersFromRam();
     this.renderer.renderFrame();
     this.renderer.renderFullZoneMapIfPresent();
     this.updateTelemetryUI();
+  }
+
+  loadInteractiveZone(zoneNumber = 1, optionLevel = 1, resetLivesAndScore = false) {
+    this.loadAnyZone(zoneNumber, optionLevel, resetLivesAndScore);
   }
 
   loadInteractiveScreen(screenName) {
@@ -101,16 +172,18 @@ export class ZoneXApplication {
     const levelSelect = document.getElementById("ui-level-select");
     const zNum = zoneSelect ? parseInt(zoneSelect.value, 10) || 1 : 1;
     const lNum = levelSelect ? parseInt(levelSelect.value, 10) || 1 : 1;
+    this.currentSelectedZone = zNum;
 
     this.screens.activeScreen = screenName;
     if (screenName === "title") {
-      this.cpu.bootTitleScreen(zNum, lNum);
+      this.cpu.bootTitleScreen(Math.min(12, zNum), lNum);
     } else if (screenName === "features") {
       this.cpu.bootFeaturesScreen();
     } else if (screenName === "halloffame" || screenName === "hof") {
       this.cpu.bootHallOfFameScreen();
     } else {
-      this.cpu.startZone(zNum, lNum, false);
+      this.loadAnyZone(zNum, lNum, false);
+      return;
     }
     this.pokey.syncRegistersFromRam();
     this.renderer.renderFrame();
@@ -125,7 +198,9 @@ export class ZoneXApplication {
     const btnAudio = document.getElementById("btn-audio-toggle");
     const btnCrt = document.getElementById("btn-crt-toggle");
     const crtOverlay = document.getElementById("crt-overlay");
-    const fullMapCanvas = document.getElementById("full-map-canvas");
+    const btnSelect = document.getElementById("btn-console-select");
+    const btnOption = document.getElementById("btn-console-option");
+    const btnStart = document.getElementById("btn-console-start");
 
     const autoUnlockAudio = async () => {
       if (this.isLockstep) return;
@@ -158,7 +233,7 @@ export class ZoneXApplication {
           }
         } else {
           if (val === "ingame") {
-            this.loadInteractiveZone(parseInt(zoneSelect.value, 10), parseInt(levelSelect.value, 10), false);
+            this.loadAnyZone(parseInt(zoneSelect.value, 10), parseInt(levelSelect.value, 10), false);
           } else {
             this.loadInteractiveScreen(val);
           }
@@ -168,27 +243,83 @@ export class ZoneXApplication {
 
     if (zoneSelect) {
       zoneSelect.addEventListener("change", () => {
-        if (screenSelect) screenSelect.value = "ingame";
-        const z = parseInt(zoneSelect.value, 10);
-        const l = parseInt(levelSelect.value, 10);
+        const z = parseInt(zoneSelect.value, 10) || 1;
+        const l = levelSelect ? parseInt(levelSelect.value, 10) || 1 : 1;
+        this.currentSelectedZone = z;
         if (this.isLockstep) {
-          this.api.loadZone(z, l);
+          this.api.loadZone(Math.min(12, z), l);
         } else {
-          this.loadInteractiveZone(z, l, false);
+          this.loadAnyZone(z, l, false);
         }
       });
     }
 
     if (levelSelect) {
       levelSelect.addEventListener("change", () => {
-        if (screenSelect) screenSelect.value = "ingame";
-        const z = parseInt(zoneSelect.value, 10);
-        const l = parseInt(levelSelect.value, 10);
+        const z = zoneSelect ? parseInt(zoneSelect.value, 10) || 1 : 1;
+        const l = parseInt(levelSelect.value, 10) || 1;
         if (this.isLockstep) {
-          this.api.loadZone(z, l);
+          this.api.loadZone(Math.min(12, z), l);
         } else {
-          this.loadInteractiveZone(z, l, false);
+          const dl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+          if (dl === 0x3C8B) {
+            this.loadAnyZone(z, l, false);
+          } else {
+            this.memory.ram[0x0556] = Math.max(0, Math.min(2, l - 1));
+            this.memory.ram[0x0557] = this.memory.ram[0x0556];
+          }
         }
+      });
+    }
+
+    // Physical Atari 800XL Console Deck Buttons (SELECT, OPTION, START)
+    if (btnSelect && zoneSelect) {
+      btnSelect.addEventListener("click", () => {
+        const opts = Array.from(zoneSelect.options);
+        const nextIdx = (zoneSelect.selectedIndex + 1) % opts.length;
+        zoneSelect.selectedIndex = nextIdx;
+        const z = parseInt(zoneSelect.value, 10) || 1;
+        this.currentSelectedZone = z;
+        const dl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+        if (dl === 0x3CE5 && z <= 12) {
+          // Update Title Screen Zone display ($4EBD) natively
+          const zIdx = z - 1;
+          const bcd = ((((z / 10) | 0) << 4) | (z % 10)) & 0xFF;
+          this.memory.ram[0x0554] = zIdx;
+          this.memory.ram[0x0558] = zIdx;
+          this.memory.ram[0x0555] = this.memory.ram[0xA3CC + zIdx];
+          this.memory.ram[0x0597] = bcd;
+          this.memory.ram[0x0559] = bcd;
+          this.cpu.callSubroutine(0x4FC5, 5000);
+          this.renderer.renderFrame();
+        } else {
+          const l = levelSelect ? parseInt(levelSelect.value, 10) || 1 : 1;
+          this.loadAnyZone(z, l, false);
+        }
+        this.updateTelemetryUI();
+      });
+    }
+
+    if (btnOption && levelSelect) {
+      btnOption.addEventListener("click", () => {
+        levelSelect.selectedIndex = (levelSelect.selectedIndex + 1) % 3;
+        const l = parseInt(levelSelect.value, 10) || 1;
+        this.memory.ram[0x0556] = l - 1;
+        this.memory.ram[0x0557] = l - 1;
+        const dl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+        if (dl === 0x3CE5) {
+          this.cpu.callSubroutine(0x4FEA, 5000);
+          this.renderer.renderFrame();
+        }
+        this.updateTelemetryUI();
+      });
+    }
+
+    if (btnStart) {
+      btnStart.addEventListener("click", () => {
+        const z = zoneSelect ? parseInt(zoneSelect.value, 10) || 1 : 1;
+        const l = levelSelect ? parseInt(levelSelect.value, 10) || 1 : 1;
+        this.loadAnyZone(z, l, true);
       });
     }
 
@@ -207,50 +338,6 @@ export class ZoneXApplication {
     if (btnCrt && crtOverlay) {
       btnCrt.addEventListener("click", () => {
         crtOverlay.classList.toggle("active");
-      });
-    }
-
-    if (fullMapCanvas) {
-      fullMapCanvas.addEventListener("click", (e) => {
-        const rect = fullMapCanvas.getBoundingClientRect();
-        const scaleX = fullMapCanvas.width / rect.width;
-        const scaleY = fullMapCanvas.height / rect.height;
-        const tx = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(((e.clientX - rect.left) * scaleX) / 16)));
-        const ty = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(((e.clientY - rect.top) * scaleY) / 16)));
-        const ram = this.memory.ram;
-        const newOffset = (ty * MAP_WIDTH + tx) & 0xFFFF;
-        const charX = ((tx + 1) * 2) & 0xFF;
-        const charY = (ty * 2) & 0xFF;
-
-        ram[0x055B] = newOffset & 0xFF;
-        ram[0x055C] = (newOffset >> 8) & 0xFF;
-        ram[0x0560] = charX;
-        ram[0x0561] = charY;
-        ram[0x0568] = 0x00; // reset sub-tile step
-        ram[0x056B] = 0x08; // neutral HSCROL
-        ram[0x056C] = 0x00; // neutral VSCROL
-        ram[0xD404] = 0x08;
-        ram[0xD405] = 0x00;
-
-        const lmsX = charX < 0x16 ? 0 : Math.min(0x54, charX - 0x14);
-        const lmsY = charY < 0x0C ? 0 : Math.min(0x28, charY - 0x0A);
-        const hpos = (40 + (charX - lmsX) * 4) & 0xFF;
-        const pmgY = (32 + (charY - lmsY) * 8) & 0xFF;
-        ram[0x055D] = hpos;
-        ram[0xD000] = hpos;
-        ram[0xD001] = hpos;
-        ram[0x055E] = pmgY;
-
-        if (!this.isLockstep) {
-          this.cpu.callSubroutine(0x43BF, 5000); // Clear PMG $1400..$15FF
-          this.cpu.callSubroutine(0x435F, 5000); // Draw P0/P1 at new $055E
-          this.cpu.callSubroutine(0x4462, 5000); // Update 25 LMS pointers
-          this.cpu.callSubroutine(0x47A0, 5000); // Update $056D/$056E scroll flags
-        } else {
-          this.memory.updateCameraLmsFromPlayer();
-        }
-        this.renderer.renderFrame(this.robotAI.robots);
-        this.updateTelemetryUI();
       });
     }
   }
@@ -280,8 +367,12 @@ export class ZoneXApplication {
         .join("");
     }
 
-    const gameZoneNum = ((this.isLockstep ? ram[0x0558] : ram[0x0554]) & 0x0F) + 1;
+    const activeCustom = !this.isLockstep && this.cpu.activeCustomZone;
+    const gameZoneNum = activeCustom
+      ? activeCustom.zone
+      : ((this.isLockstep ? ram[0x0558] : ram[0x0554]) & 0x0F) + 1;
     const internalZoneIdx = ram[0x0555] & 0x0F;
+
     setTxt("dbg-zone", `${gameZoneNum} (ROM #$${internalZoneIdx.toString(16).toUpperCase()})`);
     setTxt("dbg-player-xy", `(${px}, ${py})`);
     setTxt("dbg-char-xy", `(${ram[0x0560]}, ${ram[0x0561]})`);
@@ -302,7 +393,6 @@ export class ZoneXApplication {
     const pRegs = this.pokey.getPokeyRegs().slice(0, 8).map((v) => v.toString(16).toUpperCase().padStart(2, "0")).join(" ");
     setTxt("dbg-pokey", pRegs);
 
-    // Sync UI dropdowns if the 6502 engine transitioned screens or zones natively
     if (!this.isLockstep) {
       const screenSelect = document.getElementById("ui-screen-select");
       if (screenSelect) {
@@ -314,6 +404,22 @@ export class ZoneXApplication {
       const zoneSelect = document.getElementById("ui-zone-select");
       if (zoneSelect && dl === 0x3C8B && parseInt(zoneSelect.value, 10) !== gameZoneNum) {
         zoneSelect.value = String(gameZoneNum);
+        this.currentSelectedZone = gameZoneNum;
+      }
+
+      const banner = document.getElementById("ui-zone-banner");
+      if (banner) {
+        if (dl === 0x3CE5) {
+          banner.textContent = "INTRO / TITELBILDSCHIRM — DRÜCKE [SPACE / START], UM ZU STARTEN ODER WÄHLE OBEN EIN LEVEL";
+        } else if (dl === 0x939C) {
+          banner.textContent = "FEATURES INTRO-SCHAU — DRÜCKE [SPACE / START], UM ZONE ZU STARTEN";
+        } else if (dl === 0x8F08) {
+          banner.textContent = "HALL OF FAME — HIGH SCORES";
+        } else if (activeCustom) {
+          banner.textContent = `${activeCustom.title} — ${activeCustom.subtitle || ""} (Verbleibendes Plutonium: ${ram[0x0598]})`;
+        } else {
+          banner.textContent = `ORIGINAL ZONE ${String(gameZoneNum).padStart(2, "0")} — Verbleibendes Plutonium: ${ram[0x0598]} | Matten: ${ram[0x0576]}`;
+        }
       }
     }
   }
@@ -327,7 +433,6 @@ export class ZoneXApplication {
     const tick = (now) => {
       if (this.autoLoopEnabled) {
         if (this.pokey.isAudioClockActive()) {
-          // Sample-locked audio clock is driving stepInteractiveCpuFrame() at exact 20.000ms (50Hz) / 16.667ms (60Hz) boundaries
           this.lastTime = now;
           this.accumulator = 0.0;
           if (this.pokey.consumeRenderedFrameFlag()) {

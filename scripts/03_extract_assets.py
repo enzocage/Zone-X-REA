@@ -181,6 +181,8 @@ def main():
         "engine/player_physics.js",
         "engine/robot_ai.js",
         "engine/screens.js",
+        "engine/bonus_levels.js",
+        "editor/level_editor.js",
         "hardware/antic_gtia.js",
         "hardware/pokey_driver.js",
         "verify/lockstep_api.js",
