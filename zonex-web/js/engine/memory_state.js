@@ -1,0 +1,209 @@
+/**
+ * zonex-web/js/engine/memory_state.js
+ * 64KB Atari 800XL RAM Mirror (Uint8Array(65536)) + MOS 6502 Decimal Mode (SED/CLD) BCD Arithmetic.
+ */
+
+export function bcdAdd8(a, b, carryIn = 0) {
+  let lo = (a & 0x0F) + (b & 0x0F) + (carryIn ? 1 : 0);
+  if (lo > 9) lo += 6;
+  let hi = (a >> 4) + (b >> 4) + (lo > 0x0F ? 1 : 0);
+  if (hi > 9) hi += 6;
+  return { result: ((hi & 0x0F) << 4) | (lo & 0x0F), carry: hi > 0x0F ? 1 : 0 };
+}
+
+export function bcdSub8(a, b, borrowIn = 0) {
+  let lo = (a & 0x0F) - (b & 0x0F) - (borrowIn ? 1 : 0);
+  let borrowLo = 0;
+  if (lo < 0) {
+    lo -= 6;
+    borrowLo = 1;
+  }
+  let hi = (a >> 4) - (b >> 4) - borrowLo;
+  let borrowHi = 0;
+  if (hi < 0) {
+    hi -= 6;
+    borrowHi = 1;
+  }
+  return { result: ((hi & 0x0F) << 4) | (lo & 0x0F), borrow: borrowHi };
+}
+
+export class MemoryState {
+  constructor(bundle) {
+    this.ram = new Uint8Array(65536);
+    this.bundle = bundle;
+    this.paused = false;
+    this.outOfTime = false;
+    this.selectedItemSlot = 0; // 0=MATS, 1=KEY, 2=SPADE
+    this.initStaticRomTables();
+  }
+
+  initStaticRomTables() {
+    const { charsets, meta_tiles, screens_data } = this.bundle;
+
+    // 1. Load 1024-byte charset at $706C and $1800
+    const font = charsets.in_game;
+    for (let i = 0; i < font.length; i++) {
+      this.ram[0x706C + i] = font[i];
+      this.ram[0x1800 + i] = font[i];
+    }
+    this.ram[0x02F4] = 0x18;
+    this.ram[0xD409] = 0x18;
+
+    // 2. Load 32 Meta-Tiles (4 chars each) at $6D42
+    for (let t = 0; t < meta_tiles.length; t++) {
+      const chars = meta_tiles[t].chars;
+      for (let c = 0; c < 4; c++) {
+        this.ram[0x6D42 + t * 4 + c] = chars[c];
+      }
+    }
+
+    // 3. Load Display Lists & Screen Templates ($3C8B, $3CE5, $939C, $3DB3, $3E53, $3E67)
+    if (screens_data) {
+      const copyAt = (addr, arr) => {
+        if (!arr) return;
+        for (let i = 0; i < arr.length; i++) {
+          this.ram[addr + i] = arr[i];
+        }
+      };
+      copyAt(0x3DB3, screens_data.title_text_3db3);
+      copyAt(0x3E53, screens_data.hud_line1_3e53);
+      copyAt(0x3E67, screens_data.hud_line2_3e67);
+      copyAt(0x3C8B, screens_data.dl_ingame_3c8b);
+      copyAt(0x3CE5, screens_data.dl_menu_3ce5);
+      copyAt(0x939C, screens_data.dl_features_939c);
+      copyAt(0x93DC, screens_data.features_screen_mem_93dc);
+    }
+  }
+
+  /**
+   * 1:1 Port of $45AE & $44DD: Writes logical tileId to $0B00 + ty*64 + tx
+   * and expands its 2x2 characters into the $1C00..$3BFF playfield buffer.
+   */
+  writeTileAndScreen(tx, ty, tileId) {
+    if (tx < 0 || tx >= 64 || ty < 0 || ty >= 32) return;
+    const t = tileId & 0x1F;
+    this.ram[0x0B00 + ty * 64 + tx] = t;
+
+    const metaBase = 0x6D42 + t * 4;
+    const c0 = this.ram[metaBase];
+    const c1 = this.ram[metaBase + 1];
+    const c2 = this.ram[metaBase + 2];
+    const c3 = this.ram[metaBase + 3];
+
+    const row0Addr = 0x1C00 + (ty * 2) * 128 + tx * 2;
+    const row1Addr = 0x1C00 + (ty * 2 + 1) * 128 + tx * 2;
+    this.ram[row0Addr] = c0;
+    this.ram[row0Addr + 1] = c1;
+    this.ram[row1Addr] = c2;
+    this.ram[row1Addr + 1] = c3;
+  }
+
+  getTile(tx, ty) {
+    if (tx < 0 || tx >= 64 || ty < 0 || ty >= 32) return 1; // WALL
+    return this.ram[0x0B00 + ty * 64 + tx] & 0x1F;
+  }
+
+  /**
+   * 1:1 Port of $4462..$44DC: Updates the 25 LMS pointers at $3C94..$3CDC
+   * based on player character coordinates ($0560, $0561).
+   */
+  updateCameraLmsPointers() {
+    const pxChar = this.ram[0x0560];
+    const pyChar = this.ram[0x0561];
+
+    let camAddr = 0x1C00;
+    if (pyChar >= 0x0C) {
+      let rowScroll = pyChar - 0x0A;
+      if (rowScroll >= 0x28) rowScroll = 0x28;
+      camAddr = (camAddr + rowScroll * 0x80) & 0xFFFF;
+    }
+
+    if (pxChar >= 0x16) {
+      let colScroll = pxChar - 0x14;
+      if (colScroll >= 0x54) colScroll = 0x54;
+      camAddr = (camAddr + colScroll) & 0xFFFF;
+    }
+
+    let curLms = camAddr;
+    for (let row = 0; row < 25; row++) {
+      const dlEntry = 0x3C93 + row * 3;
+      this.ram[dlEntry + 1] = curLms & 0xFF;
+      this.ram[dlEntry + 2] = (curLms >> 8) & 0xFF;
+      curLms = (curLms + 0x0080) & 0xFFFF;
+    }
+
+    this.ram[0x0577] = curLms & 0xFF;
+    this.ram[0x0578] = (curLms >> 8) & 0xFF;
+  }
+
+  get25LmsPointers() {
+    const ptrs = [];
+    for (let row = 0; row < 25; row++) {
+      const dlEntry = 0x3C93 + row * 3;
+      const lo = this.ram[dlEntry + 1];
+      const hi = this.ram[dlEntry + 2];
+      ptrs.push((hi << 8) | lo);
+    }
+    return ptrs;
+  }
+
+  /**
+   * Adds 16-bit BCD points to Score ($00C1/$00C2) using 6502 SED/CLD rules.
+   */
+  addScoreBcd(lowByteBcd, highByteBcd = 0) {
+    const r0 = bcdAdd8(this.ram[0x00C1], lowByteBcd, 0);
+    const r1 = bcdAdd8(this.ram[0x00C2], highByteBcd, r0.carry);
+    this.ram[0x00C1] = r0.result;
+    this.ram[0x00C2] = r1.result;
+    this.syncHudText();
+  }
+
+  /**
+   * Subtracts 1 BCD unit from the Radiation Timer ($009E/$009F & $059E/$059F).
+   */
+  decrementTimerBcd(amountLo = 0x01) {
+    if (this.outOfTime) return;
+    const r0 = bcdSub8(this.ram[0x009E], amountLo, 0);
+    const r1 = bcdSub8(this.ram[0x009F], 0x00, r0.borrow);
+    if (r1.borrow || (r0.result === 0 && r1.result === 0)) {
+      this.ram[0x009E] = 0x00;
+      this.ram[0x009F] = 0x00;
+      this.ram[0x059E] = 0x00;
+      this.ram[0x059F] = 0x00;
+      this.outOfTime = true;
+    } else {
+      this.ram[0x009E] = r0.result;
+      this.ram[0x009F] = r1.result;
+      this.ram[0x059E] = r0.result;
+      this.ram[0x059F] = r1.result;
+    }
+    this.syncHudText();
+  }
+
+  syncHudText() {
+    // Format timer digits at $0400 + 16..18
+    const tHi = this.ram[0x009F] & 0x0F;
+    const tMid = (this.ram[0x009E] >> 4) & 0x0F;
+    const tLo = this.ram[0x009E] & 0x0F;
+    this.ram[0x0400 + 16] = 0x50 + tHi;
+    this.ram[0x0400 + 17] = 0x50 + tMid;
+    this.ram[0x0400 + 18] = 0x50 + tLo;
+
+    // Format lower HUD ($0428..$043B) per $4F20..$4F75
+    for (let i = 0; i < 20; i++) {
+      this.ram[0x0428 + i] = 0x00;
+    }
+    let x = 0;
+    if (this.ram[0x0574]) this.ram[0x0428 + x++] = 0xC6; // KEY
+    if (this.ram[0x0575]) this.ram[0x0428 + x++] = 0x84; // SPADE
+    if (this.ram[0x05AF]) this.ram[0x0428 + x++] = 0xC3; // PLUTONIUM carried
+    const mats = this.ram[0x0576];
+    for (let m = 0; m < mats && x < 10; m++) {
+      this.ram[0x0428 + x++] = 0x85;
+    }
+    const plut = this.ram[0x0598];
+    for (let p = 0; p < plut && x + p < 20; p++) {
+      this.ram[0x0428 + x + p] = 0x85;
+    }
+  }
+}

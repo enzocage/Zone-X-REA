@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZONE X (Gremlin Graphics, 1985) — 1:1 Atari 800XL Hardware Port</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="brand">
+        <span class="badge">ATARI 800XL PAL (50.00 Hz)</span>
+        <h1>ZONE X <small>by Derek Johnston (Gremlin Graphics, 1985)</small></h1>
+      </div>
+      <div class="controls-bar">
+        <label>Screen:
+          <select id="ui-screen-select">
+            <option value="ingame">In-Game Playfield ($3C8B)</option>
+            <option value="title">Title / Menu ($3CE5)</option>
+            <option value="features">Features Showcase ($939C)</option>
+            <option value="halloffame">Hall of Fame ($3CE5)</option>
+          </select>
+        </label>
+        <label>Zone:
+          <select id="ui-zone-select">
+            <option value="1">Zone 01</option>
+            <option value="2">Zone 02</option>
+            <option value="3">Zone 03</option>
+            <option value="4">Zone 04</option>
+            <option value="5">Zone 05</option>
+            <option value="6">Zone 06</option>
+            <option value="7">Zone 07</option>
+            <option value="8">Zone 08</option>
+            <option value="9">Zone 09</option>
+            <option value="10">Zone 10</option>
+            <option value="11">Zone 11</option>
+            <option value="12">Zone 12</option>
+          </select>
+        </label>
+        <label>Option Level:
+          <select id="ui-level-select">
+            <option value="1">Level 1</option>
+            <option value="2">Level 2</option>
+            <option value="3" selected>Level 3</option>
+          </select>
+        </label>
+        <button id="btn-audio-toggle" type="button">Enable POKEY Audio</button>
+        <button id="btn-crt-toggle" type="button">Toggle CRT Scanlines</button>
+      </div>
+    </header>
+
+    <main class="main-stage">
+      <div class="crt-frame" id="crt-container">
+        <canvas id="atari-canvas" width="336" height="240"></canvas>
+        <div class="crt-overlay" id="crt-overlay"></div>
+      </div>
+
+      <aside class="telemetry-panel">
+        <h2>6502 / ANTIC / POKEY Telemetry</h2>
+        <div class="telemetry-grid">
+          <div><span>Zone ($0555):</span> <strong id="dbg-zone">1</strong></div>
+          <div><span>Player Tile ($055B):</span> <strong id="dbg-player-xy">(17, 23)</strong></div>
+          <div><span>Char XY ($0560/61):</span> <strong id="dbg-char-xy">(34, 46)</strong></div>
+          <div><span>DL ($0230/31):</span> <strong id="dbg-dlist">$3C8B</strong></div>
+          <div><span>First LMS ($3C94):</span> <strong id="dbg-lms0">$2E0E</strong></div>
+          <div><span>HSCROL/VSCROL:</span> <strong id="dbg-scroll">$06 / $06</strong></div>
+          <div><span>Timer BCD ($9E/9F):</span> <strong id="dbg-timer">0950</strong></div>
+          <div><span>Score BCD ($C1/C2):</span> <strong id="dbg-score">0000</strong></div>
+          <div><span>Plutonium ($0598):</span> <strong id="dbg-plutonium">12</strong></div>
+          <div><span>Mats ($0576):</span> <strong id="dbg-mats">0</strong></div>
+          <div><span>Inventory:</span> <strong id="dbg-inv">NONE</strong></div>
+          <div><span>POKEY ($D200..07):</span> <strong id="dbg-pokey">00 00 00 00</strong></div>
+        </div>
+        <div class="help-box">
+          <h3>Controls</h3>
+          <ul>
+            <li><strong>Arrow Keys / WASD:</strong> Move Player (`$D300` `PORTA`)</li>
+            <li><strong>Space / Z:</strong> Fire / Action (`$D010` `TRIG0`: Pickup/Drop Mat, Use Item)</li>
+            <li><strong>C:</strong> Cycle Held Item (`CH ITEM`)</li>
+            <li><strong>P:</strong> Pause Game (`PAUSED`)</li>
+            <li><strong>A:</strong> Abort Life (`OUT OF TIME`)</li>
+            <li><strong>F1–F3:</strong> Select / Option / Start (`$D01F` `CONSOL`)</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
