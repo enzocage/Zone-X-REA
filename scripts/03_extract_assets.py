@@ -118,9 +118,9 @@ def main():
         "hud_line1_3e53": list(ram[0x3E53 : 0x3E53 + 20]),
         "hud_line2_3e67": list(ram[0x3E67 : 0x3E67 + 20]),
         "dl_ingame_3c8b": list(ram[0x3C8B : 0x3CE5]),
-        "dl_menu_3ce5": list(ram[0x3CE5 : 0x3D20]),
+        "dl_menu_3ce5": list(ram[0x3CE5 : 0x3D66]),
         "dl_features_939c": list(ram[0x939C : 0x93DC]),
-        "features_screen_mem_93dc": list(ram[0x93DC : 0x9600]),
+        "features_screen_mem_93dc": list(ram[0x93DC : 0x9680]),
     }
 
     # 6. Audio-Tabellen aus $7500..$7800

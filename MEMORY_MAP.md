@@ -7,8 +7,8 @@
 - [x] **Schritt 3:** Ghidra Headless Projekt mit `ZoneX_Ghidra_Setup.py` initialisieren und über `morluto/rea` alle 5 JSON-Dossiers unter `build/rea_dossiers/` generieren.
 - [x] **Schritt 4:** `MEMORY_MAP.md` mit allen exakten Einsprungadressen, Zero-Page-Variablen und Daten-Tabellen aus den 5 Dossiers befüllen.
 - [x] **Schritt 5:** `python scripts/03_extract_assets.py` ausführen $\rightarrow$ `zonex-web/assets/zonex_rom_bundle.json` generieren und auf Vollständigkeit prüfen (Fonts, Meta-Tiles, Sprites, 12 Zonen-Maps, POKEY-Tabellen, PAL-Palette).
-- [ ] **Schritt 6:** Implementierung von `zonex-web/` (HTML, CSS, `antic_gtia.js`, `pokey_worklet.js`, `pokey_driver.js`, `memory_state.js`, `zone_loader.js`, `player_physics.js`, `feature_state_machine.js`, `robot_ai.js`, `screens.js`, `lockstep_api.js`).
-- [ ] **Schritt 7:** `python scripts/04_verify_oracles.py` starten und alle gemeldeten Pixel-, State- oder Audio-Differenzen iterativ beheben, bis `ALL 3 ORACLES PASSED (0 ERRORS)` ausgegeben wird.
+- [x] **Schritt 6:** Implementierung von `zonex-web/` (HTML, CSS, `antic_gtia.js`, `pokey_worklet.js`, `pokey_driver.js`, `memory_state.js`, `zone_loader.js`, `player_physics.js`, `feature_state_machine.js`, `robot_ai.js`, `screens.js`, `lockstep_api.js`).
+- [x] **Schritt 7:** `python scripts/04_verify_oracles.py` starten und alle gemeldeten Pixel-, State- oder Audio-Differenzen iterativ beheben, bis `ALL 3 ORACLES PASSED (0 ERRORS)` ausgegeben wird.
 
 ---
 

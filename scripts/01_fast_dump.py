@@ -451,8 +451,9 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
     if dl_addr == 0x3C8B:
         p0_col = PAL_PALETTE[ram[0x02C0]]
         p1_col = PAL_PALETTE[ram[0x02C1]]
-        p0_shape = ram[0x69D2:0x69E2]
-        p1_shape = ram[0x6B12:0x6B22]
+        f_idx = (ram[0x055E] % 3) * 16
+        p0_shape = ram[0x69D2 + f_idx : 0x69E2 + f_idx]
+        p1_shape = ram[0x6B12 + f_idx : 0x6B22 + f_idx]
         # Center / start screen coordinates of player
         px_char = ram[0x0560]
         py_char = ram[0x0561]

@@ -1,0 +1,107 @@
+{
+  "oracle_1_visual_parity": {
+    "title": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "features": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "halloffame": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_01": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_02": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_03": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_04": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_05": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_06": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_07": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_08": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_09": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_10": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_11": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    },
+    "zone_12": {
+      "E_pixel": 0.0,
+      "status": "PASS"
+    }
+  },
+  "oracle_2_lockstep_5000_frames": {
+    "frames_tested": 5000,
+    "mismatches": 0,
+    "final_timer_bcd": "$0325",
+    "final_score_bcd": "$0000",
+    "status": "PASS"
+  },
+  "oracle_3_pokey_audio": {
+    "min_correlation_rho": 0.9999999999999998,
+    "sfx_verified": {
+      "sfx_1": {
+        "register_match": "100%",
+        "min_correlation_rho": 0.9999999999999999,
+        "status": "PASS"
+      },
+      "sfx_2": {
+        "register_match": "100%",
+        "min_correlation_rho": 0.9999999999999999,
+        "status": "PASS"
+      },
+      "sfx_3": {
+        "register_match": "100%",
+        "min_correlation_rho": 0.9999999999999999,
+        "status": "PASS"
+      },
+      "sfx_4": {
+        "register_match": "100%",
+        "min_correlation_rho": 0.9999999999999998,
+        "status": "PASS"
+      },
+      "sfx_5": {
+        "register_match": "100%",
+        "min_correlation_rho": 0.9999999999999998,
+        "status": "PASS"
+      },
+      "sfx_6": {
+        "register_match": "100%",
+        "min_correlation_rho": 0.9999999999999999,
+        "status": "PASS"
+      }
+    },
+    "status": "PASS"
+  }
+}
