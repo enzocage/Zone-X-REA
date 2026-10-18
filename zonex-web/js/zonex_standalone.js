@@ -2221,7 +2221,7 @@ function generateBonusLevels() {
     const g = createBlankGrid(25); // Filled with diggable Crumbly Dirt!
     // Clear starting shaft & Spade chamber
     rectFill(g, 2, 2, 12, 8, 0);
-    setTile(g, 10, 4, 21); // SPADE!
+    setTile(g, 10, 4, 5); // SPADE / TOOL ($0575)!
     setTile(g, 10, 6, 19); // Extra Time
 
     // Carved underground caverns separated by Crumbly Dirt walls
@@ -2496,6 +2496,12 @@ function generateBonusLevels() {
       setTile(g, 40, y, 23);
       setTile(g, 41, y, 23);
     }
+    for (const y of [10, 15, 21]) {
+      setTile(g, 20, y, 25);
+      setTile(g, 21, y, 25);
+      setTile(g, 40, y, 25);
+      setTile(g, 41, y, 25);
+    }
 
     // Supply of Mats in Central Hub
     setTile(g, 28, 12, 17);
@@ -2616,7 +2622,7 @@ function generateBonusLevels() {
     }
 
     // Spade in top-left room
-    setTile(g, 8, 4, 21);
+    setTile(g, 8, 4, 5);
     setTile(g, 18, 4, 19);
 
     // 5 Plutonium scattered across the catacomb chambers
@@ -2673,12 +2679,13 @@ function generateBonusLevels() {
 
     // NW Wing: Spade + Crumbly Vault containing Key #1 & Plutonium #1
     rectFill(g, 4, 3, 16, 10, 25);
-    setTile(g, 22, 4, 21); // Spade
+    setTile(g, 22, 4, 5);  // Spade / Tool ($0575)
     setTile(g, 8, 6, 4);   // Key #1
     setTile(g, 12, 6, 6);  // Plutonium #1
 
     // SW Wing: Forcefield Bridge + Mats containing Key #2 & Plutonium #2
     vLine(g, 16, 19, 30, 23);
+    setTile(g, 16, 24, 25);
     setTile(g, 22, 22, 17);
     setTile(g, 24, 22, 17);
     setTile(g, 8, 22, 4);  // Key #2
@@ -2758,7 +2765,7 @@ function generateBonusLevels() {
     setTile(g, 53, 25, 5);
 
     // Spade & Mats in middle ring
-    setTile(g, 21, 9, 21); // Spade
+    setTile(g, 21, 9, 5);  // Spade / Tool ($0575)
     setTile(g, 39, 9, 17); // Mat
     setTile(g, 39, 22, 17);
     setTile(g, 21, 22, 6); // 5th Plutonium
