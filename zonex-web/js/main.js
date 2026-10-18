@@ -14,7 +14,7 @@ import { PokeyDriver } from "./hardware/pokey_driver.js";
 import { InputBridge } from "./hardware/input_bridge.js";
 import { installLockstepAPI } from "./verify/lockstep_api.js";
 
-class ZoneXApplication {
+export class ZoneXApplication {
   constructor(bundle) {
     this.bundle = bundle;
     this.canvas = document.getElementById("atari-canvas");
@@ -33,6 +33,7 @@ class ZoneXApplication {
     this.lastTime = performance.now();
     this.accumulator = 0.0;
     this.FRAME_DT = 20.0; // 50.00 Hz PAL VBI (20.0 ms)
+    this.interactiveTick = 0;
 
     this.bindUI();
     this.api = installLockstepAPI(this);
@@ -126,7 +127,6 @@ class ZoneXApplication {
   startLoop() {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get("lockstep") === "1") {
-      // Disable background RAF loop during deterministic Playwright Oracle testing
       this.autoLoopEnabled = false;
       return;
     }
@@ -139,7 +139,13 @@ class ZoneXApplication {
         this.accumulator += delta;
 
         while (this.accumulator >= this.FRAME_DT) {
-          this.api.stepFrame(null);
+          this.interactiveTick++;
+          // Throttle continuous directional movement to every 4 PAL VBI frames (80 ms) in interactive play
+          const mask = (this.interactiveTick % 4 === 0) ? null : (this.inputBridge.oneShotMask);
+          if (mask !== null) {
+            this.inputBridge.oneShotMask = 0;
+          }
+          this.api.stepFrame(mask);
           this.accumulator -= this.FRAME_DT;
         }
       }
@@ -150,8 +156,12 @@ class ZoneXApplication {
 }
 
 async function bootstrap() {
-  const res = await fetch("assets/zonex_rom_bundle.json");
-  const bundle = await res.json();
+  if (window.ZoneXTestAPI) return;
+  let bundle = window.ZONEX_ROM_BUNDLE;
+  if (!bundle) {
+    const res = await fetch("assets/zonex_rom_bundle.json");
+    bundle = await res.json();
+  }
   const app = new ZoneXApplication(bundle);
   app.startLoop();
 }

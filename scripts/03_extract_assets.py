@@ -155,8 +155,48 @@ def main():
     }
 
     out_file = assets_dir / "zonex_rom_bundle.json"
-    out_file.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
-    print(f"[PHASE 3 OK] Bundle erfolgreich generiert: {out_file} (Größe: {out_file.stat().st_size} Bytes)")
+    json_text = json.dumps(bundle, indent=2)
+    out_file.write_text(json_text, encoding="utf-8")
+
+    js_bundle_file = assets_dir / "zonex_rom_bundle.js"
+    js_bundle_file.write_text(f"window.ZONEX_ROM_BUNDLE = {json.dumps(bundle)};\n", encoding="utf-8")
+
+    # Build classic script bundle zonex-web/js/zonex_standalone.js for file:// compatibility
+    js_root = Path("zonex-web/js")
+    module_order = [
+        "hardware/input_bridge.js",
+        "engine/memory_state.js",
+        "engine/zone_loader.js",
+        "engine/feature_state_machine.js",
+        "engine/player_physics.js",
+        "engine/robot_ai.js",
+        "engine/screens.js",
+        "hardware/antic_gtia.js",
+        "hardware/pokey_driver.js",
+        "verify/lockstep_api.js",
+        "main.js",
+    ]
+    standalone_lines = ["(function() {\n'use strict';\n"]
+    for rel_mod in module_order:
+        mod_path = js_root / rel_mod
+        if mod_path.exists():
+            standalone_lines.append(f"// === {rel_mod} ===\n")
+            for line in mod_path.read_text(encoding="utf-8").splitlines():
+                stripped = line.strip()
+                if stripped.startswith("import "):
+                    continue
+                if stripped.startswith("export class "):
+                    line = line.replace("export class ", "class ", 1)
+                elif stripped.startswith("export function "):
+                    line = line.replace("export function ", "function ", 1)
+                elif stripped.startswith("export const "):
+                    line = line.replace("export const ", "const ", 1)
+                standalone_lines.append(line + "\n")
+            standalone_lines.append("\n")
+    standalone_lines.append("})();\n")
+    (js_root / "zonex_standalone.js").write_text("".join(standalone_lines), encoding="utf-8")
+
+    print(f"[PHASE 3 OK] Bundle erfolgreich generiert: {out_file}, {js_bundle_file} & zonex_standalone.js")
 
 
 if __name__ == "__main__":
