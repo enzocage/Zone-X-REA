@@ -1,0 +1,8 @@
+// Startet ZoneX im Warp-Modus, bricht nach dem Entpacken im Hauptmenü und schreibt die Snapshots
+.echo "[Altirra Batch] Booting Zone X in Warp mode..."
+bp 939C
+g
+bc *
+.writemem build/zones/ram_features.bin $0000 L$10000
+.echo "[Altirra Batch] Features RAM dump written."
+.exit

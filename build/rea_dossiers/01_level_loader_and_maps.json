@@ -1,0 +1,508 @@
+{
+  "subsystem": "01_level_loader_and_maps",
+  "routines": [
+    {
+      "name": "ZX_Multiply_ZoneIdx",
+      "entry_address": "$43CC",
+      "raw_6502_disassembly": [
+        "$43CC: CLC",
+        "$43CD: LDA #$00",
+        "$43CF: STA $0577",
+        "$43D2: LDA $0555",
+        "$43D5: ADC $0577",
+        "$43D8: STA $0577",
+        "$43DB: DEX",
+        "$43DC: BNE $43D2",
+        "$43DE: LDX $0577",
+        "$43E1: RTS"
+      ],
+      "ghidra_c_pseudocode": "LDA_IMM(0x00);\nSTA_ABS($0577);\nLDA_ABS($0555);\nADC_ABS($0577);\nSTA_ABS($0577);\nif (BNE_COND) goto loc_43D2;\nLDX_ABS($0577);\nreturn;",
+      "zero_page_reads_writes": [],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Unpack_Zone_Passes",
+      "entry_address": "$45DD",
+      "raw_6502_disassembly": [
+        "$45DD: TXA",
+        "$45DE: PHA",
+        "$45DF: TYA",
+        "$45E0: PHA",
+        "$45E1: LDX #$02",
+        "$45E3: JSR $43CC",
+        "$45E6: LDA $A3F0,X",
+        "$45E9: STA $AC",
+        "$45EB: LDA $A3F1,X",
+        "$45EE: STA $AD",
+        "$45F0: LDX $0570",
+        "$45F3: BEQ $45F8",
+        "$45F5: JSR $4639",
+        "$45F8: LDA $0556",
+        "$45FB: CMP #$01",
+        "$45FD: BCC $4634",
+        "$45FF: LDX #$02",
+        "$4601: JSR $43CC",
+        "$4604: LDA $A408,X",
+        "$4607: STA $AC",
+        "$4609: LDA $A409,X",
+        "$460C: STA $AD",
+        "$460E: LDX $0571",
+        "$4611: BEQ $4616",
+        "$4613: JSR $4639",
+        "$4616: LDA $0556",
+        "$4619: CMP #$02",
+        "$461B: BCC $4634",
+        "$461D: LDX #$02",
+        "$461F: JSR $43CC",
+        "$4622: LDA $A420,X",
+        "$4625: STA $AC",
+        "$4627: LDA $A421,X",
+        "$462A: STA $AD",
+        "$462C: LDX $0572",
+        "$462F: BEQ $4634",
+        "$4631: JSR $4639",
+        "$4634: PLA",
+        "$4635: TAY",
+        "$4636: PLA",
+        "$4637: TAX",
+        "$4638: RTS"
+      ],
+      "ghidra_c_pseudocode": "LDX_IMM(0x02);\nJSR_ABS($43CC);\nLDA_ABS($A3F0,X);\nSTA_ZP($AC);\nLDA_ABS($A3F1,X);\nSTA_ZP($AD);\nLDX_ABS($0570);\nif (BEQ_COND) goto loc_45F8;\nJSR_ABS($4639);\nLDA_ABS($0556);\nCMP_IMM(0x01);\nif (BCC_COND) goto loc_4634;\nLDX_IMM(0x02);\nJSR_ABS($43CC);\nLDA_ABS($A408,X);\nSTA_ZP($AC);\nLDA_ABS($A409,X);\nSTA_ZP($AD);\nLDX_ABS($0571);\nif (BEQ_COND) goto loc_4616;\nJSR_ABS($4639);\nLDA_ABS($0556);\nCMP_IMM(0x02);\nif (BCC_COND) goto loc_4634;\nLDX_IMM(0x02);\nJSR_ABS($43CC);\nLDA_ABS($A420,X);\nSTA_ZP($AC);\nLDA_ABS($A421,X);\nSTA_ZP($AD);\nLDX_ABS($0572);\nif (BEQ_COND) goto loc_4634;\nJSR_ABS($4639);\nreturn;",
+      "zero_page_reads_writes": [
+        "$AC",
+        "$AD"
+      ],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Unpack_Pass_Loop",
+      "entry_address": "$4639",
+      "raw_6502_disassembly": [
+        "$4639: LDA #$00",
+        "$463B: STA $A4",
+        "$463D: LDA #$0B",
+        "$463F: STA $A5",
+        "$4641: CLC",
+        "$4642: LDY #$01",
+        "$4644: LDA ($AC),Y",
+        "$4646: ADC $A4",
+        "$4648: STA $A4",
+        "$464A: DEY",
+        "$464B: LDA ($AC),Y",
+        "$464D: AND #$07",
+        "$464F: ADC $A5",
+        "$4651: STA $A5",
+        "$4653: LDA ($AC),Y",
+        "$4655: LSR A",
+        "$4656: LSR A",
+        "$4657: LSR A",
+        "$4658: STA ($A4),Y",
+        "$465A: CMP #$06",
+        "$465C: BNE $4664",
+        "$465E: INC $0598",
+        "$4661: JMP $467C"
+      ],
+      "ghidra_c_pseudocode": "LDA_IMM(0x00);\nSTA_ZP($A4);\nLDA_IMM(0x0B);\nSTA_ZP($A5);\nLDY_IMM(0x01);\nLDA_ZP(($AC),Y);\nADC_ZP($A4);\nSTA_ZP($A4);\nLDA_ZP(($AC),Y);\nAND_IMM(0x07);\nADC_ZP($A5);\nSTA_ZP($A5);\nLDA_ZP(($AC),Y);\nA = LSR_8(A);\nA = LSR_8(A);\nA = LSR_8(A);\nSTA_ZP(($A4),Y);\nCMP_IMM(0x06);\nif (BNE_COND) goto loc_4664;\nINC_ABS($0598);\nJMP_ABS($467C);",
+      "zero_page_reads_writes": [
+        "$A4",
+        "$A5",
+        "$AC",
+        "$AD"
+      ],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Check_Door_Warp_Transition",
+      "entry_address": "$47CB",
+      "raw_6502_disassembly": [
+        "$47CB: LDX #$02",
+        "$47CD: JSR $43CC",
+        "$47D0: LDA $A3D8,X",
+        "$47D3: STA $AC",
+        "$47D5: LDA $A3D9,X",
+        "$47D8: STA $AD",
+        "$47DA: LDX $056F",
+        "$47DD: LDY #$00",
+        "$47DF: LDA $055B",
+        "$47E2: CMP ($AC),Y",
+        "$47E4: BNE $47EE",
+        "$47E6: INY",
+        "$47E7: LDA $055C",
+        "$47EA: CMP ($AC),Y",
+        "$47EC: BEQ $47FE",
+        "$47EE: CLC",
+        "$47EF: LDA $AC",
+        "$47F1: ADC #$06",
+        "$47F3: STA $AC",
+        "$47F5: LDA $AD",
+        "$47F7: ADC #$00",
+        "$47F9: STA $AD",
+        "$47FB: DEX",
+        "$47FC: BNE $47DD",
+        "$47FE: INY",
+        "$47FF: LDA ($AC),Y",
+        "$4801: STA $055B",
+        "$4804: INY",
+        "$4805: LDA ($AC),Y",
+        "$4807: STA $055C",
+        "$480A: INY",
+        "$480B: LDA ($AC),Y",
+        "$480D: STA $055D",
+        "$4810: STA $D000",
+        "$4813: STA $D001",
+        "$4816: INY",
+        "$4817: LDA ($AC),Y",
+        "$4819: STA $055E"
+      ],
+      "ghidra_c_pseudocode": "LDX_IMM(0x02);\nJSR_ABS($43CC);\nLDA_ABS($A3D8,X);\nSTA_ZP($AC);\nLDA_ABS($A3D9,X);\nSTA_ZP($AD);\nLDX_ABS($056F);\nLDY_IMM(0x00);\nLDA_ABS($055B);\nCMP_ZP(($AC),Y);\nif (BNE_COND) goto loc_47EE;\nLDA_ABS($055C);\nCMP_ZP(($AC),Y);\nif (BEQ_COND) goto loc_47FE;\nLDA_ZP($AC);\nADC_IMM(0x06);\nSTA_ZP($AC);\nLDA_ZP($AD);\nADC_IMM(0x00);\nSTA_ZP($AD);\nif (BNE_COND) goto loc_47DD;\nLDA_ZP(($AC),Y);\nSTA_ABS($055B);\nLDA_ZP(($AC),Y);\nSTA_ABS($055C);\nLDA_ZP(($AC),Y);\nSTA_ABS($055D);\nSTA_ABS($D000);\nSTA_ABS($D001);\nLDA_ZP(($AC),Y);\nSTA_ABS($055E);",
+      "zero_page_reads_writes": [
+        "$AC",
+        "$AD"
+      ],
+      "hardware_registers_touched": [
+        "HPOSP0",
+        "HPOSP1"
+      ]
+    },
+    {
+      "name": "ZX_Init_Zone_And_HUD",
+      "entry_address": "$623A",
+      "raw_6502_disassembly": [
+        "$623A: LDA #$F4",
+        "$623C: STA $B0",
+        "$623E: LDA #$A2",
+        "$6240: STA $B1",
+        "$6242: LDA $0556",
+        "$6245: TAX",
+        "$6246: BEQ $6258",
+        "$6248: CLC",
+        "$6249: LDA $B0",
+        "$624B: ADC #$48",
+        "$624D: STA $B0",
+        "$624F: LDA $B1",
+        "$6251: ADC #$00",
+        "$6253: STA $B1",
+        "$6255: DEX",
+        "$6256: BNE $6248",
+        "$6258: LDX #$06",
+        "$625A: JSR $43CC",
+        "$625D: TXA",
+        "$625E: TAY",
+        "$625F: LDX #$00",
+        "$6261: LDA ($B0),Y",
+        "$6263: STA $05B4,X",
+        "$6266: INX",
+        "$6267: INY",
+        "$6268: CPX #$06",
+        "$626A: BNE $6261",
+        "$626C: LDA $05B4",
+        "$626F: STA $0577",
+        "$6272: LDA $05B5",
+        "$6275: STA $0578",
+        "$6278: LDA #$0B",
+        "$627A: JSR $45AE",
+        "$627D: LDA $05B8",
+        "$6280: STA $0577",
+        "$6283: LDA $05B9",
+        "$6286: STA $0578",
+        "$6289: JSR $4DCC",
+        "$628C: JSR $450D",
+        "$628F: LDA $AA",
+        "$6291: STA $05BA",
+        "$6294: LDA $AB",
+        "$6296: STA $05BB",
+        "$6299: LDA #$00",
+        "$629B: STA $05D5",
+        "$629E: STA $05C2",
+        "$62A1: STA $05B0",
+        "$62A4: STA $0574",
+        "$62A7: STA $05AF",
+        "$62AA: STA $05BF",
+        "$62AD: STA $059F",
+        "$62B0: LDA #$50",
+        "$62B2: STA $059E",
+        "$62B5: LDA #$10",
+        "$62B7: STA $05C1",
+        "$62BA: LDA #$FF",
+        "$62BC: STA $02FC",
+        "$62BF: LDA $05A9",
+        "$62C2: BNE $62D7",
+        "$62C4: LDA #$01",
+        "$62C6: STA $05A9",
+        "$62C9: LDX #$65",
+        "$62CB: LDY #$DB",
+        "$62CD: LDA #$07",
+        "$62CF: JSR $E45C",
+        "$62D2: LDA #$C0",
+        "$62D4: STA $D40E",
+        "$62D7: JSR $92F2",
+        "$62DA: LDA #$00",
+        "$62DC: STA $022F",
+        "$62DF: JSR $43BF",
+        "$62E2: LDX #$04",
+        "$62E4: JSR $43CC",
+        "$62E7: LDY #$00",
+        "$62E9: LDA $A2C4,X",
+        "$62EC: STA $02C4,Y"
+      ],
+      "ghidra_c_pseudocode": "LDA_IMM(0xF4);\nSTA_ZP($B0);\nLDA_IMM(0xA2);\nSTA_ZP($B1);\nLDA_ABS($0556);\nif (BEQ_COND) goto loc_6258;\nLDA_ZP($B0);\nADC_IMM(0x48);\nSTA_ZP($B0);\nLDA_ZP($B1);\nADC_IMM(0x00);\nSTA_ZP($B1);\nif (BNE_COND) goto loc_6248;\nLDX_IMM(0x06);\nJSR_ABS($43CC);\nLDX_IMM(0x00);\nLDA_ZP(($B0),Y);\nSTA_ABS($05B4,X);\nCPX_IMM(0x06);\nif (BNE_COND) goto loc_6261;\nLDA_ABS($05B4);\nSTA_ABS($0577);\nLDA_ABS($05B5);\nSTA_ABS($0578);\nLDA_IMM(0x0B);\nJSR_ABS($45AE);\nLDA_ABS($05B8);\nSTA_ABS($0577);\nLDA_ABS($05B9);\nSTA_ABS($0578);\nJSR_ABS($4DCC);\nJSR_ABS($450D);\nLDA_ZP($AA);\nSTA_ABS($05BA);\nLDA_ZP($AB);\nSTA_ABS($05BB);\nLDA_IMM(0x00);\nSTA_ABS($05D5);\nSTA_ABS($05C2);\nSTA_ABS($05B0);\nSTA_ABS($0574);\nSTA_ABS($05AF);\nSTA_ABS($05BF);\nSTA_ABS($059F);\nLDA_IMM(0x50);\nSTA_ABS($059E);\nLDA_IMM(0x10);\nSTA_ABS($05C1);\nLDA_IMM(0xFF);\nSTA_ABS($02FC);\nLDA_ABS($05A9);\nif (BNE_COND) goto loc_62D7;\nLDA_IMM(0x01);\nSTA_ABS($05A9);\nLDX_IMM(0x65);\nLDY_IMM(0xDB);\nLDA_IMM(0x07);\nJSR_ABS($E45C);\nLDA_IMM(0xC0);\nSTA_ABS($D40E);\nJSR_ABS($92F2);\nLDA_IMM(0x00);\nSTA_ABS($022F);\nJSR_ABS($43BF);\nLDX_IMM(0x04);\nJSR_ABS($43CC);\nLDY_IMM(0x00);\nLDA_ABS($A2C4,X);\nSTA_ABS($02C4,Y);",
+      "zero_page_reads_writes": [
+        "$AA",
+        "$AB",
+        "$B0",
+        "$B1"
+      ],
+      "hardware_registers_touched": [
+        "NMIEN"
+      ]
+    }
+  ],
+  "tables": {
+    "A2C4_zone_palettes": [
+      [
+        "$14",
+        "$1A",
+        "$66",
+        "$A6"
+      ],
+      [
+        "$34",
+        "$3A",
+        "$76",
+        "$B6"
+      ],
+      [
+        "$64",
+        "$6A",
+        "$A6",
+        "$E8"
+      ],
+      [
+        "$B4",
+        "$BA",
+        "$F6",
+        "$86"
+      ],
+      [
+        "$44",
+        "$4A",
+        "$86",
+        "$C8"
+      ],
+      [
+        "$E4",
+        "$EA",
+        "$26",
+        "$68"
+      ],
+      [
+        "$24",
+        "$2A",
+        "$66",
+        "$A8"
+      ],
+      [
+        "$84",
+        "$8A",
+        "$C6",
+        "$28"
+      ],
+      [
+        "$F4",
+        "$FA",
+        "$56",
+        "$96"
+      ],
+      [
+        "$54",
+        "$5A",
+        "$96",
+        "$D8"
+      ],
+      [
+        "$74",
+        "$7A",
+        "$B6",
+        "$F8"
+      ],
+      [
+        "$F4",
+        "$FA",
+        "$46",
+        "$98"
+      ]
+    ],
+    "A2F4_player_start_records_level3": [
+      {
+        "zone": 1,
+        "offset": "$05D1",
+        "x": 17,
+        "y": 23
+      },
+      {
+        "zone": 2,
+        "offset": "$05AF",
+        "x": 47,
+        "y": 22
+      },
+      {
+        "zone": 3,
+        "offset": "$0720",
+        "x": 32,
+        "y": 28
+      },
+      {
+        "zone": 4,
+        "offset": "$0127",
+        "x": 39,
+        "y": 4
+      },
+      {
+        "zone": 5,
+        "offset": "$0054",
+        "x": 20,
+        "y": 1
+      },
+      {
+        "zone": 6,
+        "offset": "$0423",
+        "x": 35,
+        "y": 16
+      },
+      {
+        "zone": 7,
+        "offset": "$0070",
+        "x": 48,
+        "y": 1
+      },
+      {
+        "zone": 8,
+        "offset": "$0736",
+        "x": 54,
+        "y": 28
+      },
+      {
+        "zone": 9,
+        "offset": "$0373",
+        "x": 51,
+        "y": 13
+      },
+      {
+        "zone": 10,
+        "offset": "$005E",
+        "x": 30,
+        "y": 1
+      },
+      {
+        "zone": 11,
+        "offset": "$0537",
+        "x": 55,
+        "y": 20
+      },
+      {
+        "zone": 12,
+        "offset": "$041B",
+        "x": 27,
+        "y": 16
+      }
+    ],
+    "A3D8_warp_door_ptrs": [
+      "$A4D4",
+      "$A4D4",
+      "$A4EC",
+      "$A4EC",
+      "$A51C",
+      "$A51C",
+      "$A51C",
+      "$A51C",
+      "$A51C",
+      "$A564",
+      "$A564",
+      "$A564"
+    ],
+    "A3F0_level_base_ptrs": [
+      "$A564",
+      "$A5CC",
+      "$A67E",
+      "$A712",
+      "$A7AC",
+      "$A812",
+      "$A87C",
+      "$A906",
+      "$A9CC",
+      "$AAA8",
+      "$ABB8",
+      "$AC6C"
+    ],
+    "A408_level_ext1_ptrs": [
+      "$ACEE",
+      "$AD46",
+      "$AD66",
+      "$ADBE",
+      "$AE2E",
+      "$AE56",
+      "$AE72",
+      "$AEE8",
+      "$AF40",
+      "$AFBE",
+      "$AFDE",
+      "$B036"
+    ],
+    "A420_level_ext2_ptrs": [
+      "$B06C",
+      "$B076",
+      "$B08A",
+      "$B094",
+      "$B09C",
+      "$B0FC",
+      "$B188",
+      "$B1B0",
+      "$B206",
+      "$B24E",
+      "$B24E",
+      "$B25E"
+    ],
+    "A48C_counts_pass0": [
+      52,
+      89,
+      74,
+      77,
+      51,
+      53,
+      69,
+      99,
+      110,
+      136,
+      90,
+      65
+    ],
+    "A498_counts_pass1": [
+      44,
+      16,
+      44,
+      56,
+      20,
+      14,
+      59,
+      44,
+      63,
+      16,
+      44,
+      27
+    ],
+    "A4A4_counts_pass2": [
+      5,
+      10,
+      5,
+      4,
+      48,
+      70,
+      20,
+      43,
+      36,
+      0,
+      8,
+      30
+    ]
+  }
+}

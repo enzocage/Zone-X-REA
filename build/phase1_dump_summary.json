@@ -1,0 +1,62 @@
+{
+  "zone_01": {
+    "sha256": "4b7a62b709f1b910",
+    "dl_start": "$3C93",
+    "first_lms": "$2E0E"
+  },
+  "zone_02": {
+    "sha256": "3b03913cee101047",
+    "dl_start": "$3C93",
+    "first_lms": "$2D4A"
+  },
+  "zone_03": {
+    "sha256": "67f11fcaa3197c74",
+    "dl_start": "$3C93",
+    "first_lms": "$302C"
+  },
+  "zone_04": {
+    "sha256": "260633bf63dab688",
+    "dl_start": "$3C93",
+    "first_lms": "$1C3A"
+  },
+  "zone_05": {
+    "sha256": "2b8a741cceec823b",
+    "dl_start": "$3C93",
+    "first_lms": "$1C14"
+  },
+  "zone_06": {
+    "sha256": "345f56c5c8694885",
+    "dl_start": "$3C93",
+    "first_lms": "$2732"
+  },
+  "zone_07": {
+    "sha256": "d4920accce6da763",
+    "dl_start": "$3C93",
+    "first_lms": "$1C4C"
+  },
+  "zone_08": {
+    "sha256": "14ad280547dc458d",
+    "dl_start": "$3C93",
+    "first_lms": "$3054"
+  },
+  "zone_09": {
+    "sha256": "03e88e8b6c0f01bb",
+    "dl_start": "$3C93",
+    "first_lms": "$2452"
+  },
+  "zone_10": {
+    "sha256": "87448883db43cb53",
+    "dl_start": "$3C93",
+    "first_lms": "$1C28"
+  },
+  "zone_11": {
+    "sha256": "e1a5542041f527a0",
+    "dl_start": "$3C93",
+    "first_lms": "$2B54"
+  },
+  "zone_12": {
+    "sha256": "2ff23d9563efa706",
+    "dl_start": "$3C93",
+    "first_lms": "$2722"
+  }
+}

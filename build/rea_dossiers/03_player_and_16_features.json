@@ -1,0 +1,192 @@
+{
+  "subsystem": "03_player_and_16_features",
+  "routines": [
+    {
+      "name": "ZX_Write_Tile_And_Screen",
+      "entry_address": "$45AE",
+      "raw_6502_disassembly": [
+        "$45AE: PHA",
+        "$45AF: TAX",
+        "$45B0: LDA #$00",
+        "$45B2: STA $A4",
+        "$45B4: LDA #$0B",
+        "$45B6: STA $A5",
+        "$45B8: CLC",
+        "$45B9: LDA $A4",
+        "$45BB: ADC $0577",
+        "$45BE: STA $A4",
+        "$45C0: LDA $A5",
+        "$45C2: ADC $0578",
+        "$45C5: STA $A5",
+        "$45C7: LDY #$00",
+        "$45C9: TXA",
+        "$45CA: STA ($A4),Y",
+        "$45CC: JSR $4DCC",
+        "$45CF: JSR $450D",
+        "$45D2: PLA",
+        "$45D3: STA $0577",
+        "$45D6: JSR $44DD",
+        "$45D9: JSR $454F",
+        "$45DC: RTS"
+      ],
+      "ghidra_c_pseudocode": "LDA_IMM(0x00);\nSTA_ZP($A4);\nLDA_IMM(0x0B);\nSTA_ZP($A5);\nLDA_ZP($A4);\nADC_ABS($0577);\nSTA_ZP($A4);\nLDA_ZP($A5);\nADC_ABS($0578);\nSTA_ZP($A5);\nLDY_IMM(0x00);\nSTA_ZP(($A4),Y);\nJSR_ABS($4DCC);\nJSR_ABS($450D);\nSTA_ABS($0577);\nJSR_ABS($44DD);\nJSR_ABS($454F);\nreturn;",
+      "zero_page_reads_writes": [
+        "$A4",
+        "$A5"
+      ],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Read_Player_Input",
+      "entry_address": "$4800",
+      "raw_6502_disassembly": [
+        "$4800: LDY $5B8D",
+        "$4803: ORA $C8",
+        "$4805: LDA ($AC),Y",
+        "$4807: STA $055C",
+        "$480A: INY",
+        "$480B: LDA ($AC),Y",
+        "$480D: STA $055D",
+        "$4810: STA $D000",
+        "$4813: STA $D001",
+        "$4816: INY",
+        "$4817: LDA ($AC),Y",
+        "$4819: STA $055E",
+        "$481C: LDA $055B",
+        "$481F: STA $0577",
+        "$4822: LDA $055C",
+        "$4825: STA $0578",
+        "$4828: JSR $4DCC",
+        "$482B: LDA $0577",
+        "$482E: STA $0560",
+        "$4831: LDA $0578",
+        "$4834: STA $0561",
+        "$4837: JSR $43BF",
+        "$483A: JSR $4462",
+        "$483D: JSR $47A0",
+        "$4840: LDA #$01",
+        "$4842: STA $05AA",
+        "$4845: RTS"
+      ],
+      "ghidra_c_pseudocode": "LDY_ABS($5B8D);\nORA_ZP($C8);\nLDA_ZP(($AC),Y);\nSTA_ABS($055C);\nLDA_ZP(($AC),Y);\nSTA_ABS($055D);\nSTA_ABS($D000);\nSTA_ABS($D001);\nLDA_ZP(($AC),Y);\nSTA_ABS($055E);\nLDA_ABS($055B);\nSTA_ABS($0577);\nLDA_ABS($055C);\nSTA_ABS($0578);\nJSR_ABS($4DCC);\nLDA_ABS($0577);\nSTA_ABS($0560);\nLDA_ABS($0578);\nSTA_ABS($0561);\nJSR_ABS($43BF);\nJSR_ABS($4462);\nJSR_ABS($47A0);\nLDA_IMM(0x01);\nSTA_ABS($05AA);\nreturn;",
+      "zero_page_reads_writes": [
+        "$AC",
+        "$AD",
+        "$C8"
+      ],
+      "hardware_registers_touched": [
+        "HPOSP0",
+        "HPOSP1"
+      ]
+    },
+    {
+      "name": "ZX_Update_Player_Physics",
+      "entry_address": "$4846",
+      "raw_6502_disassembly": [
+        "$4846: LDX #$FF",
+        "$4848: LDA $055B",
+        "$484B: STA $0577",
+        "$484E: LDA $055C",
+        "$4851: STA $0578",
+        "$4854: JSR $43E2",
+        "$4857: CMP #$04",
+        "$4859: BNE $4870",
+        "$485B: LDA $0574",
+        "$485E: BEQ $4863",
+        "$4860: JMP $4960"
+      ],
+      "ghidra_c_pseudocode": "LDX_IMM(0xFF);\nLDA_ABS($055B);\nSTA_ABS($0577);\nLDA_ABS($055C);\nSTA_ABS($0578);\nJSR_ABS($43E2);\nCMP_IMM(0x04);\nif (BNE_COND) goto loc_4870;\nLDA_ABS($0574);\nif (BEQ_COND) goto loc_4863;\nJMP_ABS($4960);",
+      "zero_page_reads_writes": [],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Handle_16_Features",
+      "entry_address": "$4A10",
+      "raw_6502_disassembly": [
+        "$4A10: JSR $456B",
+        "$4A13: LDX #$03",
+        "$4A15: LDA #$00",
+        "$4A17: STA $0550,X",
+        "$4A1A: DEX",
+        "$4A1B: BPL $4A17",
+        "$4A1D: JMP $454F"
+      ],
+      "ghidra_c_pseudocode": "JSR_ABS($456B);\nLDX_IMM(0x03);\nLDA_IMM(0x00);\nSTA_ABS($0550,X);\nif (BPL_COND) goto loc_4A17;\nJMP_ABS($454F);",
+      "zero_page_reads_writes": [],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Handle_Inventory_ChItem",
+      "entry_address": "$4B30",
+      "raw_6502_disassembly": [
+        "$4B30: PHP",
+        "$4B31: LDA #$01",
+        "$4B33: STA $056E",
+        "$4B36: JMP $4B45"
+      ],
+      "ghidra_c_pseudocode": "LDA_IMM(0x01);\nSTA_ABS($056E);\nJMP_ABS($4B45);",
+      "zero_page_reads_writes": [],
+      "hardware_registers_touched": []
+    },
+    {
+      "name": "ZX_Place_Pickup_Mats",
+      "entry_address": "$4C50",
+      "raw_6502_disassembly": [
+        "$4C50: STY $D005",
+        "$4C53: ORA $A9",
+        "$4C55: ORA ($8D,X)",
+        "$4C57: STY $AD05",
+        "$4C5A: STY $C905",
+        "$4C5D: ORA ($D0,X)",
+        "$4C5F: .BYTE $12",
+        "$4C60: DEC $0589",
+        "$4C63: INC $058A",
+        "$4C66: JSR $4CB7",
+        "$4C69: LDA $0589",
+        "$4C6C: BNE $4C71",
+        "$4C6E: STA $058C",
+        "$4C71: RTS"
+      ],
+      "ghidra_c_pseudocode": "STY_ABS($D005);\nORA_ZP($A9);\nORA_ZP(($8D,X));\nSTY_ABS($AD05);\nSTY_ABS($C905);\nORA_ZP(($D0,X));\nDEC_ABS($0589);\nINC_ABS($058A);\nJSR_ABS($4CB7);\nLDA_ABS($0589);\nif (BNE_COND) goto loc_4C71;\nSTA_ABS($058C);\nreturn;",
+      "zero_page_reads_writes": [
+        "$8D",
+        "$8E",
+        "$A9",
+        "$D0",
+        "$D1"
+      ],
+      "hardware_registers_touched": [
+        "HPOSM1"
+      ]
+    },
+    {
+      "name": "ZX_Update_Lower_HUD_Items_And_Plutonium",
+      "entry_address": "$4F20",
+      "raw_6502_disassembly": [
+        "$4F20: STA $0414,Y",
+        "$4F23: RTS"
+      ],
+      "ghidra_c_pseudocode": "STA_ABS($0414,Y);\nreturn;",
+      "zero_page_reads_writes": [],
+      "hardware_registers_touched": []
+    }
+  ],
+  "features_verified": [
+    "LASER",
+    "WARP",
+    "SLAM",
+    "AIRDOORS",
+    "DOOR",
+    "PLUTONIUM",
+    "BONUS",
+    "LOCK",
+    "KEY",
+    "LOCKED",
+    "SPADE",
+    "CRUMBLY",
+    "MATS",
+    "CONTAINER",
+    "BLOCK",
+    "TIME"
+  ]
+}
