@@ -104,9 +104,11 @@ export class ZoneXApplication {
   stepInteractiveCpuFrame() {
     this.inputBridge.consumeFrameInput(null);
     const prevDl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+    const prevZone = this.memory.ram[0x0554];
     const mainCycles = this.targetHz === 60 ? 19500 : 23500;
     this.cpu.runFrame(mainCycles);
     const newDl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+    const newZone = this.memory.ram[0x0554];
 
     // If the 6502 transitioned natively from Intro/Features ($3CE5/$939C) into In-Game ($3C8B)
     // while a Bonus/Custom Zone (13..27) was selected in the UI, apply that Bonus/Custom Zone!
@@ -116,6 +118,12 @@ export class ZoneXApplication {
         this.cpu.activeCustomZone = zData;
         this.cpu.applyCustomZoneOverlay(zData);
       }
+    }
+
+    // Apply brief zero-volume transition mute whenever a section, screen, or level transition occurred
+    if (this.cpu.transitionOccurred || prevDl !== newDl || (newDl === 0x3C8B && prevZone !== newZone)) {
+      this.pokey.triggerTransitionMute(55);
+      this.pokey.syncRegistersFromRam();
     }
 
     this.renderer.renderFrame();
@@ -151,6 +159,9 @@ export class ZoneXApplication {
     if (screenSelect) screenSelect.value = "ingame";
     this.screens.activeScreen = "ingame";
 
+    // Briefly zero POKEY output and clear hanging registers before switching zones
+    this.pokey.silenceAll(55);
+
     if (this.currentSelectedZone >= 13) {
       const zData = this.getZoneDataByNumber(this.currentSelectedZone);
       this.cpu.startCustomZone(zData, optionLevel, resetLivesAndScore);
@@ -174,6 +185,14 @@ export class ZoneXApplication {
     const lNum = levelSelect ? parseInt(levelSelect.value, 10) || 1 : 1;
     this.currentSelectedZone = zNum;
 
+    if (screenName !== "title" && screenName !== "features" && screenName !== "halloffame" && screenName !== "hof") {
+      this.loadAnyZone(zNum, lNum, false);
+      return;
+    }
+
+    // Briefly zero POKEY output and clear hanging registers before switching screens
+    this.pokey.silenceAll(55);
+
     this.screens.activeScreen = screenName;
     if (screenName === "title") {
       this.cpu.bootTitleScreen(Math.min(12, zNum), lNum);
@@ -181,9 +200,6 @@ export class ZoneXApplication {
       this.cpu.bootFeaturesScreen();
     } else if (screenName === "halloffame" || screenName === "hof") {
       this.cpu.bootHallOfFameScreen();
-    } else {
-      this.loadAnyZone(zNum, lNum, false);
-      return;
     }
     this.pokey.syncRegistersFromRam();
     this.renderer.renderFrame();

@@ -93,6 +93,9 @@ export class PokeyDriver {
     this.currentFrameTotalCycles = 27000;
     this.lastAudioCallbackTime = 0;
     this.framesSteppedSinceRender = 0;
+    this.transitionMuteSamples = 0;
+    this.fadeInSamples = 0;
+    this.fadeInTotal = 240;
 
     // Lockstep test state for Oracle 2 & 3
     this.channels = [
@@ -101,6 +104,46 @@ export class PokeyDriver {
       { active: false, sfxId: 0, step: 0, duration: 0, priority: 0 },
       { active: false, sfxId: 0, step: 0, duration: 0, priority: 0 },
     ];
+  }
+
+  /**
+   * Immediately zeroes all POKEY hardware registers ($D200..$D20F), clears queued sub-frame events,
+   * resets analog filter state, and applies a brief silence window (default 55 ms) so screen/level
+   * transitions never leave hanging tones or clicks.
+   */
+  silenceAll(muteMs = 55) {
+    const ram = this.memory.ram;
+    for (let i = 0; i < 16; i++) {
+      ram[0xD200 + i] = 0x00;
+      this.regs[i] = 0x00;
+    }
+    this.div.fill(1);
+    this.outBit.fill(0);
+    this.hpFlop.fill(0);
+    this.currentDac = 0.0;
+    this.hpPrevIn = 0.0;
+    this.hpPrevOut = 0.0;
+    this.lpOut = 0.0;
+    this.pendingEvents = [];
+    this.eventCursor = 0;
+    const sr = (this.audioCtx && this.audioCtx.sampleRate) ? this.audioCtx.sampleRate : 48000;
+    this.transitionMuteSamples = Math.max(0, Math.round((sr * muteMs) / 1000.0));
+    this.fadeInTotal = Math.max(1, Math.round((sr * 6.0) / 1000.0));
+    this.fadeInSamples = this.fadeInTotal;
+  }
+
+  /**
+   * Applies a brief zero-volume mute window and filter reset across native 6502 section/level transitions
+   * while preserving the newly initialized screen's POKEY register state.
+   */
+  triggerTransitionMute(muteMs = 55) {
+    this.hpPrevIn = 0.0;
+    this.hpPrevOut = 0.0;
+    this.lpOut = 0.0;
+    const sr = (this.audioCtx && this.audioCtx.sampleRate) ? this.audioCtx.sampleRate : 48000;
+    this.transitionMuteSamples = Math.max(0, Math.round((sr * muteMs) / 1000.0));
+    this.fadeInTotal = Math.max(1, Math.round((sr * 6.0) / 1000.0));
+    this.fadeInSamples = this.fadeInTotal;
   }
 
   setTargetHz(hz) {
@@ -370,10 +413,22 @@ export class PokeyDriver {
       // 1-pole analog RC low-pass filter (~13 kHz Atari monitor rolloff)
       this.lpOut += lpAlpha * (hpOut - this.lpOut);
 
-      if (this.muted) {
+      if (this.muted || this.transitionMuteSamples > 0) {
+        if (this.transitionMuteSamples > 0) {
+          this.transitionMuteSamples--;
+          this.hpPrevIn = rawUnipolar;
+          this.hpPrevOut = 0.0;
+          this.lpOut = 0.0;
+        }
         chan0[i] = 0.0;
       } else {
-        const sample = this.lpOut * 1.65;
+        let gain = 1.65;
+        if (this.fadeInSamples > 0) {
+          const progress = 1.0 - (this.fadeInSamples / Math.max(1, this.fadeInTotal));
+          gain *= progress;
+          this.fadeInSamples--;
+        }
+        const sample = this.lpOut * gain;
         chan0[i] = Math.max(-0.98, Math.min(0.98, sample));
       }
     }

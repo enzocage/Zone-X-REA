@@ -263,11 +263,12 @@ class Mos6502Core {
     this.ram[0xE462] = 0x60; // XITVBV RTS
     this.ram[0xE465] = 0x60; // SIOINV RTS
 
-    // 4) Default hardware registers
+    // 4) Default hardware registers & silence POKEY ($D200..$D20F) + SFX counters ($05C3..$05D4)
     this.ram[0xD01F] = 0x07; // CONSOL (no console key pressed)
     this.ram[0x0278] = 0x0F; // STICK0 (neutral)
     this.ram[0x0284] = 0x01; // STRIG0 (not pressed)
     this.ram[0x02FC] = 0xFF; // CH (no key)
+    this.silencePokeyAndSfx();
 
     // Copy initial charset $706C..$746B -> $1800..$1BFF (as $6032..$6053 does)
     for (let i = 0; i < 1024; i++) {
@@ -278,6 +279,26 @@ class Mos6502Core {
     if (!this.hofInitialized) {
       this.hofInitialized = true;
       this.callSubroutine(0x8F36, 5000);
+    }
+  }
+
+  silencePokeyAndSfx() {
+    for (let i = 0; i < 16; i++) {
+      this.ram[0xD200 + i] = 0x00;
+    }
+    this.ram[0xD20F] = 0x03;
+    for (let addr = 0x05C3; addr <= 0x05D4; addr++) {
+      this.ram[addr] = 0x00;
+    }
+    this.pokeyEvents = [];
+    if (this.recordingPokey) {
+      for (let i = 0; i < 9; i++) {
+        this.pokeyEvents.push({
+          cycle: this.frameCycles,
+          addr: 0xD200 + i,
+          val: 0x00,
+        });
+      }
     }
   }
 
@@ -405,6 +426,23 @@ class Mos6502Core {
     if (this.stopped) return 0;
     const pc = this.pc;
 
+    // Silence POKEY & SFX on all native 6502 section/level/respawn transitions
+    if (
+      pc === 0x6054 ||
+      pc === 0x60B3 ||
+      pc === 0x9325 ||
+      pc === 0x6580 ||
+      pc === 0x60B9 ||
+      pc === 0x60E5 ||
+      pc === 0x6113 ||
+      pc === 0x62D7 ||
+      pc === 0x6491 ||
+      pc === 0x654D
+    ) {
+      this.silencePokeyAndSfx();
+      this.transitionOccurred = true;
+    }
+
     // Atari OS ROM vector intercepts
     if (pc === 0xE45C) {
       // SETVBV: A=mode (7=VVBLKD, 6=VVBLKI), X=MSB, Y=LSB
@@ -423,6 +461,9 @@ class Mos6502Core {
     }
     if (pc === 0xE462 || pc === 0xE465) {
       // XITVBV ($E462) or SIOINV ($E465)
+      if (pc === 0xE465) {
+        this.silencePokeyAndSfx();
+      }
       const lo = this.pull();
       const hi = this.pull();
       this.pc = (((hi << 8) | lo) + 1) & 0xFFFF;
@@ -771,6 +812,7 @@ class Mos6502Core {
     this.frameCycles = 0;
     this.pokeyEvents = [];
     this.recordingPokey = true;
+    this.transitionOccurred = false;
 
     let used = 0;
     let guard = 0;
@@ -813,6 +855,8 @@ class Mos6502Core {
       this.step();
       steps++;
     }
+    // Ensure no hanging POKEY tones from Title/Hall-of-Fame or previous zone survive into the new zone
+    this.silencePokeyAndSfx();
     // Shorten initial automatic door timers ($058D/$058E) so door opening/closing is visible right after load
     this.ram[0x058D] = 0x16;
     this.ram[0x058E] = 0x0C;
@@ -1005,6 +1049,7 @@ class Mos6502Core {
     this.callSubroutine(0x435F, 5000);
     this.callSubroutine(0x4462, 5000);
     this.callSubroutine(0x47A0, 5000);
+    this.silencePokeyAndSfx();
     this.runVbi();
     this.runVbi();
   }
@@ -1054,6 +1099,7 @@ class Mos6502Core {
       this.step();
       steps++;
     }
+    this.silencePokeyAndSfx();
     this.runVbi();
     this.runVbi();
   }
@@ -3906,6 +3952,9 @@ class PokeyDriver {
     this.currentFrameTotalCycles = 27000;
     this.lastAudioCallbackTime = 0;
     this.framesSteppedSinceRender = 0;
+    this.transitionMuteSamples = 0;
+    this.fadeInSamples = 0;
+    this.fadeInTotal = 240;
 
     // Lockstep test state for Oracle 2 & 3
     this.channels = [
@@ -3914,6 +3963,46 @@ class PokeyDriver {
       { active: false, sfxId: 0, step: 0, duration: 0, priority: 0 },
       { active: false, sfxId: 0, step: 0, duration: 0, priority: 0 },
     ];
+  }
+
+  /**
+   * Immediately zeroes all POKEY hardware registers ($D200..$D20F), clears queued sub-frame events,
+   * resets analog filter state, and applies a brief silence window (default 55 ms) so screen/level
+   * transitions never leave hanging tones or clicks.
+   */
+  silenceAll(muteMs = 55) {
+    const ram = this.memory.ram;
+    for (let i = 0; i < 16; i++) {
+      ram[0xD200 + i] = 0x00;
+      this.regs[i] = 0x00;
+    }
+    this.div.fill(1);
+    this.outBit.fill(0);
+    this.hpFlop.fill(0);
+    this.currentDac = 0.0;
+    this.hpPrevIn = 0.0;
+    this.hpPrevOut = 0.0;
+    this.lpOut = 0.0;
+    this.pendingEvents = [];
+    this.eventCursor = 0;
+    const sr = (this.audioCtx && this.audioCtx.sampleRate) ? this.audioCtx.sampleRate : 48000;
+    this.transitionMuteSamples = Math.max(0, Math.round((sr * muteMs) / 1000.0));
+    this.fadeInTotal = Math.max(1, Math.round((sr * 6.0) / 1000.0));
+    this.fadeInSamples = this.fadeInTotal;
+  }
+
+  /**
+   * Applies a brief zero-volume mute window and filter reset across native 6502 section/level transitions
+   * while preserving the newly initialized screen's POKEY register state.
+   */
+  triggerTransitionMute(muteMs = 55) {
+    this.hpPrevIn = 0.0;
+    this.hpPrevOut = 0.0;
+    this.lpOut = 0.0;
+    const sr = (this.audioCtx && this.audioCtx.sampleRate) ? this.audioCtx.sampleRate : 48000;
+    this.transitionMuteSamples = Math.max(0, Math.round((sr * muteMs) / 1000.0));
+    this.fadeInTotal = Math.max(1, Math.round((sr * 6.0) / 1000.0));
+    this.fadeInSamples = this.fadeInTotal;
   }
 
   setTargetHz(hz) {
@@ -4183,10 +4272,22 @@ class PokeyDriver {
       // 1-pole analog RC low-pass filter (~13 kHz Atari monitor rolloff)
       this.lpOut += lpAlpha * (hpOut - this.lpOut);
 
-      if (this.muted) {
+      if (this.muted || this.transitionMuteSamples > 0) {
+        if (this.transitionMuteSamples > 0) {
+          this.transitionMuteSamples--;
+          this.hpPrevIn = rawUnipolar;
+          this.hpPrevOut = 0.0;
+          this.lpOut = 0.0;
+        }
         chan0[i] = 0.0;
       } else {
-        const sample = this.lpOut * 1.65;
+        let gain = 1.65;
+        if (this.fadeInSamples > 0) {
+          const progress = 1.0 - (this.fadeInSamples / Math.max(1, this.fadeInTotal));
+          gain *= progress;
+          this.fadeInSamples--;
+        }
+        const sample = this.lpOut * gain;
         chan0[i] = Math.max(-0.98, Math.min(0.98, sample));
       }
     }
@@ -4538,9 +4639,11 @@ class ZoneXApplication {
   stepInteractiveCpuFrame() {
     this.inputBridge.consumeFrameInput(null);
     const prevDl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+    const prevZone = this.memory.ram[0x0554];
     const mainCycles = this.targetHz === 60 ? 19500 : 23500;
     this.cpu.runFrame(mainCycles);
     const newDl = (this.memory.ram[0x0231] << 8) | this.memory.ram[0x0230];
+    const newZone = this.memory.ram[0x0554];
 
     // If the 6502 transitioned natively from Intro/Features ($3CE5/$939C) into In-Game ($3C8B)
     // while a Bonus/Custom Zone (13..27) was selected in the UI, apply that Bonus/Custom Zone!
@@ -4550,6 +4653,12 @@ class ZoneXApplication {
         this.cpu.activeCustomZone = zData;
         this.cpu.applyCustomZoneOverlay(zData);
       }
+    }
+
+    // Apply brief zero-volume transition mute whenever a section, screen, or level transition occurred
+    if (this.cpu.transitionOccurred || prevDl !== newDl || (newDl === 0x3C8B && prevZone !== newZone)) {
+      this.pokey.triggerTransitionMute(55);
+      this.pokey.syncRegistersFromRam();
     }
 
     this.renderer.renderFrame();
@@ -4585,6 +4694,9 @@ class ZoneXApplication {
     if (screenSelect) screenSelect.value = "ingame";
     this.screens.activeScreen = "ingame";
 
+    // Briefly zero POKEY output and clear hanging registers before switching zones
+    this.pokey.silenceAll(55);
+
     if (this.currentSelectedZone >= 13) {
       const zData = this.getZoneDataByNumber(this.currentSelectedZone);
       this.cpu.startCustomZone(zData, optionLevel, resetLivesAndScore);
@@ -4608,6 +4720,14 @@ class ZoneXApplication {
     const lNum = levelSelect ? parseInt(levelSelect.value, 10) || 1 : 1;
     this.currentSelectedZone = zNum;
 
+    if (screenName !== "title" && screenName !== "features" && screenName !== "halloffame" && screenName !== "hof") {
+      this.loadAnyZone(zNum, lNum, false);
+      return;
+    }
+
+    // Briefly zero POKEY output and clear hanging registers before switching screens
+    this.pokey.silenceAll(55);
+
     this.screens.activeScreen = screenName;
     if (screenName === "title") {
       this.cpu.bootTitleScreen(Math.min(12, zNum), lNum);
@@ -4615,9 +4735,6 @@ class ZoneXApplication {
       this.cpu.bootFeaturesScreen();
     } else if (screenName === "halloffame" || screenName === "hof") {
       this.cpu.bootHallOfFameScreen();
-    } else {
-      this.loadAnyZone(zNum, lNum, false);
-      return;
     }
     this.pokey.syncRegistersFromRam();
     this.renderer.renderFrame();
