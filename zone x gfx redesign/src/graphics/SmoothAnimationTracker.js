@@ -792,10 +792,11 @@ export class SmoothAnimationTracker {
       this.camera.shakeZ = 0;
     }
 
-    // Check if carrying hot plutonium (radiation timer counting down)
-    const radLo = ram[SystemAddressMap.RADIATION_TIMER_LO];
-    const radHi = ram[SystemAddressMap.RADIATION_TIMER_HI];
-    const isCarryingPlutonium = radLo > 0 || radHi > 0;
+    // Check if carrying hot plutonium & radiation timer is actively counting down
+    // In 6502 ROM ($4909 INC $0576 on pickup, $4941 DEC $0576 on deposit, $4D8F LDA $0576 timer gate):
+    // $0576 > 0 means the player is carrying active Plutonium and the countdown timer is running!
+    const carriedPlutoniumCount = ram[0x0576];
+    const isCarryingPlutonium = carriedPlutoniumCount > 0;
     this.player.plutoniumGlow = isCarryingPlutonium
       ? 0.65 + 0.35 * Math.sin(this.time * 12.0)
       : 0.0;

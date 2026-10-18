@@ -259,284 +259,325 @@ export class MeshGeometryBuilder {
       b.clear();
     };
 
-    // 1. Sci-Fi Floor Tile (1x1 unit)
-    b.addBox(0, -0.04, 0, 0.96, 0.08, 0.96, [0.09, 0.12, 0.18], 0.0, [0.11, 0.15, 0.22]);
-    b.addBox(0, 0.005, 0, 0.72, 0.01, 0.72, [0.13, 0.18, 0.27], 0.05);
+    // =========================================================================
+    // UNIFIED DESIGN SYSTEM PALETTE ("Zone X Industrial Reactor Architecture")
+    // - Base Chassis / Structural Metal: Dark Gunmetal-Slate & Titanium
+    // - Role 1 (Primary Objective): Radioactive Emerald-Lime (ONLY Plutonium & Active Barrels)
+    // - Role 2 (Tools, Collectibles & Locks): Titanium-Silver + Warm Amber-Gold
+    // - Role 3 (Player, Safe Passages, Warp & Exit): Ceramic-White + Cryo-Cyan
+    // - Role 4 (Lethal Hazards, Closed Lasers & Aliens): Obsidian-Graphite + Crimson-Red
+    // =========================================================================
+    const SLATE_DARK   = [0.10, 0.13, 0.18];
+    const SLATE_MID    = [0.16, 0.21, 0.29];
+    const SLATE_LIGHT  = [0.25, 0.32, 0.42];
+    const TITANIUM     = [0.76, 0.82, 0.90];
+    const TITANIUM_HI  = [0.92, 0.95, 1.00];
+
+    const PLUT_GREEN   = [0.06, 1.00, 0.26];
+    const PLUT_CORE    = [0.22, 1.00, 0.42];
+    const PLUT_DEEP    = [0.03, 0.48, 0.14];
+
+    const AMBER_GOLD   = [0.98, 0.74, 0.14];
+    const AMBER_MUTED  = [0.68, 0.50, 0.12];
+    const AMBER_DARK   = [0.32, 0.24, 0.08];
+
+    const CRYO_CYAN    = [0.16, 0.84, 1.00];
+    const CRYO_DEEP    = [0.08, 0.42, 0.58];
+
+    const CRIMSON_RED  = [1.00, 0.14, 0.20];
+    const CRIMSON_DEEP = [0.46, 0.06, 0.10];
+    const OBSIDIAN     = [0.09, 0.10, 0.14];
+    const OBSIDIAN_HI  = [0.18, 0.20, 0.26];
+
+    // Helper: Uniform octagonal industrial floor socket for collectibles & mechanisms
+    const addIndustrialPedestal = (radius = 0.36, height = 0.08, rimColor = SLATE_LIGHT, rimEmissive = 0.12) => {
+      b.addCylinderY(0, 0.0, height * 0.65, 0, radius, radius * 0.94, 8, SLATE_DARK, 0.02);
+      b.addCylinderY(0, height * 0.65, height, 0, radius * 0.90, radius * 0.84, 8, SLATE_MID, 0.05);
+      b.addTorusXZ(0, height, 0, radius * 0.82, 0.022, 8, 6, rimColor, rimEmissive);
+    };
+
+    // 1. Sci-Fi Floor Tile (1x1 unit — Calm Matte Dark Reactor Slate Grid)
+    b.addBox(0, -0.04, 0, 0.96, 0.08, 0.96, [0.08, 0.11, 0.16], 0.0, [0.10, 0.14, 0.20]);
+    b.addBox(0, 0.005, 0, 0.74, 0.01, 0.74, [0.12, 0.16, 0.23], 0.02);
     compile("floorTile");
 
-    // 2. Wall Bulkhead (3D Reactor Armor Block with Bevel & Neon Conduit)
-    b.addBevelledBox(0, 0.36, 0, 0.98, 0.72, 0.98, 0.09, [0.22, 0.35, 0.56], [0.34, 0.52, 0.78], 0.05);
-    b.addBox(0, 0.73, 0, 0.62, 0.05, 0.62, [0.16, 0.26, 0.42], 0.05, [0.42, 0.65, 0.92]);
-    b.addBox(0, 0.42, 0, 1.0, 0.06, 1.0, [0.2, 0.75, 1.0], 0.55);
+    // 2. Wall Bulkhead (Clean Bevelled Industrial Reactor Armor Block)
+    b.addBevelledBox(0, 0.35, 0, 0.96, 0.70, 0.96, 0.08, [0.18, 0.25, 0.36], [0.26, 0.35, 0.48], 0.02);
+    b.addBox(0, 0.71, 0, 0.64, 0.04, 0.64, [0.14, 0.19, 0.28], 0.02, [0.28, 0.38, 0.52]);
+    b.addBox(0, 0.38, 0, 0.98, 0.04, 0.98, [0.22, 0.56, 0.78], 0.22);
     compile("wallBlock");
 
-    // 3. Plutonium Core (Unmistakable Radioactive Plutonium Fuel Rod Cluster + Black/Yellow Hazard Base)
-    // High-contrast Black & Yellow octagonal radiation containment pad on the floor
-    b.addCylinderY(0, 0.0, 0.1, 0, 0.46, 0.44, 8, [0.95, 0.78, 0.02], 0.35);
-    b.addCylinderY(0, 0.1, 0.16, 0, 0.39, 0.37, 8, [0.05, 0.06, 0.08], 0.02);
-    // 3-Blade Yellow-on-Black Radiation Trefoil Symbol (☢) on the pedestal
-    for (let i = 0; i < 3; i++) {
-      const a = (i * Math.PI * 2) / 3;
-      b.addBox(Math.cos(a) * 0.23, 0.17, Math.sin(a) * 0.23, 0.17, 0.04, 0.17, [0.98, 0.82, 0.02], 0.45);
+    // 3. PLUTONIUM CORE — Primary Visual Focal Point (Ultra-Luminescent Radioactive Emerald-Lime)
+    // Octagonal heavy containment socket with glowing emerald containment ring
+    addIndustrialPedestal(0.46, 0.10, PLUT_GREEN, 0.85);
+    // 4 Symmetrical Outer Fuel Rods + Tall Central Crystalline Plutonium Core
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) * 0.5 + Math.PI * 0.25;
+      const rx = Math.cos(a) * 0.17;
+      const rz = Math.sin(a) * 0.17;
+      b.addCylinderY(rx, 0.10, 0.66, rz, 0.075, 0.075, 8, PLUT_GREEN, 0.82);
+      b.addTorusXZ(rx, 0.64, rz, 0.078, 0.02, 8, 6, SLATE_DARK, 0.05);
     }
-    // Cluster of 4 Vivid Radioactive Neon-Green Plutonium Fuel Rods (low R/B so they stay pure neon-green!)
-    b.addCylinderY(0, 0.16, 0.78, 0, 0.17, 0.17, 10, [0.02, 0.95, 0.04], 0.65);
-    b.addCylinderY(-0.15, 0.16, 0.6, 0.11, 0.1, 0.1, 8, [0.03, 0.88, 0.05], 0.55);
-    b.addCylinderY(0.15, 0.16, 0.6, 0.11, 0.1, 0.1, 8, [0.03, 0.88, 0.05], 0.55);
-    b.addCylinderY(0.0, 0.16, 0.6, -0.17, 0.1, 0.1, 8, [0.03, 0.88, 0.05], 0.55);
-    b.addOctahedron(0, 0.52, 0, 0.28, 0.36, 0.28, [0.04, 0.98, 0.06], 0.7);
-    // Dark Lead/Steel Cap Rings on top of the fuel rods for crisp contrast
-    b.addTorusXZ(0, 0.76, 0, 0.17, 0.04, 10, 6, [0.08, 0.1, 0.12], 0.05);
+    b.addCylinderY(0, 0.10, 0.88, 0, 0.14, 0.12, 10, PLUT_CORE, 0.95);
+    b.addOctahedron(0, 0.56, 0, 0.30, 0.40, 0.30, PLUT_GREEN, 0.92);
+    b.addOctahedron(0, 0.98, 0, 0.16, 0.22, 0.16, PLUT_CORE, 1.0); // Floating crown crystal
+    b.addTorusXZ(0, 0.82, 0, 0.16, 0.032, 10, 6, TITANIUM, 0.25);
     compile("plutoniumCore");
 
-    // 3b. Rotating Radioactive Trefoil Rotor (☢) + Orbiting Atomic Electrons (⚛) around Plutonium
-    b.addTorusXZ(0, 0.44, 0, 0.44, 0.04, 16, 6, [0.02, 0.92, 0.04], 0.65);
-    b.addTorusXZ(0, 0.24, 0, 0.38, 0.032, 14, 6, [0.96, 0.8, 0.02], 0.5);
+    // 3b. Plutonium Orbital Gyro-Rings & 3-Blade Radiation Trefoil (☢)
+    b.addTorusXZ(0, 0.48, 0, 0.44, 0.036, 16, 6, PLUT_GREEN, 0.92);
+    b.addTorusXZ(0, 0.24, 0, 0.40, 0.028, 16, 6, PLUT_CORE, 0.85);
     for (let i = 0; i < 3; i++) {
       const a = (i * Math.PI * 2) / 3;
-      // High-contrast Black & Yellow Trefoil Warning Fin
-      const fx = Math.cos(a) * 0.35;
-      const fz = Math.sin(a) * 0.35;
-      b.addBox(fx, 0.24, fz, 0.18, 0.06, 0.18, [0.06, 0.07, 0.09], 0.05);
-      b.addBox(fx, 0.28, fz, 0.13, 0.03, 0.13, [0.98, 0.84, 0.02], 0.55);
-      // Vivid Radioactive Neon-Green Electron Sphere
+      const fx = Math.cos(a) * 0.34;
+      const fz = Math.sin(a) * 0.34;
+      b.addBevelledBox(fx, 0.24, fz, 0.16, 0.05, 0.16, 0.015, SLATE_DARK, PLUT_GREEN, 0.75);
       const ex = Math.cos(a + 0.52) * 0.44;
       const ez = Math.sin(a + 0.52) * 0.44;
-      b.addOctahedron(ex, 0.44 + (i - 1) * 0.1, ez, 0.12, 0.12, 0.12, [0.02, 0.98, 0.05], 0.75);
+      b.addOctahedron(ex, 0.48, ez, 0.11, 0.11, 0.11, PLUT_CORE, 1.0);
     }
     compile("plutoniumBeacon");
 
-    // 4. Plutonium Container (Unmistakable Yellow & Black Striped Radioactive Waste Barrel / Atommüll-Tonne with Open Glowing Receptor Mouth)
-    // Main Signal-Yellow cylindrical steel barrel body
-    b.addCylinderY(0, 0.0, 0.68, 0, 0.44, 0.44, 14, [0.96, 0.78, 0.02], 0.35);
-    // 3 Bold Black Hazard Stripes / Barrel Hoops (bottom, middle, upper)
-    b.addTorusXZ(0, 0.1, 0, 0.445, 0.042, 14, 6, [0.06, 0.07, 0.09], 0.02);
-    b.addTorusXZ(0, 0.35, 0, 0.45, 0.048, 14, 6, [0.06, 0.07, 0.09], 0.02);
-    b.addTorusXZ(0, 0.6, 0, 0.445, 0.042, 14, 6, [0.06, 0.07, 0.09], 0.02);
-    // Radioactive hazard emblem plates on the N/S/E/W sides of the yellow drum
-    b.addBox(0, 0.35, 0.43, 0.24, 0.2, 0.05, [0.06, 0.07, 0.09], 0.02);
-    b.addOctahedron(0, 0.35, 0.46, 0.1, 0.1, 0.04, [0.02, 0.95, 0.04], 0.65);
-    b.addBox(0, 0.35, -0.43, 0.24, 0.2, 0.05, [0.06, 0.07, 0.09], 0.02);
-    // Heavy Top Receptor Rim + Vivid Radioactive Neon-Green Open Funnel Mouth (matches Plutonium color!)
-    b.addTorusXZ(0, 0.69, 0, 0.38, 0.065, 14, 6, [0.08, 0.09, 0.11], 0.05);
-    b.addCylinderY(0, 0.66, 0.72, 0, 0.31, 0.28, 12, [0.02, 0.25, 0.04], 0.15);
-    b.addCylinderY(0, 0.69, 0.74, 0, 0.24, 0.24, 12, [0.02, 0.95, 0.04], 0.65);
+    // 3c. Plutonium Floor Aura Halo (Makes every Plutonium location pop against the dark floor!)
+    b.addTorusXZ(0, 0.025, 0, 0.49, 0.032, 16, 6, PLUT_GREEN, 0.95);
+    b.addTorusXZ(0, 0.035, 0, 0.36, 0.02, 12, 6, PLUT_CORE, 0.85);
+    compile("plutoniumHalo");
+
+    // 4. PLUTONIUM CONTAINER / BARREL (Standby = Calm Industrial Gunmetal/Amber Drum; Active = Blazing Emerald/Gold Beacon!)
+    // Base octagonal pedestal
+    addIndustrialPedestal(0.46, 0.08, SLATE_LIGHT, 0.1);
+    // Main heavy cylindrical gunmetal-slate containment drum
+    b.addCylinderY(0, 0.08, 0.68, 0, 0.40, 0.40, 14, SLATE_MID, 0.08);
+    // 3 Recessed Industrial Amber-Gold Structural Ribs / Hoops
+    b.addTorusXZ(0, 0.16, 0, 0.41, 0.035, 14, 6, AMBER_MUTED, 0.18);
+    b.addTorusXZ(0, 0.38, 0, 0.415, 0.040, 14, 6, AMBER_GOLD, 0.28);
+    b.addTorusXZ(0, 0.60, 0, 0.41, 0.035, 14, 6, AMBER_MUTED, 0.18);
+    // 4 Vertical Titanium Structural Stiffeners around the barrel
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) * 0.5;
+      b.addBox(Math.cos(a) * 0.39, 0.38, Math.sin(a) * 0.39, 0.07, 0.52, 0.07, SLATE_LIGHT, 0.1);
+    }
+    // Heavy Top Receptor Collar + Inner Containment Well
+    b.addTorusXZ(0, 0.68, 0, 0.35, 0.055, 14, 6, SLATE_LIGHT, 0.12);
+    b.addCylinderY(0, 0.64, 0.71, 0, 0.28, 0.26, 12, PLUT_DEEP, 0.35);
+    b.addCylinderY(0, 0.68, 0.73, 0, 0.20, 0.20, 12, PLUT_GREEN, 0.55);
     compile("containerVault");
 
-    // 4b. Floating 3D Downward Delivery Target Arrow above every Container Barrel
-    b.addCylinderY(0, 0.88, 1.18, 0, 0.03, 0.22, 8, [0.02, 0.95, 0.04], 0.65); // Vivid green arrow head cone
-    b.addBox(0, 1.28, 0, 0.11, 0.22, 0.11, [0.98, 0.84, 0.02], 0.55); // Gold arrow shaft
+    // 4b. Container ACTIVE Ignition Overlay (Rendered when player is carrying Plutonium & timer is running!)
+    // Glowing emerald/amber energy shroud around the barrel + blazing open receptor core + dual floor/rim target rings
+    b.addTorusXZ(0, 0.03, 0, 0.52, 0.04, 16, 6, PLUT_GREEN, 1.0);
+    b.addTorusXZ(0, 0.38, 0, 0.44, 0.048, 14, 6, PLUT_GREEN, 0.95);
+    b.addTorusXZ(0, 0.72, 0, 0.38, 0.05, 14, 6, PLUT_CORE, 1.0);
+    b.addCylinderY(0, 0.68, 0.78, 0, 0.24, 0.24, 12, PLUT_CORE, 1.0);
+    compile("containerActiveGlow");
+
+    // 4c. Floating 3D Downward Delivery Target Chevron/Arrow above Container Barrel
+    b.addCylinderY(0, 0.90, 1.22, 0, 0.03, 0.24, 8, PLUT_GREEN, 0.85);
+    b.addBox(0, 1.32, 0, 0.11, 0.22, 0.11, AMBER_GOLD, 0.75);
+    b.addTorusXZ(0, 0.92, 0, 0.26, 0.028, 12, 6, PLUT_CORE, 0.9);
     compile("containerArrow");
 
-    // 5. Golden Key (True 3D Key Shape: Round Bow Ring + Long Shaft + Double Key Teeth)
-    b.addTorusXZ(0, 0.36, -0.22, 0.16, 0.055, 12, 6, [1.0, 0.85, 0.12], 0.85); // Key ring bow
-    b.addBox(0, 0.36, 0.08, 0.09, 0.08, 0.44, [1.0, 0.88, 0.18], 0.85); // Key shaft
-    b.addBox(0.11, 0.36, 0.14, 0.14, 0.08, 0.07, [1.0, 0.92, 0.28], 0.95); // Tooth 1
-    b.addBox(0.13, 0.36, 0.26, 0.18, 0.08, 0.07, [1.0, 0.92, 0.28], 0.95); // Tooth 2
+    // 5. Security Key (Unified Industrial Pedestal + Warm Amber-Gold & Titanium Key)
+    addIndustrialPedestal(0.34, 0.07, AMBER_GOLD, 0.35);
+    b.addTorusXZ(0, 0.34, -0.20, 0.15, 0.05, 12, 6, AMBER_GOLD, 0.65);
+    b.addBox(0, 0.34, 0.08, 0.08, 0.07, 0.42, TITANIUM_HI, 0.45);
+    b.addBox(0.10, 0.34, 0.14, 0.13, 0.07, 0.06, AMBER_GOLD, 0.75);
+    b.addBox(0.12, 0.34, 0.25, 0.16, 0.07, 0.06, AMBER_GOLD, 0.75);
     compile("keyItem");
 
-    // 6. Excavator Spade / Shovel (True 3D Shovel: T-Grip Handle + Shaft + Wide Pointed Steel Scoop Blade)
-    b.addBox(0, 0.36, -0.32, 0.26, 0.08, 0.08, [1.0, 0.65, 0.12], 0.8); // Orange/Gold T-handle grip
-    b.addBox(0, 0.36, -0.08, 0.07, 0.07, 0.44, [0.85, 0.62, 0.22], 0.55); // Wooden/alloy shaft
-    b.addBevelledBox(0, 0.35, 0.2, 0.36, 0.06, 0.26, 0.02, [0.75, 0.88, 1.0], [0.9, 0.96, 1.0], 0.75); // Wide steel shovel scoop
-    b.addOctahedron(0, 0.35, 0.33, 0.18, 0.04, 0.14, [0.3, 0.95, 1.0], 0.9); // Pointed digging tip
+    // 6. Excavator Spade (Unified Industrial Pedestal + Titanium Scoop Blade & Amber-Gold Grip)
+    addIndustrialPedestal(0.34, 0.07, AMBER_GOLD, 0.35);
+    b.addBox(0, 0.34, -0.30, 0.24, 0.07, 0.07, AMBER_GOLD, 0.65); // Amber T-grip
+    b.addBox(0, 0.34, -0.06, 0.07, 0.06, 0.42, SLATE_LIGHT, 0.25); // Gunmetal shaft
+    b.addBevelledBox(0, 0.34, 0.20, 0.34, 0.06, 0.24, 0.02, TITANIUM, TITANIUM_HI, 0.45); // Titanium scoop
+    b.addOctahedron(0, 0.34, 0.32, 0.17, 0.04, 0.12, AMBER_GOLD, 0.7); // Cutting edge
     compile("spadeItem");
 
-    // 6b. Radiation Shield / Med-Pod Capsule (White/Emerald Hazmat Pod with Bold 3D Cross)
-    b.addCylinderY(0, 0.12, 0.56, 0, 0.24, 0.24, 12, [0.9, 0.96, 1.0], 0.5);
-    b.addTorusXZ(0, 0.34, 0, 0.25, 0.035, 12, 6, [0.1, 0.95, 0.55], 0.85);
-    b.addBox(0, 0.59, 0, 0.28, 0.06, 0.1, [0.1, 1.0, 0.45], 0.95); // 3D Cross bar 1
-    b.addBox(0, 0.59, 0, 0.1, 0.06, 0.28, [0.1, 1.0, 0.45], 0.95); // 3D Cross bar 2
+    // 6b. Radiation Shield / Med-Pod Capsule (Unified Titanium & Cryo-Cyan Pod)
+    addIndustrialPedestal(0.34, 0.07, CRYO_CYAN, 0.35);
+    b.addCylinderY(0, 0.12, 0.54, 0, 0.22, 0.22, 12, TITANIUM_HI, 0.35);
+    b.addTorusXZ(0, 0.33, 0, 0.23, 0.032, 12, 6, CRYO_CYAN, 0.75);
+    b.addBox(0, 0.56, 0, 0.24, 0.05, 0.08, CRYO_CYAN, 0.85);
+    b.addBox(0, 0.56, 0, 0.08, 0.05, 0.24, CRYO_CYAN, 0.85);
     compile("capsuleItem");
 
-    // 7. Insulating Mat / Radiation Shield Mat (Ribbed Golden-Copper Hazard Tread Platform)
-    b.addBevelledBox(0, 0.12, 0, 0.82, 0.14, 0.62, 0.04, [0.95, 0.55, 0.1], [1.0, 0.78, 0.22], 0.65);
-    b.addBox(-0.24, 0.2, 0, 0.1, 0.04, 0.52, [0.15, 0.95, 1.0], 0.9);
-    b.addBox(0.0, 0.2, 0, 0.1, 0.04, 0.52, [0.15, 0.95, 1.0], 0.9);
-    b.addBox(0.24, 0.2, 0, 0.1, 0.04, 0.52, [0.15, 0.95, 1.0], 0.9);
+    // 7. Insulating Mat (Harmonized Gunmetal-Slate Deck Plate with Warm Amber-Gold Insulated Ribs)
+    b.addBevelledBox(0, 0.10, 0, 0.80, 0.12, 0.60, 0.04, SLATE_MID, SLATE_LIGHT, 0.15);
+    b.addBox(-0.22, 0.17, 0, 0.10, 0.035, 0.50, AMBER_GOLD, 0.6);
+    b.addBox(0.0, 0.17, 0, 0.10, 0.035, 0.50, AMBER_GOLD, 0.6);
+    b.addBox(0.22, 0.17, 0, 0.10, 0.035, 0.50, AMBER_GOLD, 0.6);
     compile("matItem");
 
-    // 8. Extra Time Chrono Hourglass (Distinct 3D Golden Hourglass with Glowing Cyan Sand Bulbs)
-    b.addBox(0, 0.1, 0, 0.56, 0.07, 0.56, [1.0, 0.82, 0.18], 0.65); // Bottom gold plate
-    b.addCylinderY(0, 0.14, 0.42, 0, 0.26, 0.04, 10, [0.2, 0.92, 1.0], 0.95); // Lower sand bulb
-    b.addCylinderY(0, 0.42, 0.7, 0, 0.04, 0.26, 10, [0.2, 0.92, 1.0], 0.95); // Upper sand bulb
-    b.addBox(0, 0.73, 0, 0.56, 0.07, 0.56, [1.0, 0.82, 0.18], 0.65); // Top gold plate
+    // 8. Extra Time Chrono Hourglass (Titanium-Silver & Amber-Gold Frame with Cryo-Cyan Stasis Core)
+    addIndustrialPedestal(0.34, 0.07, AMBER_GOLD, 0.35);
+    b.addBox(0, 0.12, 0, 0.46, 0.06, 0.46, AMBER_GOLD, 0.55);
+    b.addCylinderY(0, 0.15, 0.42, 0, 0.22, 0.04, 10, CRYO_CYAN, 0.75);
+    b.addCylinderY(0, 0.42, 0.68, 0, 0.04, 0.22, 10, CRYO_CYAN, 0.75);
+    b.addBox(0, 0.70, 0, 0.46, 0.06, 0.46, AMBER_GOLD, 0.55);
     compile("extraTimeItem");
 
-    // 9. Bonus / Mystery Box (3D Treasure Crate with Bold Golden '?' Question Emblem on Top)
-    b.addBevelledBox(0, 0.32, 0, 0.68, 0.58, 0.68, 0.06, [0.62, 0.18, 0.88], [0.8, 0.35, 1.0], 0.5);
-    b.addBox(0, 0.32, 0, 0.72, 0.1, 0.14, [1.0, 0.85, 0.15], 0.9);
-    b.addBox(0, 0.32, 0, 0.14, 0.1, 0.72, [1.0, 0.85, 0.15], 0.9);
-    // 3D '?' symbol raised above the crate top
-    b.addBox(0, 0.64, -0.14, 0.26, 0.07, 0.08, [1.0, 0.95, 0.25], 1.0);
-    b.addBox(0.09, 0.64, -0.05, 0.08, 0.07, 0.14, [1.0, 0.95, 0.25], 1.0);
-    b.addBox(0, 0.64, 0.02, 0.16, 0.07, 0.08, [1.0, 0.95, 0.25], 1.0);
-    b.addBox(0, 0.64, 0.18, 0.09, 0.07, 0.09, [1.0, 0.95, 0.25], 1.0);
+    // 9. Supply / Mystery Crate (Dark Gunmetal-Slate & Titanium Crate with Warm Amber-Gold '?' Emblem — No Clash!)
+    b.addBevelledBox(0, 0.30, 0, 0.66, 0.54, 0.66, 0.06, SLATE_MID, SLATE_LIGHT, 0.15);
+    b.addBox(0, 0.30, 0, 0.70, 0.08, 0.12, TITANIUM, 0.3);
+    b.addBox(0, 0.30, 0, 0.12, 0.08, 0.70, TITANIUM, 0.3);
+    b.addBox(0, 0.60, -0.13, 0.24, 0.06, 0.07, AMBER_GOLD, 0.85);
+    b.addBox(0.08, 0.60, -0.05, 0.07, 0.06, 0.13, AMBER_GOLD, 0.85);
+    b.addBox(0, 0.60, 0.02, 0.15, 0.06, 0.07, AMBER_GOLD, 0.85);
+    b.addBox(0, 0.60, 0.16, 0.08, 0.06, 0.08, AMBER_GOLD, 0.85);
     compile("mysteryBox");
 
-    // 10. Locked Key-Door & Airlock Door (Heavy Armored Gate with Giant 3D Golden Padlock / Keyhole)
-    b.addBevelledBox(0, 0.42, 0, 0.96, 0.84, 0.42, 0.05, [0.78, 0.32, 0.12], [0.95, 0.52, 0.18], 0.3);
-    // Giant Golden Padlock Shackle + Body on Top & Front so player knows it needs a Key
-    b.addTorusXZ(0, 0.92, 0, 0.18, 0.05, 10, 6, [1.0, 0.88, 0.15], 0.95);
-    b.addBox(0, 0.62, 0, 0.38, 0.48, 0.52, [1.0, 0.84, 0.12], 0.85);
-    b.addCylinderY(0, 0.65, 0.9, 0, 0.08, 0.08, 8, [0.08, 0.08, 0.1], 0.0); // Keyhole center
+    // 10. Locked Key-Door (Dark Gunmetal-Slate Bulkhead with Warm Amber-Gold Padlock matching the Key!)
+    b.addBevelledBox(0, 0.40, 0, 0.94, 0.80, 0.40, 0.05, SLATE_MID, SLATE_LIGHT, 0.12);
+    b.addTorusXZ(0, 0.88, 0, 0.16, 0.045, 10, 6, AMBER_GOLD, 0.75);
+    b.addBevelledBox(0, 0.58, 0, 0.36, 0.44, 0.50, 0.03, AMBER_GOLD, TITANIUM_HI, 0.65);
+    b.addCylinderY(0, 0.62, 0.84, 0, 0.07, 0.07, 8, SLATE_DARK, 0.0);
     compile("lockedDoor");
 
-    // Airlock / Proximity Door (Cyan-Armored Bulkhead Gate with Glowing Sensor Wheel)
-    b.addBevelledBox(0, 0.42, 0, 0.96, 0.84, 0.42, 0.05, [0.16, 0.58, 0.78], [0.28, 0.82, 0.98], 0.35);
-    b.addTorusXZ(0, 0.88, 0, 0.24, 0.05, 12, 6, [0.2, 1.0, 0.7], 0.95);
-    b.addOctahedron(0, 0.88, 0, 0.16, 0.16, 0.16, [1.0, 0.9, 0.25], 0.95);
+    // Airlock / Proximity Door (Dark Gunmetal-Slate Gate with Cryo-Cyan Sensor Ring)
+    b.addBevelledBox(0, 0.40, 0, 0.94, 0.80, 0.40, 0.05, SLATE_MID, SLATE_LIGHT, 0.15);
+    b.addTorusXZ(0, 0.86, 0, 0.22, 0.045, 12, 6, CRYO_CYAN, 0.8);
+    b.addOctahedron(0, 0.86, 0, 0.14, 0.14, 0.14, TITANIUM_HI, 0.75);
     compile("proximityDoor");
 
     // 11. Automatic Laser/Blast Door:
-    // Low-profile floor threshold rails at North (-Z) and South (+Z) edges so OPEN doors are 100% clear!
-    b.addBox(0, 0.05, -0.43, 0.94, 0.1, 0.12, [0.28, 0.36, 0.48], 0.15);
-    b.addBox(0, 0.05, 0.43, 0.94, 0.1, 0.12, [0.28, 0.36, 0.48], 0.15);
+    // Low-profile floor threshold rails at North (-Z) and South (+Z) edges
+    b.addBox(0, 0.05, -0.43, 0.94, 0.10, 0.12, SLATE_MID, 0.08);
+    b.addBox(0, 0.05, 0.43, 0.94, 0.10, 0.12, SLATE_MID, 0.08);
     compile("laserPylons");
 
-    // OPEN / SAFE indicator: Flat emerald-green walkthrough floor pad + high-visibility overhead green beacons
-    b.addBox(0, 0.03, 0, 0.88, 0.04, 0.72, [0.1, 1.0, 0.45], 0.95);
-    b.addBox(-0.28, 0.06, 0, 0.12, 0.03, 0.68, [0.4, 1.0, 0.75], 1.0);
-    b.addBox(0.28, 0.06, 0, 0.12, 0.03, 0.68, [0.4, 1.0, 0.75], 1.0);
-    b.addOctahedron(0, 0.88, -0.42, 0.15, 0.15, 0.15, [0.15, 1.0, 0.5], 1.0);
-    b.addOctahedron(0, 0.88, 0.42, 0.15, 0.15, 0.15, [0.15, 1.0, 0.5], 1.0);
+    // OPEN / SAFE indicator: Clean Cryo-Cyan walkthrough guide strips (reserves green 100% for Plutonium & Barrels!)
+    b.addBox(0, 0.025, 0, 0.84, 0.03, 0.66, CRYO_DEEP, 0.45);
+    b.addBox(-0.26, 0.045, 0, 0.10, 0.025, 0.62, CRYO_CYAN, 0.85);
+    b.addBox(0.26, 0.045, 0, 0.10, 0.025, 0.62, CRYO_CYAN, 0.85);
+    b.addOctahedron(0, 0.86, -0.42, 0.12, 0.12, 0.12, CRYO_CYAN, 0.85);
+    b.addOctahedron(0, 0.86, 0.42, 0.12, 0.12, 0.12, CRYO_CYAN, 0.85);
     compile("laserSafeOpen");
 
-    // CLOSED / CLOSING DANGER indicator: Crimson floor warning pad + high-visibility overhead red alarm diamonds
-    b.addBox(0, 0.03, 0, 0.88, 0.04, 0.72, [1.0, 0.08, 0.18], 0.95);
-    b.addOctahedron(0, 0.92, -0.42, 0.18, 0.2, 0.18, [1.0, 0.12, 0.2], 1.0);
-    b.addOctahedron(0, 0.92, 0.42, 0.18, 0.2, 0.18, [1.0, 0.12, 0.2], 1.0);
+    // CLOSED / CLOSING DANGER indicator: Crimson-Red alarm pad + overhead Crimson beacons
+    b.addBox(0, 0.03, 0, 0.86, 0.04, 0.68, CRIMSON_DEEP, 0.65);
+    b.addOctahedron(0, 0.90, -0.42, 0.16, 0.18, 0.16, CRIMSON_RED, 0.95);
+    b.addOctahedron(0, 0.90, 0.42, 0.16, 0.18, 0.16, CRIMSON_RED, 0.95);
     compile("laserDangerClosed");
 
-    // Sliding Deadly Door Leaf (slides from North -Z and South +Z sills to seal the corridor up to Y=0.84)
-    b.addBevelledBox(0, 0.44, 0, 0.9, 0.8, 0.36, 0.03, [0.95, 0.12, 0.22], [1.0, 0.35, 0.2], 0.85);
-    b.addBox(0, 0.24, 0, 0.94, 0.09, 0.38, [1.0, 0.55, 0.1], 1.0);
-    b.addBox(0, 0.5, 0, 0.94, 0.09, 0.38, [1.0, 0.9, 0.2], 1.0);
-    b.addBox(0, 0.74, 0, 0.94, 0.09, 0.38, [1.0, 0.55, 0.1], 1.0);
+    // Sliding Deadly Door Leaf (Dark Gunmetal Blast Frame + Pure Crimson-Red Plasma Laser Bars)
+    b.addBevelledBox(0, 0.42, 0, 0.88, 0.76, 0.34, 0.03, OBSIDIAN_HI, SLATE_LIGHT, 0.25);
+    b.addBox(0, 0.22, 0, 0.92, 0.08, 0.36, CRIMSON_RED, 0.95);
+    b.addBox(0, 0.46, 0, 0.92, 0.08, 0.36, CRIMSON_RED, 0.95);
+    b.addBox(0, 0.70, 0, 0.92, 0.08, 0.36, CRIMSON_RED, 0.95);
     compile("laserBeams");
 
-    // 12. Warp Pad & Warp Frame
-    b.addCylinderY(0, 0.0, 0.1, 0, 0.46, 0.42, 14, [0.2, 0.3, 0.5], 0.2);
-    b.addTorusXZ(0, 0.14, 0, 0.36, 0.045, 14, 6, [0.2, 0.95, 1.0], 0.95);
-    b.addTorusXZ(0, 0.26, 0, 0.24, 0.035, 12, 6, [0.75, 0.35, 1.0], 0.95);
+    // 12. Warp Pad & Warp Frame (Unified Gunmetal-Slate & Cryo-Cyan)
+    addIndustrialPedestal(0.45, 0.08, CRYO_CYAN, 0.65);
+    b.addTorusXZ(0, 0.14, 0, 0.34, 0.04, 14, 6, CRYO_CYAN, 0.85);
+    b.addTorusXZ(0, 0.24, 0, 0.22, 0.03, 12, 6, TITANIUM_HI, 0.8);
     compile("warpPad");
 
-    b.addBevelledBox(0, 0.42, 0, 0.85, 0.84, 0.85, 0.08, [0.28, 0.22, 0.55], [0.48, 0.38, 0.88], 0.35);
-    b.addTorusXZ(0, 0.55, 0, 0.35, 0.05, 10, 6, [0.3, 0.9, 1.0], 0.9);
+    b.addBevelledBox(0, 0.40, 0, 0.84, 0.80, 0.84, 0.08, SLATE_MID, SLATE_LIGHT, 0.18);
+    b.addTorusXZ(0, 0.52, 0, 0.34, 0.045, 10, 6, CRYO_CYAN, 0.75);
     compile("warpFrame");
 
-    // 13. Crumbly Diggable Dirt Mound (Rich Earthy Brown Soil & Golden Pebbles — clearly diggable!)
-    b.addBevelledBox(0, 0.16, 0, 0.86, 0.32, 0.86, 0.08, [0.55, 0.36, 0.16], [0.68, 0.46, 0.22], 0.12);
-    b.addOctahedron(-0.2, 0.36, -0.16, 0.28, 0.28, 0.28, [0.65, 0.44, 0.2], 0.15);
-    b.addOctahedron(0.2, 0.4, 0.14, 0.26, 0.32, 0.26, [0.74, 0.52, 0.26], 0.18);
-    b.addOctahedron(0.0, 0.34, 0.02, 0.32, 0.26, 0.32, [0.48, 0.32, 0.14], 0.1);
+    // 13. Crumbly Diggable Regolith (Harmonized Dark Basalt-Slate & Warm Amber Mineral Seams)
+    b.addBevelledBox(0, 0.15, 0, 0.84, 0.30, 0.84, 0.07, [0.22, 0.20, 0.18], [0.32, 0.28, 0.24], 0.05);
+    b.addOctahedron(-0.18, 0.34, -0.14, 0.26, 0.26, 0.26, [0.38, 0.32, 0.24], 0.08);
+    b.addOctahedron(0.18, 0.38, 0.14, 0.24, 0.28, 0.24, AMBER_MUTED, 0.18);
+    b.addOctahedron(0.0, 0.32, 0.02, 0.28, 0.24, 0.28, [0.28, 0.24, 0.20], 0.06);
     compile("crumblyDirt");
 
-    b.addOctahedron(0, 0.38, 0, 0.44, 0.48, 0.44, [0.45, 0.5, 0.58], 0.08);
-    b.addOctahedron(0.16, 0.26, 0.16, 0.28, 0.32, 0.28, [0.35, 0.4, 0.48], 0.05);
+    b.addOctahedron(0, 0.36, 0, 0.42, 0.46, 0.42, SLATE_MID, 0.05);
+    b.addOctahedron(0.15, 0.24, 0.15, 0.26, 0.30, 0.26, SLATE_DARK, 0.04);
     compile("rockBlock");
 
-    // 14. Forcefield / Closed Slam Door Barrier & Skull Hazard / Open Slam Door Threshold
-    b.addBevelledBox(0, 0.38, 0, 0.92, 0.76, 0.92, 0.06, [0.65, 0.08, 0.16], [0.95, 0.18, 0.25], 0.55);
-    b.addTorusXZ(0, 0.78, 0, 0.36, 0.045, 12, 6, [1.0, 0.35, 0.15], 0.95);
-    b.addOctahedron(0, 0.85, 0, 0.2, 0.24, 0.2, [1.0, 0.75, 0.15], 0.95);
+    // 14. Forcefield Barrier & Skull Hazard (Unified Obsidian-Graphite + Crimson-Red)
+    b.addBevelledBox(0, 0.38, 0, 0.90, 0.74, 0.90, 0.06, OBSIDIAN_HI, CRIMSON_DEEP, 0.35);
+    b.addTorusXZ(0, 0.76, 0, 0.34, 0.04, 12, 6, CRIMSON_RED, 0.9);
+    b.addOctahedron(0, 0.84, 0, 0.18, 0.22, 0.18, CRIMSON_RED, 0.95);
     compile("hazardField");
 
-    // 14b. 3D White Skull & Crossbones / One-Way Slam Door Threshold
-    b.addBox(0, 0.04, 0, 0.88, 0.06, 0.88, [0.45, 0.08, 0.14], 0.35);
-    b.addBevelledBox(0, 0.22, -0.04, 0.36, 0.22, 0.34, 0.05, [0.92, 0.92, 0.95], [1.0, 1.0, 1.0], 0.75); // Skull cranium
-    b.addBox(0, 0.14, 0.16, 0.22, 0.12, 0.14, [0.88, 0.88, 0.92], 0.7); // Skull jaw
-    b.addBox(-0.09, 0.28, 0.06, 0.08, 0.08, 0.08, [1.0, 0.1, 0.15], 1.0); // Red eye socket L
-    b.addBox(0.09, 0.28, 0.06, 0.08, 0.08, 0.08, [1.0, 0.1, 0.15], 1.0); // Red eye socket R
+    // 14b. 3D Titanium Skull & Crimson Eyes on Obsidian Threshold
+    addIndustrialPedestal(0.44, 0.06, CRIMSON_RED, 0.55);
+    b.addBevelledBox(0, 0.22, -0.04, 0.34, 0.22, 0.32, 0.05, TITANIUM, TITANIUM_HI, 0.45);
+    b.addBox(0, 0.14, 0.15, 0.20, 0.11, 0.13, TITANIUM, 0.4);
+    b.addBox(-0.08, 0.26, 0.06, 0.07, 0.07, 0.07, CRIMSON_RED, 0.95);
+    b.addBox(0.08, 0.26, 0.06, 0.07, 0.07, 0.07, CRIMSON_RED, 0.95);
     compile("skullHazard");
 
-    // 15. Exit Extraction Portal (Giant Glowing Emerald/Gold Stargate Archway + Extraction Beacon)
-    b.addCylinderY(0, 0.0, 0.14, 0, 0.48, 0.44, 14, [0.15, 0.55, 0.45], 0.45);
-    b.addBox(-0.38, 0.48, 0, 0.12, 0.92, 0.22, [1.0, 0.84, 0.18], 0.75); // Left gold portal pillar
-    b.addBox(0.38, 0.48, 0, 0.12, 0.92, 0.22, [1.0, 0.84, 0.18], 0.75); // Right gold portal pillar
-    b.addBox(0, 0.92, 0, 0.9, 0.14, 0.26, [1.0, 0.88, 0.22], 0.85); // Top gold portal lintel
-    b.addTorusXZ(0, 0.52, 0, 0.38, 0.055, 14, 6, [0.2, 1.0, 0.65], 1.0);
-    b.addOctahedron(0, 1.15, 0, 0.24, 0.32, 0.24, [0.35, 1.0, 0.75], 1.0);
+    // 15. Exit Extraction Portal (Monumental Dark Titanium & Cryo-Cyan Stargate Archway)
+    addIndustrialPedestal(0.46, 0.10, CRYO_CYAN, 0.75);
+    b.addBox(-0.36, 0.46, 0, 0.12, 0.88, 0.20, TITANIUM, 0.45);
+    b.addBox(0.36, 0.46, 0, 0.12, 0.88, 0.20, TITANIUM, 0.45);
+    b.addBox(0, 0.90, 0, 0.86, 0.13, 0.24, TITANIUM_HI, 0.55);
+    b.addTorusXZ(0, 0.50, 0, 0.36, 0.05, 14, 6, CRYO_CYAN, 0.95);
+    b.addOctahedron(0, 1.12, 0, 0.22, 0.28, 0.22, CRYO_CYAN, 0.95);
     compile("exitPortal");
 
-    // 16. Articulated 3D Astronaut Player Meshes
-    // Torso + Hazmat Backpack + Glowing Reactor Core
-    b.addBevelledBox(0, 0, 0, 0.44, 0.42, 0.28, 0.04, [0.92, 0.95, 1.0], [1.0, 1.0, 1.0], 0.25);
-    b.addBox(0, 0.04, 0.15, 0.32, 0.22, 0.06, [0.15, 0.75, 1.0], 0.85); // Chest telemetry plate
-    b.addBox(0, 0.02, -0.2, 0.36, 0.36, 0.16, [0.35, 0.45, 0.58], 0.15); // Backpack
-    b.addCylinderY(0, -0.1, 0.16, -0.26, 0.09, 0.09, 8, [0.2, 1.0, 0.65], 0.95); // Backpack core
+    // 16. Articulated 3D Astronaut Player Meshes (Ceramic-White + Gunmetal-Slate + Cryo-Cyan Visor)
+    b.addBevelledBox(0, 0, 0, 0.44, 0.42, 0.28, 0.04, TITANIUM_HI, [1.0, 1.0, 1.0], 0.22);
+    b.addBox(0, 0.04, 0.15, 0.30, 0.20, 0.06, CRYO_CYAN, 0.8);
+    b.addBox(0, 0.02, -0.20, 0.34, 0.34, 0.15, SLATE_MID, 0.12);
+    b.addCylinderY(0, -0.08, 0.14, -0.25, 0.08, 0.08, 8, CRYO_CYAN, 0.85);
     compile("playerTorso");
 
-    // Helmet + Panoramic Cyan Visor + Antenna
-    b.addBevelledBox(0, 0, 0, 0.36, 0.34, 0.36, 0.06, [0.95, 0.97, 1.0], [1.0, 1.0, 1.0], 0.3);
-    b.addBox(0, 0.0, 0.15, 0.3, 0.18, 0.12, [0.1, 0.92, 1.0], 0.95); // Glowing visor
-    b.addCylinderY(0.16, 0.15, 0.34, -0.05, 0.025, 0.015, 6, [1.0, 0.75, 0.2], 0.85);
+    b.addBevelledBox(0, 0, 0, 0.36, 0.34, 0.36, 0.06, TITANIUM_HI, [1.0, 1.0, 1.0], 0.25);
+    b.addBox(0, 0.0, 0.15, 0.28, 0.16, 0.12, CRYO_CYAN, 0.95);
+    b.addCylinderY(0.15, 0.15, 0.32, -0.05, 0.022, 0.014, 6, AMBER_GOLD, 0.75);
     compile("playerHead");
 
-    // Articulated Limb (Arm / Leg segment)
-    b.addBevelledBox(0, -0.14, 0, 0.15, 0.3, 0.15, 0.02, [0.82, 0.88, 0.96], [0.92, 0.95, 1.0], 0.2);
-    b.addBox(0, -0.28, 0.03, 0.17, 0.1, 0.2, [0.25, 0.68, 0.95], 0.55); // Boot / gauntlet cuff
+    b.addBevelledBox(0, -0.14, 0, 0.15, 0.30, 0.15, 0.02, TITANIUM, TITANIUM_HI, 0.18);
+    b.addBox(0, -0.28, 0.03, 0.17, 0.10, 0.20, SLATE_LIGHT, 0.35);
     compile("playerLimb");
 
-    // 17. Creepy Multi-Part 3D Alien Hunters (Normal = Xenomorph-Arachnid Stalker, Fast = Eldritch Shadow-Reaper)
-    // 17a. Xenomorph-Arachnid Stalker Body (Obsidian-Crimson Carapace, Pulsing Abdomen Sac, Dorsal Spines & 6 Venom-Green Eyes)
-    // Elongated cephalothorax & predator skull
-    b.addBevelledBox(0, 0.06, 0.08, 0.34, 0.24, 0.42, 0.05, [0.16, 0.03, 0.06], [0.28, 0.05, 0.1], 0.15);
-    // Swollen ribbed rear abdomen sac with glowing bioluminescent blood-orange core
-    b.addOctahedron(0, 0.14, -0.26, 0.26, 0.24, 0.32, [0.24, 0.04, 0.08], 0.2);
-    b.addOctahedron(0, 0.2, -0.26, 0.18, 0.18, 0.22, [1.0, 0.18, 0.05], 0.95);
-    // 3 Jagged dorsal chitin spines along the back
-    b.addCylinderY(0, 0.16, 0.42, 0.12, 0.06, 0.01, 6, [0.85, 0.1, 0.18], 0.75);
-    b.addCylinderY(0, 0.18, 0.48, -0.04, 0.07, 0.01, 6, [0.95, 0.15, 0.22], 0.85);
-    b.addCylinderY(0, 0.2, 0.44, -0.2, 0.06, 0.01, 6, [0.85, 0.1, 0.18], 0.75);
-    // 6 Glowing Venom-Green Arachnid Eyes on the front of the skull
-    b.addBox(-0.09, 0.1, 0.3, 0.06, 0.06, 0.05, [0.35, 1.0, 0.12], 1.0);
-    b.addBox(0.09, 0.1, 0.3, 0.06, 0.06, 0.05, [0.35, 1.0, 0.12], 1.0);
-    b.addBox(-0.15, 0.14, 0.26, 0.05, 0.05, 0.05, [0.2, 1.0, 0.25], 1.0);
-    b.addBox(0.15, 0.14, 0.26, 0.05, 0.05, 0.05, [0.2, 1.0, 0.25], 1.0);
-    b.addBox(-0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [0.75, 1.0, 0.15], 1.0);
-    b.addBox(0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [0.75, 1.0, 0.15], 1.0);
+    // 17. Harmonized Biomechanical 3D Alien Hunters (Obsidian-Graphite Carapace + Pure Crimson-Red Eyes & Blades — No Green/Pink Clash!)
+    // 17a. Xenomorph-Arachnid Stalker Body
+    b.addBevelledBox(0, 0.06, 0.08, 0.34, 0.24, 0.42, 0.05, OBSIDIAN, OBSIDIAN_HI, 0.12);
+    b.addOctahedron(0, 0.14, -0.26, 0.26, 0.24, 0.32, OBSIDIAN_HI, 0.15);
+    b.addOctahedron(0, 0.20, -0.26, 0.16, 0.16, 0.20, CRIMSON_RED, 0.9);
+    b.addCylinderY(0, 0.16, 0.40, 0.12, 0.05, 0.01, 6, SLATE_LIGHT, 0.35);
+    b.addCylinderY(0, 0.18, 0.46, -0.04, 0.06, 0.01, 6, CRIMSON_RED, 0.75);
+    b.addCylinderY(0, 0.20, 0.42, -0.20, 0.05, 0.01, 6, SLATE_LIGHT, 0.35);
+    // 6 Glowing Crimson-Red Arachnid Eyes
+    b.addBox(-0.09, 0.10, 0.30, 0.06, 0.05, 0.05, CRIMSON_RED, 1.0);
+    b.addBox(0.09, 0.10, 0.30, 0.06, 0.05, 0.05, CRIMSON_RED, 1.0);
+    b.addBox(-0.15, 0.14, 0.26, 0.05, 0.04, 0.05, CRIMSON_RED, 0.95);
+    b.addBox(0.15, 0.14, 0.26, 0.05, 0.04, 0.05, CRIMSON_RED, 0.95);
+    b.addBox(-0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [1.0, 0.45, 0.2], 1.0);
+    b.addBox(0.04, 0.15, 0.31, 0.04, 0.04, 0.04, [1.0, 0.45, 0.2], 1.0);
     compile("droidCore");
 
-    // 17b. Articulated Alien Spider Leg (Upper Femur + Spiked Knee + Razor Claw Tip)
-    // Extends in +X so it can be rotated around Y for all 6 left/right legs!
-    b.addBox(0.14, 0.14, 0, 0.26, 0.06, 0.06, [0.22, 0.04, 0.09], 0.2);
-    b.addOctahedron(0.27, 0.2, 0, 0.06, 0.09, 0.06, [0.9, 0.12, 0.2], 0.85); // Spiked knee joint
-    b.addCylinderY(0.36, -0.26, 0.2, 0, 0.015, 0.05, 5, [0.35, 0.06, 0.12], 0.35);
-    b.addOctahedron(0.36, -0.26, 0, 0.04, 0.08, 0.04, [1.0, 0.15, 0.2], 0.95); // Glowing blood-red claw tip
+    // 17b. Articulated Alien Spider Leg (Obsidian Femur + Titanium Joint + Crimson Claw Tip)
+    b.addBox(0.14, 0.14, 0, 0.26, 0.055, 0.055, OBSIDIAN_HI, 0.15);
+    b.addOctahedron(0.27, 0.19, 0, 0.055, 0.08, 0.055, SLATE_LIGHT, 0.35);
+    b.addCylinderY(0.36, -0.26, 0.19, 0, 0.015, 0.045, 5, OBSIDIAN, 0.2);
+    b.addOctahedron(0.36, -0.26, 0, 0.04, 0.08, 0.04, CRIMSON_RED, 0.9);
     compile("alienSpiderLeg");
 
-    // 17c. Articulated Serrated Mandible / Fang Jaw
-    b.addBox(0, 0.0, 0.12, 0.06, 0.05, 0.22, [0.3, 0.05, 0.1], 0.3);
-    b.addOctahedron(0, 0.0, 0.24, 0.04, 0.04, 0.09, [0.4, 1.0, 0.18], 1.0); // Venomous fang tip
+    // 17c. Articulated Serrated Mandible
+    b.addBox(0, 0.0, 0.12, 0.055, 0.045, 0.20, OBSIDIAN_HI, 0.2);
+    b.addOctahedron(0, 0.0, 0.23, 0.04, 0.04, 0.08, TITANIUM_HI, 0.85);
     compile("alienMandible");
 
-    // 17d. Eldritch Shadow-Reaper Body (Fast Alien: Hunched Abyssal Horror, Xenomorph Cranium, Horns & Glowing Chest Maw)
-    // Elongated Xenomorph-like biomechanical cranium & hunched ribcage
-    b.addBevelledBox(0, 0.16, 0.02, 0.38, 0.34, 0.46, 0.06, [0.11, 0.02, 0.18], [0.2, 0.05, 0.32], 0.2);
-    b.addOctahedron(0, 0.32, -0.22, 0.22, 0.18, 0.38, [0.16, 0.03, 0.26], 0.25); // Elongated rear skull dome
-    // Twin curved devilish cranial horns
-    b.addCylinderY(-0.18, 0.26, 0.54, -0.1, 0.05, 0.01, 6, [0.95, 0.08, 0.45], 0.9);
-    b.addCylinderY(0.18, 0.26, 0.54, -0.1, 0.05, 0.01, 6, [0.95, 0.08, 0.45], 0.9);
-    // Glowing radioactive magenta-crimson chest maw & piercing red eyes
-    b.addOctahedron(0, 0.14, 0.24, 0.14, 0.16, 0.1, [1.0, 0.06, 0.38], 1.0);
-    b.addBox(-0.1, 0.28, 0.26, 0.07, 0.05, 0.06, [1.0, 0.05, 0.12], 1.0);
-    b.addBox(0.1, 0.28, 0.26, 0.07, 0.05, 0.06, [1.0, 0.05, 0.12], 1.0);
-    b.addBox(0, 0.33, 0.27, 0.05, 0.05, 0.05, [0.4, 1.0, 0.2], 1.0); // Third hunter eye
+    // 17d. Eldritch Shadow-Reaper Body (Fast Alien: Obsidian-Titanium Biomech + Blazing Crimson-Amber Core)
+    b.addBevelledBox(0, 0.16, 0.02, 0.38, 0.34, 0.46, 0.06, OBSIDIAN, OBSIDIAN_HI, 0.15);
+    b.addOctahedron(0, 0.32, -0.22, 0.22, 0.18, 0.38, SLATE_DARK, 0.2);
+    b.addCylinderY(-0.17, 0.26, 0.52, -0.10, 0.045, 0.01, 6, TITANIUM, 0.65);
+    b.addCylinderY(0.17, 0.26, 0.52, -0.10, 0.045, 0.01, 6, TITANIUM, 0.65);
+    b.addOctahedron(0, 0.14, 0.24, 0.13, 0.15, 0.10, CRIMSON_RED, 0.95);
+    b.addBox(-0.10, 0.28, 0.26, 0.07, 0.045, 0.06, CRIMSON_RED, 1.0);
+    b.addBox(0.10, 0.28, 0.26, 0.07, 0.045, 0.06, CRIMSON_RED, 1.0);
+    b.addBox(0, 0.33, 0.27, 0.05, 0.045, 0.05, AMBER_GOLD, 1.0);
     compile("fastDroidBody");
 
-    // 17e. Articulated Praying-Mantis / Necromorph Scythe Claw Arm
-    b.addBox(0, 0.14, 0.16, 0.07, 0.08, 0.32, [0.22, 0.04, 0.32], 0.3);
-    b.addOctahedron(0, 0.04, 0.34, 0.05, 0.24, 0.18, [1.0, 0.08, 0.42], 0.95); // Giant glowing scythe blade
+    // 17e. Articulated Scythe Claw Arm (Obsidian Arm + Titanium/Crimson Blade)
+    b.addBox(0, 0.14, 0.16, 0.065, 0.07, 0.30, OBSIDIAN_HI, 0.2);
+    b.addOctahedron(0, 0.04, 0.33, 0.045, 0.22, 0.16, CRIMSON_RED, 0.9);
     compile("alienScytheClaw");
 
-    // 17f. Whipping Scorpion / Xenomorph Tail with Venom Stinger
-    b.addCylinderY(0, 0.08, 0.48, -0.32, 0.06, 0.025, 6, [0.24, 0.04, 0.35], 0.35);
-    b.addOctahedron(0, 0.5, -0.26, 0.06, 0.08, 0.14, [0.35, 1.0, 0.18], 1.0); // Glowing toxic stinger barb
+    // 17f. Whipping Scorpion Tail with Crimson Stinger
+    b.addCylinderY(0, 0.08, 0.46, -0.30, 0.055, 0.022, 6, OBSIDIAN_HI, 0.25);
+    b.addOctahedron(0, 0.48, -0.25, 0.055, 0.075, 0.13, CRIMSON_RED, 0.95);
     compile("alienTailStinger");
 
-    // 17g. Pulsing Dark Bio-Aura Ring (for Showcase / Boss Aura)
-    b.addTorusXZ(0, 0.04, 0, 0.42, 0.03, 12, 6, [0.85, 0.1, 0.25], 0.75);
+    // 17g. Pulsing Dark Bio-Aura Ring
+    b.addTorusXZ(0, 0.04, 0, 0.42, 0.03, 12, 6, CRIMSON_RED, 0.75);
     compile("droidRing");
 
     // 18. 3D Particle Crystal Shard, Volumetric Fireball, Armor Shrapnel & Shockwave Ring
@@ -546,22 +587,22 @@ export class MeshGeometryBuilder {
     b.addTorusXZ(0, 0, 0, 0.5, 0.04, 16, 6, [1.0, 1.0, 1.0], 1.0);
     compile("shockwaveRing");
 
-    // 19. Volumetric 3D Explosion Fireball (Multi-spike plasma core + equatorial blast corona)
+    // 19. Volumetric 3D Explosion Fireball
     b.addOctahedron(0, 0, 0, 0.42, 0.42, 0.42, [1.0, 0.92, 0.55], 0.95);
-    b.addBox(0, 0, 0, 0.54, 0.3, 0.3, [1.0, 0.55, 0.12], 0.9);
-    b.addBox(0, 0, 0, 0.3, 0.54, 0.3, [1.0, 0.55, 0.12], 0.9);
-    b.addBox(0, 0, 0, 0.3, 0.3, 0.54, [1.0, 0.55, 0.12], 0.9);
-    b.addTorusXZ(0, 0, 0, 0.46, 0.07, 12, 6, [1.0, 0.32, 0.08], 0.95);
+    b.addBox(0, 0, 0, 0.54, 0.30, 0.30, [1.0, 0.55, 0.12], 0.9);
+    b.addBox(0, 0, 0, 0.30, 0.54, 0.30, [1.0, 0.55, 0.12], 0.9);
+    b.addBox(0, 0, 0, 0.30, 0.30, 0.54, [1.0, 0.55, 0.12], 0.9);
+    b.addTorusXZ(0, 0, 0, 0.46, 0.07, 12, 6, CRIMSON_RED, 0.95);
     compile("explosionFireball");
 
-    // 20. Jagged 3D Hull / Door / Suit Shrapnel Plate with Molten Edges
-    b.addBevelledBox(0, 0, 0, 0.28, 0.08, 0.22, 0.02, [0.75, 0.82, 0.95], [1.0, 0.58, 0.18], 0.65);
-    b.addOctahedron(0.08, 0.04, 0, 0.12, 0.08, 0.1, [1.0, 0.35, 0.1], 0.85);
+    // 20. Jagged 3D Hull / Door / Suit Shrapnel Plate
+    b.addBevelledBox(0, 0, 0, 0.28, 0.08, 0.22, 0.02, TITANIUM, AMBER_GOLD, 0.65);
+    b.addOctahedron(0.08, 0.04, 0, 0.12, 0.08, 0.10, CRIMSON_RED, 0.85);
     compile("debrisArmorChunk");
 
-    // 21. Exploded Alien Chitin Carapace & Glowing Bio-Plasma Fragment
-    b.addBevelledBox(0, 0, 0, 0.24, 0.12, 0.28, 0.03, [0.35, 0.05, 0.14], [0.85, 0.12, 0.28], 0.55);
-    b.addOctahedron(0, 0.06, 0, 0.14, 0.14, 0.14, [0.15, 1.0, 0.18], 0.95);
+    // 21. Exploded Alien Chitin Carapace & Glowing Crimson Core Fragment
+    b.addBevelledBox(0, 0, 0, 0.24, 0.12, 0.28, 0.03, OBSIDIAN, OBSIDIAN_HI, 0.45);
+    b.addOctahedron(0, 0.06, 0, 0.14, 0.14, 0.14, CRIMSON_RED, 0.95);
     compile("alienBioChunk");
 
     return meshes;

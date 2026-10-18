@@ -326,13 +326,13 @@ export class WebGL3DMeshRenderer {
     gl.uniformMatrix4fv(this.uniforms.uViewProj, false, this.viewProjMatrix);
     gl.uniform3f(this.uniforms.uCameraPos, eyeX, eyeY, eyeZ);
 
-    // Extract Zone's Atari Palette tint for dynamic level theming
+    // Extract Zone's Atari Palette tint and harmonize it into the Industrial Slate Design System
     const wallPalIdx = ram[SystemAddressMap.COLOR0_SHADOW] & 0xfe;
     const wallRgb = this.atari2d.palPalette[wallPalIdx] || [70, 130, 210];
     const wallTint = [
-      0.55 + (wallRgb[0] / 255) * 0.75,
-      0.55 + (wallRgb[1] / 255) * 0.75,
-      0.55 + (wallRgb[2] / 255) * 0.75,
+      0.74 + (wallRgb[0] / 255) * 0.32,
+      0.76 + (wallRgb[1] / 255) * 0.32,
+      0.80 + (wallRgb[2] / 255) * 0.32,
     ];
 
     // Global directional + ambient lights
@@ -346,7 +346,7 @@ export class WebGL3DMeshRenderer {
     gl.uniform3f(this.uniforms.uSunDir, 0.36, 0.84, 0.41);
     gl.uniform3f(this.uniforms.uSunColor, 0.95, 0.97, 1.0);
 
-    // Gather up to 8 dynamic point lights (Player + closest Plutonium/Lasers/Portals/Droids)
+    // Gather up to 8 dynamic point lights (Player + closest Plutonium/Active Barrels/Lasers/Portals/Droids)
     this._populateDynamicPointLights(ram, t);
     gl.uniform4fv(this.uniforms.uPointLights, this.pointLightsFlat);
     gl.uniform3fv(this.uniforms.uPointColors, this.pointColorsFlat);
@@ -367,7 +367,7 @@ export class WebGL3DMeshRenderer {
         }
 
         // Floor plate
-        const checker = (tx + tz) & 1 ? 1.04 : 0.96;
+        const checker = (tx + tz) & 1 ? 1.03 : 0.97;
         this._drawMesh("floorTile", tx, 0, tz, 0, 1, 1, 1, [checker, checker, checker], 0);
 
         const idx = tz * GridConfig.WIDTH + tx;
@@ -393,59 +393,95 @@ export class WebGL3DMeshRenderer {
           case TileType.PLUTONIUM:
             if (isVis) {
               const bob = Math.sin(t * 4.2 + tx * 0.7 + tz * 0.5) * 0.08;
-              const pulse = 0.45 + 0.35 * Math.sin(t * 7.5 + tx);
-              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.15, 1.15, 1.15, [1, 1, 1], pulse);
-              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.4 + tz, 1.15, 1.15, 1.15, [1, 1, 1], 0.65);
+              const pulse = 0.55 + 0.35 * Math.sin(t * 7.5 + tx);
+              const haloScale = 1.08 + 0.10 * Math.sin(t * 6.0 + tx);
+              this._drawMesh("plutoniumHalo", tx, 0, tz, t * 1.2, haloScale, 1.0, haloScale, [1, 1, 1], 0.85);
+              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.2, 1.2, 1.2, [1, 1, 1], pulse);
+              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.4 + tz, 1.2, 1.2, 1.2, [1, 1, 1], 0.75);
             }
             break;
 
           case TileType.CONTAINER: {
             const carryingPlutonium = this.anim.player.plutoniumGlow > 0.05;
-            const barrelPulse = carryingPlutonium
-              ? 0.45 + 0.35 * Math.sin(t * 9.0 + tx)
-              : 0.2 + 0.15 * Math.sin(t * 4.0 + tx);
-            this._drawMesh(
-              "containerVault",
-              tx,
-              0,
-              tz,
-              0,
-              1.08,
-              1.08,
-              1.08,
-              [1, 1, 1],
-              barrelPulse
-            );
-            // Bobbing 3D Target Arrow above the barrel opening ("Deliver Plutonium Here!")
-            const arrowBob = Math.sin(t * (carryingPlutonium ? 8.5 : 4.5) + tx) * 0.14;
-            const arrowScale = carryingPlutonium ? 1.28 : 1.0;
-            this._drawMesh(
-              "containerArrow",
-              tx,
-              arrowBob,
-              tz,
-              t * 3.2,
-              arrowScale,
-              arrowScale,
-              arrowScale,
-              carryingPlutonium ? [0.4, 1.0, 0.3] : [1.0, 0.95, 0.3],
-              carryingPlutonium ? 0.85 : 0.45
-            );
+            if (carryingPlutonium) {
+              // ACTIVE COUNTDOWN MODE: Plutonium is picked up & timer is running!
+              // Barrel blazes with radioactive emerald-lime & signal-gold beacon rings + large target arrow!
+              const activePulse = 0.55 + 0.40 * Math.sin(t * 10.5 + tx);
+              const ringScale = 1.08 + 0.12 * Math.sin(t * 9.0 + tx);
+              this._drawMesh(
+                "containerVault",
+                tx,
+                0,
+                tz,
+                0,
+                1.12,
+                1.12,
+                1.12,
+                [1.05, 1.35, 1.08],
+                activePulse
+              );
+              this._drawMesh(
+                "containerActiveGlow",
+                tx,
+                0,
+                tz,
+                -t * 3.5,
+                ringScale,
+                1.12,
+                ringScale,
+                [1, 1, 1],
+                0.95
+              );
+              const arrowBob = Math.sin(t * 9.5 + tx) * 0.16;
+              const arrowScale = 1.25 + 0.12 * Math.sin(t * 9.5 + tx);
+              this._drawMesh(
+                "containerArrow",
+                tx,
+                arrowBob,
+                tz,
+                t * 3.8,
+                arrowScale,
+                arrowScale,
+                arrowScale,
+                [1, 1, 1],
+                0.95
+              );
+            } else {
+              // STANDBY MODE: Calm industrial gunmetal/amber drum so Plutonium remains the #1 focal point
+              this._drawMesh(
+                "containerVault",
+                tx,
+                0,
+                tz,
+                0,
+                1.05,
+                1.05,
+                1.05,
+                [1, 1, 1],
+                0.08
+              );
+            }
             break;
           }
 
           case TileType.KEY:
             if (isVis) {
-              const bob = Math.sin(t * 3.8 + tx) * 0.09;
-              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.18, 1.18, 1.18, [1, 1, 1], 0.35);
+              const bob = Math.sin(t * 3.8 + tx) * 0.08;
+              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
             }
             break;
 
           case TileType.RADIATION_CAPSULE:
+            if (isVis) {
+              const bob = Math.sin(t * 3.5 + tz) * 0.08;
+              this._drawMesh("capsuleItem", tx, bob, tz, t * 1.9, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
+            }
+            break;
+
           case TileType.SPADE:
             if (isVis) {
               const bob = Math.sin(t * 3.5 + tz) * 0.08;
-              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.2, 1.2, 1.2, [1, 1, 1], 0.35);
+              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.16, 1.16, 1.16, [1, 1, 1], 0.25);
             }
             break;
 
@@ -784,7 +820,7 @@ export class WebGL3DMeshRenderer {
     // 4. 6 Articulated Spider Legs in Alternating Tripod Gait (3 Left, 3 Right)
     const zOffsets = [0.16, 0.0, -0.16];
     const spreadAngles = [-0.46, 0.0, 0.46];
-    const legTint = isFast ? [0.85, 0.45, 1.0] : [1.0, 0.65, 0.65];
+    const legTint = [1.0, 1.0, 1.0];
 
     for (let pair = 0; pair < 3; pair++) {
       const zOff = zOffsets[pair];
@@ -814,7 +850,7 @@ export class WebGL3DMeshRenderer {
         1.12,
         1.12,
         legTint,
-        0.2
+        0.15
       );
       this._drawMesh(
         "alienSpiderLeg",
@@ -826,7 +862,7 @@ export class WebGL3DMeshRenderer {
         1.12,
         1.12,
         legTint,
-        0.2
+        0.15
       );
     }
   }
@@ -839,6 +875,7 @@ export class WebGL3DMeshRenderer {
     this.pointColorsFlat.fill(0);
 
     const p = this.anim.player;
+    const carryingPlutonium = p.plutoniumGlow > 0.05;
     // Light 0: Player suit & plutonium backpack light (or blazing Explosion Flash Light!)
     if (p.isExploding) {
       this.pointLightsFlat[0] = (p.explosionX + p.colliderX) * 0.5;
@@ -852,22 +889,22 @@ export class WebGL3DMeshRenderer {
       this.pointLightsFlat[0] = p.x;
       this.pointLightsFlat[1] = 1.25;
       this.pointLightsFlat[2] = p.z;
-      this.pointLightsFlat[3] = 6.5;
+      this.pointLightsFlat[3] = carryingPlutonium ? 7.2 : 6.0;
 
-      if (p.plutoniumGlow > 0.05) {
-        this.pointColorsFlat[0] = 0.25;
+      if (carryingPlutonium) {
+        this.pointColorsFlat[0] = 0.12;
         this.pointColorsFlat[1] = 1.0;
-        this.pointColorsFlat[2] = 0.65;
+        this.pointColorsFlat[2] = 0.32;
       } else {
-        this.pointColorsFlat[0] = 0.25;
-        this.pointColorsFlat[1] = 0.82;
+        this.pointColorsFlat[0] = 0.2;
+        this.pointColorsFlat[1] = 0.84;
         this.pointColorsFlat[2] = 1.0;
       }
     }
 
     let lightSlot = 1;
-    // Add nearest active droids as menacing red/violet point lights
-    for (let i = 0; i < this.anim.droids.length && lightSlot < 4; i++) {
+    // Add nearest active droids as menacing crimson point lights
+    for (let i = 0; i < this.anim.droids.length && lightSlot < 3; i++) {
       const d = this.anim.droids[i];
       if (!d.active) continue;
       if (Math.hypot(d.x - p.x, d.z - p.z) < 12.0) {
@@ -877,39 +914,45 @@ export class WebGL3DMeshRenderer {
         this.pointLightsFlat[b4 + 1] = 0.85;
         this.pointLightsFlat[b4 + 2] = d.z;
         this.pointLightsFlat[b4 + 3] = 4.2;
-        if (d.type === 0) {
-          this.pointColorsFlat[b3] = 1.0;
-          this.pointColorsFlat[b3 + 1] = 0.28;
-          this.pointColorsFlat[b3 + 2] = 0.2;
-        } else {
-          this.pointColorsFlat[b3] = 0.85;
-          this.pointColorsFlat[b3 + 1] = 0.25;
-          this.pointColorsFlat[b3 + 2] = 1.0;
-        }
+        this.pointColorsFlat[b3] = 1.0;
+        this.pointColorsFlat[b3 + 1] = 0.18;
+        this.pointColorsFlat[b3 + 2] = 0.22;
         lightSlot++;
       }
     }
 
-    // Add nearby glowing Plutonium Cores, Warp Pads, or Laser Doors
-    const minTx = Math.max(0, Math.floor(p.x - 9));
-    const maxTx = Math.min(GridConfig.WIDTH - 1, Math.ceil(p.x + 9));
-    const minTz = Math.max(0, Math.floor(p.z - 7));
-    const maxTz = Math.min(GridConfig.HEIGHT - 1, Math.ceil(p.z + 7));
+    // Add nearby glowing Plutonium Cores, Active Container Barrels (when timer runs!), or Portals
+    const minTx = Math.max(0, Math.floor(p.x - 11));
+    const maxTx = Math.min(GridConfig.WIDTH - 1, Math.ceil(p.x + 11));
+    const minTz = Math.max(0, Math.floor(p.z - 8));
+    const maxTz = Math.min(GridConfig.HEIGHT - 1, Math.ceil(p.z + 8));
 
     for (let tz = minTz; tz <= maxTz && lightSlot < 8; tz++) {
       for (let tx = minTx; tx <= maxTx && lightSlot < 8; tx++) {
         const idx = tz * GridConfig.WIDTH + tx;
         const tile = ram[0x0b00 + idx] & 0x1f;
-        if (tile === TileType.PLUTONIUM && this.anim.isTileVisuallyPresent(ram, tx, tz)) {
+        if (carryingPlutonium && tile === TileType.CONTAINER) {
+          // When carrying Plutonium & timer is running, Container Barrels emit a strong pulsing emerald beacon light!
           const b4 = lightSlot * 4;
           const b3 = lightSlot * 3;
           this.pointLightsFlat[b4] = tx;
-          this.pointLightsFlat[b4 + 1] = 0.9;
+          this.pointLightsFlat[b4 + 1] = 1.05;
           this.pointLightsFlat[b4 + 2] = tz;
-          this.pointLightsFlat[b4 + 3] = 4.5 + 0.5 * Math.sin(t * 6.0);
-          this.pointColorsFlat[b3] = 0.2;
+          this.pointLightsFlat[b4 + 3] = 6.2 + 0.8 * Math.sin(t * 9.0 + tx);
+          this.pointColorsFlat[b3] = 0.14;
           this.pointColorsFlat[b3 + 1] = 1.0;
-          this.pointColorsFlat[b3 + 2] = 0.65;
+          this.pointColorsFlat[b3 + 2] = 0.34;
+          lightSlot++;
+        } else if (tile === TileType.PLUTONIUM && this.anim.isTileVisuallyPresent(ram, tx, tz)) {
+          const b4 = lightSlot * 4;
+          const b3 = lightSlot * 3;
+          this.pointLightsFlat[b4] = tx;
+          this.pointLightsFlat[b4 + 1] = 0.95;
+          this.pointLightsFlat[b4 + 2] = tz;
+          this.pointLightsFlat[b4 + 3] = 5.6 + 0.6 * Math.sin(t * 6.5);
+          this.pointColorsFlat[b3] = 0.12;
+          this.pointColorsFlat[b3 + 1] = 1.0;
+          this.pointColorsFlat[b3 + 2] = 0.32;
           lightSlot++;
         } else if (tile === TileType.WARP_PAD || tile === TileType.EXIT_PORTAL) {
           const b4 = lightSlot * 4;
@@ -917,9 +960,9 @@ export class WebGL3DMeshRenderer {
           this.pointLightsFlat[b4] = tx;
           this.pointLightsFlat[b4 + 1] = 1.0;
           this.pointLightsFlat[b4 + 2] = tz;
-          this.pointLightsFlat[b4 + 3] = 4.8;
-          this.pointColorsFlat[b3] = 0.25;
-          this.pointColorsFlat[b3 + 1] = 0.9;
+          this.pointLightsFlat[b4 + 3] = 4.6;
+          this.pointColorsFlat[b3] = 0.2;
+          this.pointColorsFlat[b3 + 1] = 0.88;
           this.pointColorsFlat[b3 + 2] = 1.0;
           lightSlot++;
         }
