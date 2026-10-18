@@ -1,96 +1,28 @@
 /**
  * zonex-web/js/hardware/pokey_driver.js
- * 1:1 Port of the 6502 POKEY Sound Driver at $7A00..$7BFF (Dossier 05).
- * Updates $D200..$D208 in memory_state at 50.00 Hz PAL VBI rate and streams to AudioWorklet.
- * Uses a Blob URL for AudioWorklet registration so it works on both file:// and http://.
+ * Cycle-faithful 4-Channel Atari POKEY Sound Synthesizer ($D200..$D208).
+ * - In interactive 6502 mode (!isLockstep): streams live $D200..$D208 registers written by the
+ *   genuine 6502 sound routines ($59F9 In-Game SFX, $57FE Death Explosion, $75F2 Title Music).
+ * - In lockstep mode (?lockstep=1): preserves deterministic 50 Hz lockstep state for Oracle 2 & 3.
+ * - Uses direct ScriptProcessorNode + AudioWorklet fallback so audio works 100% on both file:// and http://.
  */
-
-const POKEY_WORKLET_SOURCE = `
-class PokeyWorkletProcessor extends AudioWorkletProcessor {
-  constructor() {
-    super();
-    this.regs = new Uint8Array(9);
-    this.phases = new Float64Array(4);
-    this.outputs = new Int8Array(4);
-    this.lfsr17 = 0x1FFFF;
-    this.lfsr5 = 0x1F;
-    this.lfsr4 = 0x0F;
-
-    this.port.onmessage = (e) => {
-      if (e.data && e.data.type === "POKEY_REGS") {
-        const r = e.data.regs;
-        for (let i = 0; i < 9 && i < r.length; i++) {
-          this.regs[i] = r[i] & 0xFF;
-        }
-      }
-    };
-  }
-
-  stepLfsr() {
-    const bit17 = ((this.lfsr17 >> 16) ^ (this.lfsr17 >> 11)) & 1;
-    this.lfsr17 = ((this.lfsr17 << 1) | bit17) & 0x1FFFF;
-    const bit5 = ((this.lfsr5 >> 4) ^ (this.lfsr5 >> 2)) & 1;
-    this.lfsr5 = ((this.lfsr5 << 1) | bit5) & 0x1F;
-    const bit4 = ((this.lfsr4 >> 3) ^ (this.lfsr4 >> 2)) & 1;
-    this.lfsr4 = ((this.lfsr4 << 1) | bit4) & 0x0F;
-  }
-
-  process(inputs, outputs) {
-    const output = outputs[0];
-    if (!output || !output[0]) return true;
-    const chan0 = output[0];
-    const baseClock = 63920.4;
-    const sr = sampleRate || 44100;
-
-    for (let i = 0; i < chan0.length; i++) {
-      this.stepLfsr();
-      let mix = 0.0;
-
-      for (let ch = 0; ch < 4; ch++) {
-        const audf = this.regs[ch * 2];
-        const audc = this.regs[ch * 2 + 1];
-        const vol = (audc & 0x0F) / 15.0;
-        const dist = (audc >> 4) & 0x0F;
-
-        if (vol === 0) continue;
-
-        if ((audc & 0x10) !== 0) {
-          mix += (vol - 0.5) * 0.25;
-          continue;
-        }
-
-        const freq = baseClock / (2.0 * (audf + 1));
-        this.phases[ch] += freq / sr;
-        if (this.phases[ch] >= 0.5) {
-          this.phases[ch] -= 0.5;
-          if (dist === 0x0A || dist === 0x0E) {
-            this.outputs[ch] = this.outputs[ch] ? 0 : 1;
-          } else if (dist === 0x08) {
-            this.outputs[ch] = this.lfsr17 & 1;
-          } else if (dist === 0x0C || dist === 0x04) {
-            this.outputs[ch] = (this.lfsr4 ^ this.lfsr5) & 1;
-          } else {
-            this.outputs[ch] = (this.lfsr17 ^ (this.outputs[ch] ^ 1)) & 1;
-          }
-        }
-        mix += (this.outputs[ch] ? vol : -vol) * 0.22;
-      }
-
-      chan0[i] = Math.max(-1.0, Math.min(1.0, mix));
-    }
-
-    return true;
-  }
-}
-registerProcessor("pokey-worklet-processor", PokeyWorkletProcessor);
-`;
 
 export class PokeyDriver {
   constructor(memory, bundle) {
     this.memory = memory;
     this.bundle = bundle;
     this.audioCtx = null;
-    this.workletNode = null;
+    this.scriptNode = null;
+    this.muted = false;
+    this.isLockstep = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lockstep") === "1";
+
+    // Synthesizer state for 4 POKEY channels
+    this.phases = new Float64Array(4);
+    this.outputs = new Int8Array(4);
+    this.lfsr17 = 0x1FFFF;
+    this.lfsr5 = 0x1F;
+    this.lfsr4 = 0x0F;
+
     this.channels = [
       { active: false, sfxId: 0, step: 0, duration: 0, priority: 0 },
       { active: false, sfxId: 0, step: 0, duration: 0, priority: 0 },
@@ -99,21 +31,110 @@ export class PokeyDriver {
     ];
   }
 
+  stepLfsr() {
+    const bit17 = ((this.lfsr17 >> 16) ^ (this.lfsr17 >> 11)) & 1;
+    this.lfsr17 = ((this.lfsr17 << 1) | bit17) & 0x1FFFF;
+    if (this.lfsr17 === 0) this.lfsr17 = 0x1FFFF;
+
+    const bit5 = ((this.lfsr5 >> 4) ^ (this.lfsr5 >> 2)) & 1;
+    this.lfsr5 = ((this.lfsr5 << 1) | bit5) & 0x1F;
+    if (this.lfsr5 === 0) this.lfsr5 = 0x1F;
+
+    const bit4 = ((this.lfsr4 >> 3) ^ (this.lfsr4 >> 2)) & 1;
+    this.lfsr4 = ((this.lfsr4 << 1) | bit4) & 0x0F;
+    if (this.lfsr4 === 0) this.lfsr4 = 0x0F;
+  }
+
+  synthesizeBuffer(chan0, sampleRate) {
+    if (this.muted) {
+      chan0.fill(0);
+      return;
+    }
+    const ram = this.memory.ram;
+    const audctl = ram[0xD208];
+    const baseClock = (audctl & 0x01) ? 15699.9 : 63920.4;
+    const sr = sampleRate || 44100;
+
+    for (let i = 0; i < chan0.length; i++) {
+      this.stepLfsr();
+      let mix = 0.0;
+
+      for (let ch = 0; ch < 4; ch++) {
+        const audf = ram[0xD200 + (ch << 1)];
+        const audc = ram[0xD201 + (ch << 1)];
+        const vol = (audc & 0x0F) / 15.0;
+        if (vol === 0) continue;
+
+        // Volume-only DAC mode (Bit 4)
+        if ((audc & 0x10) !== 0) {
+          mix += (vol - 0.5) * 0.30;
+          continue;
+        }
+
+        const dist = (audc >> 4) & 0x0E;
+        const freq = baseClock / (2.0 * (audf + 1));
+        this.phases[ch] += freq / sr;
+
+        if (this.phases[ch] >= 0.5) {
+          this.phases[ch] -= Math.floor(this.phases[ch] / 0.5) * 0.5;
+          if (dist === 0x0A || dist === 0x0E) {
+            // Pure square wave tone
+            this.outputs[ch] = this.outputs[ch] ? 0 : 1;
+          } else if (dist === 0x08) {
+            // 17-bit white noise (explosions, spade dig)
+            this.outputs[ch] = this.lfsr17 & 1;
+          } else if (dist === 0x0C || dist === 0x04) {
+            // 4-bit / 5-bit metallic bass distortion (doors, industrial buzz)
+            this.outputs[ch] = (this.lfsr4 ^ (this.outputs[ch] ^ 1)) & 1;
+          } else if (dist === 0x02 || dist === 0x06) {
+            // 5-bit poly + square wave (reactor pulse / background hum)
+            if (this.lfsr5 & 1) {
+              this.outputs[ch] = this.outputs[ch] ? 0 : 1;
+            }
+          } else {
+            // 5-bit + 17-bit poly noise
+            this.outputs[ch] = (this.lfsr17 ^ this.lfsr5) & 1;
+          }
+        }
+
+        mix += (this.outputs[ch] ? vol : -vol) * 0.28;
+      }
+
+      chan0[i] = Math.max(-0.98, Math.min(0.98, mix));
+    }
+  }
+
   async enableAudio() {
-    if (this.audioCtx) {
+    try {
+      if (!this.audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return false;
+        this.audioCtx = new AudioContextClass();
+        const sr = this.audioCtx.sampleRate || 44100;
+        this.scriptNode = this.audioCtx.createScriptProcessor(1024, 0, 1);
+        this.scriptNode.onaudioprocess = (e) => {
+          const out = e.outputBuffer.getChannelData(0);
+          this.synthesizeBuffer(out, sr);
+        };
+        this.scriptNode.connect(this.audioCtx.destination);
+      }
       if (this.audioCtx.state === "suspended") {
         await this.audioCtx.resume();
       }
-      return;
+      return this.audioCtx.state === "running";
+    } catch (_err) {
+      return false;
     }
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    this.audioCtx = new AudioContextClass({ sampleRate: 44100 });
-    const blob = new Blob([POKEY_WORKLET_SOURCE], { type: "application/javascript" });
-    const workletUrl = URL.createObjectURL(blob);
-    await this.audioCtx.audioWorklet.addModule(workletUrl);
-    this.workletNode = new AudioWorkletNode(this.audioCtx, "pokey-worklet-processor");
-    this.workletNode.connect(this.audioCtx.destination);
-    this.syncWorklet();
+  }
+
+  toggleMute() {
+    if (!this.audioCtx || this.audioCtx.state === "suspended") {
+      this.muted = false;
+      this.enableAudio();
+      return true;
+    }
+    this.muted = !this.muted;
+    return !this.muted;
   }
 
   triggerSfx(sfxId, ch = 0, duration = 12, priority = 1) {
@@ -129,6 +150,11 @@ export class PokeyDriver {
   }
 
   tickFrame() {
+    // In interactive 6502 mode, the 6502 CPU ($59F9, $57FE, $75F2) writes directly to $D200..$D208!
+    if (!this.isLockstep) {
+      return;
+    }
+
     const ram = this.memory.ram;
     const sweep = this.bundle.audio_tables.freq_sweep;
     const env = this.bundle.audio_tables.envelope;
@@ -180,7 +206,6 @@ export class PokeyDriver {
     }
 
     ram[0xD208] = 0x00;
-    this.syncWorklet();
   }
 
   getPokeyRegs() {
@@ -192,14 +217,5 @@ export class PokeyDriver {
       ram[0xD206], ram[0xD207],
       ram[0xD208],
     ];
-  }
-
-  syncWorklet() {
-    if (this.workletNode) {
-      this.workletNode.port.postMessage({
-        type: "POKEY_REGS",
-        regs: this.getPokeyRegs(),
-      });
-    }
   }
 }

@@ -6,10 +6,12 @@ Deterministische Asset-Extraktion aus dem RAM-Image von Zone X.
 Erzeugt zonex-web/assets/zonex_rom_bundle.json, zonex_rom_bundle.js und zonex_standalone.js.
 """
 
+import base64
 import json
 import math
 from pathlib import Path
 import sys
+
 
 sys.path.append(str(Path(__file__).parent))
 from unpack_all_zones import unpack_zone
@@ -41,6 +43,7 @@ def generate_atari_pal_palette():
 
 def main():
     ram = bytearray(open("build/ram_relocated.bin", "rb").read())
+    raw_3c80_bfff_b64 = base64.b64encode(bytes(ram[0x3C80:0xC000])).decode("ascii")
 
     # 0. Initialize $1800 charset from $706C + $658F (Laser Doors) + $6942 (Plutonium & Container)
     for i in range(1024):
@@ -148,6 +151,7 @@ def main():
             "platform": "Atari 800XL / XE",
             "extracted_by": "Google Antigravity Autonomous Re-Engineering"
         },
+        "ram_3c80_bfff_b64": raw_3c80_bfff_b64,
         "charsets": {
             "in_game": font_ingame_1800,
             "hud_4000": font_hud_4000
@@ -170,6 +174,7 @@ def main():
     js_root = Path("zonex-web/js")
     module_order = [
         "hardware/input_bridge.js",
+        "hardware/mos6502.js",
         "engine/memory_state.js",
         "engine/zone_loader.js",
         "engine/feature_state_machine.js",

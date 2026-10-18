@@ -10,7 +10,7 @@
   <div class="app-shell">
     <header class="top-bar">
       <div class="brand">
-        <span class="badge">ATARI 800XL PAL (50.00 Hz)</span>
+        <span class="badge" id="ui-hz-badge">ATARI 800XL PAL (50.00 Hz)</span>
         <h1>ZONE X <small>by Derek Johnston (Gremlin Graphics, 1985)</small></h1>
       </div>
       <div class="controls-bar">
@@ -45,6 +45,7 @@
             <option value="3">Level 3</option>
           </select>
         </label>
+        <button id="btn-hz-toggle" type="button" title="Toggle VBI frame rate between 50 Hz (PAL) and 60 Hz (NTSC)">Mode: 50 Hz (PAL)</button>
         <button id="btn-audio-toggle" type="button">Enable POKEY Audio</button>
         <button id="btn-crt-toggle" type="button">Toggle CRT Scanlines</button>
       </div>
