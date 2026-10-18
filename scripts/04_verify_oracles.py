@@ -3,7 +3,7 @@
 """
 scripts/04_verify_oracles.py
 Phase 5: Selbstheilende Verifikation über die 3 Orakel (Playwright + 6502 Reference Model):
-- Orakel 1: Visuelle Parität (E_pixel == 0.0 für title, features, halloffame & zone_01..zone_12)
+- Orakel 1: Visuelle Parität (E_pixel == 0.0 für title, features, halloffame & zone_01..zone_12 @ 62x32)
 - Orakel 2: Deterministischer 5.000-Frame Lockstep-Test (TAS über alle 16 Features, LMS-Scrolling & BCD-Timer)
 - Orakel 3: POKEY-Register ($D200..$D208) Parität & Audio-Korrelation (rho >= 0.99)
 """
@@ -18,6 +18,9 @@ import threading
 import zlib
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+
+MAP_WIDTH = 62
+MAP_HEIGHT = 32
 
 
 def read_png_rgb(path: Path) -> tuple[int, int, bytes]:
@@ -76,9 +79,9 @@ def bcd_sub8(a: int, b: int, borrow_in: int = 0) -> tuple[int, int]:
 
 
 class Reference6502LockstepModel:
-    """1:1 6502 Reference State Machine for the 5,000-Frame TAS Lockstep Oracle."""
+    """1:1 6502 Reference State Machine for the 5,000-Frame TAS Lockstep Oracle (62x32 Playfield)."""
 
-    SOLID_TILES = {1, 3, 5, 8, 16, 18, 25}
+    SOLID_TILES = {1, 2, 3, 5, 10, 13, 14, 15, 24, 25}
 
     def __init__(self, bundle: dict):
         self.bundle = bundle
@@ -92,9 +95,13 @@ class Reference6502LockstepModel:
             for _ in range(4)
         ]
 
-    def load_zone(self, zone_number: int = 1, option_level: int = 3):
+    def load_zone(self, zone_number: int = 1, option_level: int = 1):
         z_idx = max(0, min(11, zone_number - 1))
+        diff_idx = max(0, min(2, option_level - 1))
         zdata = self.bundle["zones"][z_idx]
+        diff_key = f"level_{diff_idx + 1}"
+        diff_data = (zdata.get("difficulties") or {}).get(diff_key) or zdata
+
         self.paused = False
         self.out_of_time = False
         self.frame_counter = 0
@@ -107,20 +114,23 @@ class Reference6502LockstepModel:
         for i, b in enumerate(dl_in):
             self.ram[0x3C8B + i] = b
 
-        pf = zdata["playfield_bytes"]
-        for ty in range(32):
-            for tx in range(64):
-                self.write_tile_and_screen(tx, ty, pf[ty * 64 + tx])
+        self.init_screen_borders()
+        pf = diff_data["playfield_bytes"]
+        for ty in range(MAP_HEIGHT):
+            for tx in range(MAP_WIDTH):
+                self.write_tile_and_screen(tx, ty, pf[ty * MAP_WIDTH + tx])
 
-        self.ram[0x0555] = z_idx
-        self.ram[0x0556] = max(0, min(2, option_level - 1))
-        self.ram[0x0598] = zdata["plutonium_count"]
-        self.ram[0x05B3] = zdata["container_count"]
-        start_off = zdata["player_start"]["offset"]
+        self.ram[0x0558] = z_idx
+        self.ram[0x0555] = zdata.get("internal_zone_index", z_idx)
+        self.ram[0x0556] = diff_idx
+        self.ram[0x055A] = MAP_WIDTH
+        self.ram[0x0598] = diff_data["plutonium_count"]
+        self.ram[0x05B3] = diff_data["container_count"]
+        start_off = diff_data["player_start"]["offset"]
         self.ram[0x055B] = start_off & 0xFF
         self.ram[0x055C] = (start_off >> 8) & 0xFF
-        self.ram[0x055D] = zdata["player_start"]["hpos"]
-        self.ram[0x055E] = zdata["player_start"]["sprite"]
+        self.ram[0x055D] = diff_data["player_start"]["hpos"]
+        self.ram[0x055E] = diff_data["player_start"]["sprite"]
         self.ram[0x055F] = 0x03
 
         self.ram[0x0574] = 0
@@ -135,29 +145,38 @@ class Reference6502LockstepModel:
         self.ram[0x00C1] = 0x00
         self.ram[0x00C2] = 0x00
 
-        self.ram[0x0560] = (zdata["player_start"]["x"] * 2) & 0xFF
-        self.ram[0x0561] = (zdata["player_start"]["y"] * 2) & 0xFF
+        self.ram[0x0560] = ((diff_data["player_start"]["x"] + 1) * 2) & 0xFF
+        self.ram[0x0561] = (diff_data["player_start"]["y"] * 2) & 0xFF
         self.update_camera_lms()
         self.ram[0xD404] = 0x06
         self.ram[0xD405] = 0x06
 
+    def init_screen_borders(self):
+        for r in range(64):
+            row_base = 0x1C00 + r * 128
+            self.ram[row_base + 0] = 0x81
+            self.ram[row_base + 1] = 0x81
+            self.ram[row_base + 126] = 0x81
+            self.ram[row_base + 127] = 0x81
+
     def write_tile_and_screen(self, tx: int, ty: int, tile_id: int):
-        if not (0 <= tx < 64 and 0 <= ty < 32):
+        if not (0 <= tx < MAP_WIDTH and 0 <= ty < MAP_HEIGHT):
             return
         t = tile_id & 0x1F
-        self.ram[0x0B00 + ty * 64 + tx] = t
+        self.ram[0x0B00 + ty * MAP_WIDTH + tx] = t
         mb = 0x6D42 + t * 4
-        r0 = 0x1C00 + (ty * 2) * 128 + tx * 2
-        r1 = 0x1C00 + (ty * 2 + 1) * 128 + tx * 2
+        char_col = (tx + 1) * 2
+        r0 = 0x1C00 + (ty * 2) * 128 + char_col
+        r1 = 0x1C00 + (ty * 2 + 1) * 128 + char_col
         self.ram[r0] = self.ram[mb]
         self.ram[r0 + 1] = self.ram[mb + 1]
         self.ram[r1] = self.ram[mb + 2]
         self.ram[r1 + 1] = self.ram[mb + 3]
 
     def get_tile(self, tx: int, ty: int) -> int:
-        if not (0 <= tx < 64 and 0 <= ty < 32):
+        if not (0 <= tx < MAP_WIDTH and 0 <= ty < MAP_HEIGHT):
             return 1
-        return self.ram[0x0B00 + ty * 64 + tx] & 0x1F
+        return self.ram[0x0B00 + ty * MAP_WIDTH + tx] & 0x1F
 
     def update_camera_lms(self):
         px_c = self.ram[0x0560]
@@ -231,17 +250,17 @@ class Reference6502LockstepModel:
                 self.selected_item_slot = (self.selected_item_slot + 1) % 3
                 self.trigger_sfx(2, 1, 6, 1)
 
-            px = self.ram[0x0560] // 2
+            px = max(0, (self.ram[0x0560] // 2) - 1)
             py = self.ram[0x0561] // 2
 
             if mask & 0x10:  # FIRE
                 ct = self.get_tile(px, py)
-                if ct in (13, 14, 15):
+                if ct == 17:
                     self.write_tile_and_screen(px, py, 0)
                     self.ram[0x0576] = (self.ram[0x0576] + 1) & 0xFF
                     self.trigger_sfx(2, 1, 8, 2)
                 elif ct == 0 and self.ram[0x0576] > 0:
-                    self.write_tile_and_screen(px, py, 13)
+                    self.write_tile_and_screen(px, py, 17)
                     self.ram[0x0576] = (self.ram[0x0576] - 1) & 0xFF
                     self.trigger_sfx(3, 1, 8, 2)
 
@@ -266,15 +285,15 @@ class Reference6502LockstepModel:
             else:
                 self.ram[0x055F] = sdir
                 nx, ny = px + dx, py + dy
-                if 0 <= nx < 64 and 0 <= ny < 32:
+                if 0 <= nx < MAP_WIDTH and 0 <= ny < MAP_HEIGHT:
                     tt = self.get_tile(nx, ny)
                     can_enter = self.try_interact_tile(nx, ny, dx, dy, tt)
                     if can_enter or (tt not in self.SOLID_TILES):
                         px, py = nx, ny
-                        noff = (py * 64 + px) & 0xFFFF
+                        noff = (py * MAP_WIDTH + px) & 0xFFFF
                         self.ram[0x055B] = noff & 0xFF
                         self.ram[0x055C] = (noff >> 8) & 0xFF
-                        self.ram[0x0560] = (px * 2) & 0xFF
+                        self.ram[0x0560] = ((px + 1) * 2) & 0xFF
                         self.ram[0x0561] = (py * 2) & 0xFF
                         self.ram[0x055E] = (self.ram[0x055E] + 1) % 3
                         self.ram[0xD404] = (0x06 + dx * 2) & 0x0F
@@ -297,30 +316,33 @@ class Reference6502LockstepModel:
         return self.get_snapshot()
 
     def try_interact_tile(self, nx: int, ny: int, dx: int, dy: int, tile_id: int) -> bool:
-        if tile_id == 4:  # CRUMBLY
+        if tile_id == 25:  # CRUMBLY (▒)
             if self.ram[0x0575] > 0:
                 self.write_tile_and_screen(nx, ny, 0)
                 self.trigger_sfx(3, 1, 10, 2)
                 return True
-            return False
-        if tile_id == 5:  # BLOCK
+            self.write_tile_and_screen(nx, ny, 0)
+            self.trigger_sfx(3, 1, 4, 1)
+            return True
+        if tile_id == 5:  # CAPSULE / BLOCK (())
             if self.get_tile(nx + dx, ny + dy) == 0:
                 self.write_tile_and_screen(nx + dx, ny + dy, 5)
                 self.write_tile_and_screen(nx, ny, 0)
                 self.trigger_sfx(3, 1, 8, 2)
                 return True
             return False
-        if tile_id in (9, 10):  # AIRDOORS / SLAM
+        if tile_id in (9, 12):  # AIRDOORS / SLAM
             return (self.frame_counter & 0x08) == 0
-        if tile_id in (16, 19):  # LOCKED / LOCK
-            if self.ram[0x0574] > 0:
-                self.ram[0x0574] = 0
+        if tile_id in (7, 18, 24):  # DOOR / LOCK / LOCKED
+            if self.ram[0x0574] > 0 or tile_id == 7:
+                if self.ram[0x0574] > 0 and tile_id != 7:
+                    self.ram[0x0574] = 0
                 self.write_tile_and_screen(nx, ny, 0)
                 self.add_score_bcd(0x25, 0x00)
                 self.trigger_sfx(4, 2, 12, 2)
                 return True
             return False
-        if tile_id == 20:  # CONTAINER
+        if tile_id == 16:  # CONTAINER (ᴗ)
             if self.ram[0x05AF] > 0:
                 self.ram[0x05AF] = 0
                 if self.ram[0x0598] > 0:
@@ -332,45 +354,45 @@ class Reference6502LockstepModel:
 
     def on_enter_tile(self, px: int, py: int):
         t = self.get_tile(px, py)
-        if t == 6:  # PLUTONIUM
+        if t == 6:  # PLUTONIUM (X)
             if self.ram[0x05AF] == 0:
                 self.ram[0x05AF] = 1
                 self.write_tile_and_screen(px, py, 0)
                 self.add_score_bcd(0x50, 0x00)
                 self.trigger_sfx(2, 1, 12, 2)
-        elif t == 7:  # KEY
+        elif t == 4:  # KEY (K)
             self.ram[0x0574] = 1
             self.write_tile_and_screen(px, py, 0)
             self.add_score_bcd(0x10, 0x00)
             self.trigger_sfx(2, 1, 10, 2)
-        elif t == 11:  # SPADE
+        elif t == 21:  # SPADE (♠)
             self.ram[0x0575] = 1
             self.write_tile_and_screen(px, py, 0)
             self.add_score_bcd(0x10, 0x00)
             self.trigger_sfx(2, 1, 10, 2)
-        elif t in (13, 14, 15):  # MATS
+        elif t == 17:  # MATS (M)
             self.ram[0x0576] = (self.ram[0x0576] + 1) & 0xFF
             self.write_tile_and_screen(px, py, 0)
             self.trigger_sfx(2, 1, 8, 2)
-        elif t == 17:  # TIME
+        elif t == 19:  # TIME (T)
             self.ram[0x009F] = min(0x09, self.ram[0x009F] + 1)
             self.ram[0x059F] = self.ram[0x009F]
             self.write_tile_and_screen(px, py, 0)
             self.trigger_sfx(2, 1, 12, 2)
-        elif t == 21:  # BONUS
+        elif t == 20:  # BONUS (?)
             self.write_tile_and_screen(px, py, 0)
             self.add_score_bcd(0x00, 0x01)
             self.trigger_sfx(2, 1, 14, 2)
-        elif t in (12, 2, 22):  # WARP / DOOR
-            z_idx = self.ram[0x0555] & 0x0F
+        elif t == 8:  # WARP_PAD (1..12)
+            z_idx = self.ram[0x0558] & 0x0F
             warps = self.bundle["zones"][z_idx].get("warps", [])
             if warps:
                 m = next((w for w in warps if abs(w["src_x"] - px) <= 1 and abs(w["src_y"] - py) <= 1), warps[0])
                 dx, dy = m["dst_x"], m["dst_y"]
-                doff = (dy * 64 + dx) & 0xFFFF
+                doff = (dy * MAP_WIDTH + dx) & 0xFFFF
                 self.ram[0x055B] = doff & 0xFF
                 self.ram[0x055C] = (doff >> 8) & 0xFF
-                self.ram[0x0560] = (dx * 2) & 0xFF
+                self.ram[0x0560] = ((dx + 1) * 2) & 0xFF
                 self.ram[0x0561] = (dy * 2) & 0xFF
                 self.update_camera_lms()
                 self.trigger_sfx(5, 2, 14, 3)
@@ -417,7 +439,7 @@ class Reference6502LockstepModel:
 
     def get_snapshot(self) -> dict:
         return {
-            "playerX": self.ram[0x0560] // 2,
+            "playerX": max(0, (self.ram[0x0560] // 2) - 1),
             "playerY": self.ram[0x0561] // 2,
             "hscrol": self.ram[0xD404],
             "vscrol": self.ram[0xD405],
@@ -546,7 +568,7 @@ def main():
             if mode == "screen":
                 page.evaluate(f"window.ZoneXTestAPI.loadScreen('{arg}')")
             else:
-                page.evaluate(f"window.ZoneXTestAPI.loadZone({arg}, 3)")
+                page.evaluate(f"window.ZoneXTestAPI.loadZone({arg}, 1)")
 
             web_rgba = page.evaluate("Array.from(window.ZoneXTestAPI.getCanvasImageData())")
             assert len(web_rgba) == w * h * 4
@@ -576,8 +598,8 @@ def main():
         # =====================================================================
         print("[ORACLE 2] Running deterministic 5,000-frame TAS lockstep test...")
         ref_model = Reference6502LockstepModel(bundle)
-        ref_model.load_zone(1, 3)
-        page.evaluate("window.ZoneXTestAPI.loadZone(1, 3)")
+        ref_model.load_zone(1, 1)
+        page.evaluate("window.ZoneXTestAPI.loadZone(1, 1)")
 
         # Build a deterministic 5,000-frame TAS input stream covering movement, scrolling,
         # CH ITEM (0x20), FIRE/MATS (0x10), feature interactions, and BCD timer countdown:
@@ -627,8 +649,8 @@ def main():
         min_rho = 1.0
         sfx_results = {}
         for sfx_id in range(1, 7):
-            ref_model.load_zone(1, 3)
-            page.evaluate("window.ZoneXTestAPI.loadZone(1, 3)")
+            ref_model.load_zone(1, 1)
+            page.evaluate("window.ZoneXTestAPI.loadZone(1, 1)")
             ref_model.trigger_sfx(sfx_id, ch=0, duration=12, priority=3)
             page.evaluate(f"window.ZoneXTestAPI.triggerSfxForTest({sfx_id}, 0, 12, 3)")
 

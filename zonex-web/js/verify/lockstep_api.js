@@ -1,9 +1,6 @@
 /**
  * zonex-web/js/verify/lockstep_api.js
- * Exposes window.ZoneXTestAPI for deterministic Playwright Verification Oracles (Phase 5):
- * - Oracle 1: Visual parity (loadScreen / loadZone / getCanvasImageData)
- * - Oracle 2: 5,000-Frame Lockstep TAS verification (stepFrame / getStateSnapshot)
- * - Oracle 3: POKEY register trace & LFSR audio waveform synthesis correlation
+ * Exposes window.ZoneXTestAPI for deterministic Playwright Verification Oracles (Phase 5).
  */
 
 export function installLockstepAPI(app) {
@@ -12,12 +9,13 @@ export function installLockstepAPI(app) {
   const api = {
     isReady: true,
 
-    loadZone(zoneNumber = 1, optionLevel = 3) {
+    loadZone(zoneNumber = 1, optionLevel = 1) {
       screens.activeScreen = "ingame";
       const zdata = zoneLoader.loadZone(zoneNumber, optionLevel);
       robotAI.initZoneRobots(zoneNumber - 1);
       featureMachine.frameCounter = 0;
       renderer.renderFrame(robotAI.robots);
+      renderer.renderFullZoneMapIfPresent();
       app.updateTelemetryUI();
       return zdata;
     },
@@ -44,12 +42,13 @@ export function installLockstepAPI(app) {
 
     getStateSnapshot() {
       const ram = memory.ram;
-      const playerX = Math.floor(ram[0x0560] / 2);
+      const playerX = Math.floor(ram[0x0560] / 2) - 1;
       const playerY = Math.floor(ram[0x0561] / 2);
       const timerBcd = ((ram[0x009F] & 0xFF) << 8) | (ram[0x009E] & 0xFF);
       const scoreBcd = ((ram[0x00C2] & 0xFF) << 8) | (ram[0x00C1] & 0xFF);
       return {
-        zone: (ram[0x0555] & 0x0F) + 1,
+        zone: (ram[0x0558] & 0x0F) + 1,
+        internalZone: ram[0x0555] & 0x0F,
         playerX,
         playerY,
         charX: ram[0x0560],
@@ -73,10 +72,6 @@ export function installLockstepAPI(app) {
       return renderer.ctx.getImageData(0, 0, renderer.width, renderer.height).data;
     },
 
-    /**
-     * Synthesizes N audio samples using the exact POKEY LFSR algorithm from pokey_worklet.js
-     * for deterministic Oracle 3 spectrogram verification.
-     */
     synthesizePokeySamples(regs, numSamples = 512, sampleRate = 44100) {
       const baseClock = 63920.4;
       const phases = new Float64Array(4);

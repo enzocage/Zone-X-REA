@@ -1,7 +1,11 @@
 /**
  * zonex-web/js/engine/memory_state.js
  * 64KB Atari 800XL RAM Mirror (Uint8Array(65536)) + MOS 6502 Decimal Mode (SED/CLD) BCD Arithmetic.
+ * Implements exact 62x32 ($3E x $20) logical playfield and 128x64 character screen buffer ($428E).
  */
+
+export const MAP_WIDTH = 62;
+export const MAP_HEIGHT = 32;
 
 export function bcdAdd8(a, b, carryIn = 0) {
   let lo = (a & 0x0F) + (b & 0x0F) + (carryIn ? 1 : 0);
@@ -33,14 +37,13 @@ export class MemoryState {
     this.bundle = bundle;
     this.paused = false;
     this.outOfTime = false;
-    this.selectedItemSlot = 0; // 0=MATS, 1=KEY, 2=SPADE
+    this.selectedItemSlot = 0;
     this.initStaticRomTables();
   }
 
   initStaticRomTables() {
     const { charsets, meta_tiles, screens_data } = this.bundle;
 
-    // 1. Load 1024-byte charset at $706C and $1800
     const font = charsets.in_game;
     for (let i = 0; i < font.length; i++) {
       this.ram[0x706C + i] = font[i];
@@ -49,7 +52,6 @@ export class MemoryState {
     this.ram[0x02F4] = 0x18;
     this.ram[0xD409] = 0x18;
 
-    // 2. Load 32 Meta-Tiles (4 chars each) at $6D42
     for (let t = 0; t < meta_tiles.length; t++) {
       const chars = meta_tiles[t].chars;
       for (let c = 0; c < 4; c++) {
@@ -57,7 +59,6 @@ export class MemoryState {
       }
     }
 
-    // 3. Load Display Lists & Screen Templates ($3C8B, $3CE5, $939C, $3DB3, $3E53, $3E67)
     if (screens_data) {
       const copyAt = (addr, arr) => {
         if (!arr) return;
@@ -75,14 +76,29 @@ export class MemoryState {
     }
   }
 
+  initPlayfieldBorders() {
+    for (let ty = 0; ty < MAP_HEIGHT; ty++) {
+      const r0 = 0x1C00 + (ty * 2) * 128;
+      const r1 = 0x1C00 + (ty * 2 + 1) * 128;
+      this.ram[r0] = 0x01;
+      this.ram[r0 + 1] = 0x02;
+      this.ram[r1] = 0x03;
+      this.ram[r1 + 1] = 0x01;
+      this.ram[r0 + 126] = 0x01;
+      this.ram[r0 + 127] = 0x02;
+      this.ram[r1 + 126] = 0x03;
+      this.ram[r1 + 127] = 0x01;
+    }
+  }
+
   /**
-   * 1:1 Port of $45AE & $44DD: Writes logical tileId to $0B00 + ty*64 + tx
-   * and expands its 2x2 characters into the $1C00..$3BFF playfield buffer.
+   * 1:1 Port of $428E & $45AE: Writes logical tileId to $0B00 + ty*62 + tx
+   * and expands its 2x2 characters into the $1C00..$3BFF playfield buffer at col (tx + 1) * 2.
    */
   writeTileAndScreen(tx, ty, tileId) {
-    if (tx < 0 || tx >= 64 || ty < 0 || ty >= 32) return;
+    if (tx < 0 || tx >= MAP_WIDTH || ty < 0 || ty >= MAP_HEIGHT) return;
     const t = tileId & 0x1F;
-    this.ram[0x0B00 + ty * 64 + tx] = t;
+    this.ram[0x0B00 + ty * MAP_WIDTH + tx] = t;
 
     const metaBase = 0x6D42 + t * 4;
     const c0 = this.ram[metaBase];
@@ -90,8 +106,9 @@ export class MemoryState {
     const c2 = this.ram[metaBase + 2];
     const c3 = this.ram[metaBase + 3];
 
-    const row0Addr = 0x1C00 + (ty * 2) * 128 + tx * 2;
-    const row1Addr = 0x1C00 + (ty * 2 + 1) * 128 + tx * 2;
+    const colChar = (tx + 1) * 2;
+    const row0Addr = 0x1C00 + (ty * 2) * 128 + colChar;
+    const row1Addr = 0x1C00 + (ty * 2 + 1) * 128 + colChar;
     this.ram[row0Addr] = c0;
     this.ram[row0Addr + 1] = c1;
     this.ram[row1Addr] = c2;
@@ -99,13 +116,13 @@ export class MemoryState {
   }
 
   getTile(tx, ty) {
-    if (tx < 0 || tx >= 64 || ty < 0 || ty >= 32) return 1; // WALL
-    return this.ram[0x0B00 + ty * 64 + tx] & 0x1F;
+    if (tx < 0 || tx >= MAP_WIDTH || ty < 0 || ty >= MAP_HEIGHT) return 1; // WALL
+    return this.ram[0x0B00 + ty * MAP_WIDTH + tx] & 0x1F;
   }
 
   /**
    * 1:1 Port of $4462..$44DC: Updates the 25 LMS pointers at $3C94..$3CDC
-   * based on player character coordinates ($0560, $0561).
+   * based on player character coordinates ($0560 = (tx+1)*2, $0561 = ty*2).
    */
   updateCameraLmsPointers() {
     const pxChar = this.ram[0x0560];
@@ -147,9 +164,6 @@ export class MemoryState {
     return ptrs;
   }
 
-  /**
-   * Adds 16-bit BCD points to Score ($00C1/$00C2) using 6502 SED/CLD rules.
-   */
   addScoreBcd(lowByteBcd, highByteBcd = 0) {
     const r0 = bcdAdd8(this.ram[0x00C1], lowByteBcd, 0);
     const r1 = bcdAdd8(this.ram[0x00C2], highByteBcd, r0.carry);
@@ -158,9 +172,6 @@ export class MemoryState {
     this.syncHudText();
   }
 
-  /**
-   * Subtracts 1 BCD unit from the Radiation Timer ($009E/$009F & $059E/$059F).
-   */
   decrementTimerBcd(amountLo = 0x01) {
     if (this.outOfTime) return;
     const r0 = bcdSub8(this.ram[0x009E], amountLo, 0);
@@ -181,7 +192,6 @@ export class MemoryState {
   }
 
   syncHudText() {
-    // Format timer digits at $0400 + 16..18
     const tHi = this.ram[0x009F] & 0x0F;
     const tMid = (this.ram[0x009E] >> 4) & 0x0F;
     const tLo = this.ram[0x009E] & 0x0F;
@@ -189,14 +199,13 @@ export class MemoryState {
     this.ram[0x0400 + 17] = 0x50 + tMid;
     this.ram[0x0400 + 18] = 0x50 + tLo;
 
-    // Format lower HUD ($0428..$043B) per $4F20..$4F75
     for (let i = 0; i < 20; i++) {
       this.ram[0x0428 + i] = 0x00;
     }
     let x = 0;
-    if (this.ram[0x0574]) this.ram[0x0428 + x++] = 0xC6; // KEY
-    if (this.ram[0x0575]) this.ram[0x0428 + x++] = 0x84; // SPADE
-    if (this.ram[0x05AF]) this.ram[0x0428 + x++] = 0xC3; // PLUTONIUM carried
+    if (this.ram[0x0574]) this.ram[0x0428 + x++] = 0xC6;
+    if (this.ram[0x0575]) this.ram[0x0428 + x++] = 0x84;
+    if (this.ram[0x05AF]) this.ram[0x0428 + x++] = 0xC3;
     const mats = this.ram[0x0576];
     for (let m = 0; m < mats && x < 10; m++) {
       this.ram[0x0428 + x++] = 0x85;

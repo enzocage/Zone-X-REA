@@ -3,7 +3,7 @@
  * Main entry point & 50.00 Hz PAL Timestep Accumulator (dt = 20.0 ms).
  */
 
-import { MemoryState } from "./engine/memory_state.js";
+import { MemoryState, MAP_WIDTH, MAP_HEIGHT } from "./engine/memory_state.js";
 import { ZoneLoader } from "./engine/zone_loader.js";
 import { PlayerPhysics } from "./engine/player_physics.js";
 import { FeatureStateMachine } from "./engine/feature_state_machine.js";
@@ -38,8 +38,8 @@ export class ZoneXApplication {
     this.bindUI();
     this.api = installLockstepAPI(this);
 
-    // Load Zone 1 initially
-    this.api.loadZone(1, 3);
+    // Load Zone 1 (Option Level 1) initially
+    this.api.loadZone(1, 1);
   }
 
   bindUI() {
@@ -49,6 +49,7 @@ export class ZoneXApplication {
     const btnAudio = document.getElementById("btn-audio-toggle");
     const btnCrt = document.getElementById("btn-crt-toggle");
     const crtOverlay = document.getElementById("crt-overlay");
+    const fullMapCanvas = document.getElementById("full-map-canvas");
 
     if (screenSelect) {
       screenSelect.addEventListener("change", () => {
@@ -87,6 +88,25 @@ export class ZoneXApplication {
         crtOverlay.classList.toggle("active");
       });
     }
+
+    if (fullMapCanvas) {
+      fullMapCanvas.addEventListener("click", (e) => {
+        const rect = fullMapCanvas.getBoundingClientRect();
+        const scaleX = fullMapCanvas.width / rect.width;
+        const scaleY = fullMapCanvas.height / rect.height;
+        const tx = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(((e.clientX - rect.left) * scaleX) / 16)));
+        const ty = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(((e.clientY - rect.top) * scaleY) / 16)));
+        const ram = this.memory.ram;
+        const newOffset = (ty * MAP_WIDTH + tx) & 0xFFFF;
+        ram[0x055B] = newOffset & 0xFF;
+        ram[0x055C] = (newOffset >> 8) & 0xFF;
+        ram[0x0560] = ((tx + 1) * 2) & 0xFF;
+        ram[0x0561] = (ty * 2) & 0xFF;
+        this.memory.updateCameraLmsFromPlayer();
+        this.renderer.renderFrame(this.robotAI.robots);
+        this.updateTelemetryUI();
+      });
+    }
   }
 
   updateTelemetryUI() {
@@ -96,14 +116,16 @@ export class ZoneXApplication {
       if (el) el.textContent = txt;
     };
 
-    const px = Math.floor(ram[0x0560] / 2);
+    const px = Math.floor(ram[0x0560] / 2) - 1;
     const py = Math.floor(ram[0x0561] / 2);
     const dl = (ram[0x0231] << 8) | ram[0x0230];
     const lms0 = (ram[0x3C95] << 8) | ram[0x3C94];
     const timerHex = (((ram[0x009F] & 0xFF) << 8) | (ram[0x009E] & 0xFF)).toString(16).toUpperCase().padStart(4, "0");
     const scoreHex = (((ram[0x00C2] & 0xFF) << 8) | (ram[0x00C1] & 0xFF)).toString(16).toUpperCase().padStart(4, "0");
 
-    setTxt("dbg-zone", `${(ram[0x0555] & 0x0F) + 1}`);
+    const gameZoneNum = (ram[0x0558] & 0x0F) + 1;
+    const internalZoneIdx = ram[0x0555] & 0x0F;
+    setTxt("dbg-zone", `${gameZoneNum} (ROM #$${internalZoneIdx.toString(16).toUpperCase()})`);
     setTxt("dbg-player-xy", `(${px}, ${py})`);
     setTxt("dbg-char-xy", `(${ram[0x0560]}, ${ram[0x0561]})`);
     setTxt("dbg-dlist", `$${dl.toString(16).toUpperCase().padStart(4, "0")}`);

@@ -1,62 +1,62 @@
 {
   "zone_01": {
-    "sha256": "4b7a62b709f1b910",
+    "sha256": "0044307c493bebbc",
     "dl_start": "$3C93",
-    "first_lms": "$2E0E"
+    "first_lms": "$252A"
   },
   "zone_02": {
-    "sha256": "3b03913cee101047",
+    "sha256": "0c987a4758b9d64b",
     "dl_start": "$3C93",
-    "first_lms": "$2D4A"
+    "first_lms": "$1F00"
   },
   "zone_03": {
-    "sha256": "67f11fcaa3197c74",
+    "sha256": "7681f05d915c8895",
     "dl_start": "$3C93",
-    "first_lms": "$302C"
+    "first_lms": "$1D00"
   },
   "zone_04": {
-    "sha256": "260633bf63dab688",
+    "sha256": "0ab3672d49097855",
     "dl_start": "$3C93",
-    "first_lms": "$1C3A"
+    "first_lms": "$1C00"
   },
   "zone_05": {
-    "sha256": "2b8a741cceec823b",
+    "sha256": "69d318b82e376e93",
     "dl_start": "$3C93",
-    "first_lms": "$1C14"
+    "first_lms": "$2C32"
   },
   "zone_06": {
-    "sha256": "345f56c5c8694885",
+    "sha256": "caa471d6b2e2f9bf",
     "dl_start": "$3C93",
-    "first_lms": "$2732"
+    "first_lms": "$262A"
   },
   "zone_07": {
-    "sha256": "d4920accce6da763",
+    "sha256": "052f99fe8e429a2e",
     "dl_start": "$3C93",
-    "first_lms": "$1C4C"
+    "first_lms": "$2D24"
   },
   "zone_08": {
-    "sha256": "14ad280547dc458d",
+    "sha256": "eded0850fc48795a",
     "dl_start": "$3C93",
-    "first_lms": "$3054"
+    "first_lms": "$2428"
   },
   "zone_09": {
-    "sha256": "03e88e8b6c0f01bb",
+    "sha256": "22982e8091d5077a",
     "dl_start": "$3C93",
-    "first_lms": "$2452"
+    "first_lms": "$264A"
   },
   "zone_10": {
-    "sha256": "87448883db43cb53",
+    "sha256": "a540f60f7c6d89d0",
     "dl_start": "$3C93",
-    "first_lms": "$1C28"
+    "first_lms": "$1C00"
   },
   "zone_11": {
-    "sha256": "e1a5542041f527a0",
+    "sha256": "a402bc837a47f796",
     "dl_start": "$3C93",
-    "first_lms": "$2B54"
+    "first_lms": "$2542"
   },
   "zone_12": {
-    "sha256": "2ff23d9563efa706",
+    "sha256": "1955d9845581e8bc",
     "dl_start": "$3C93",
-    "first_lms": "$2722"
+    "first_lms": "$1C00"
   }
 }

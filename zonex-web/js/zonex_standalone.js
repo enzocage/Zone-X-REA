@@ -87,7 +87,11 @@ class InputBridge {
 /**
  * zonex-web/js/engine/memory_state.js
  * 64KB Atari 800XL RAM Mirror (Uint8Array(65536)) + MOS 6502 Decimal Mode (SED/CLD) BCD Arithmetic.
+ * Implements exact 62x32 ($3E x $20) logical playfield and 128x64 character screen buffer ($428E).
  */
+
+const MAP_WIDTH = 62;
+const MAP_HEIGHT = 32;
 
 function bcdAdd8(a, b, carryIn = 0) {
   let lo = (a & 0x0F) + (b & 0x0F) + (carryIn ? 1 : 0);
@@ -119,14 +123,13 @@ class MemoryState {
     this.bundle = bundle;
     this.paused = false;
     this.outOfTime = false;
-    this.selectedItemSlot = 0; // 0=MATS, 1=KEY, 2=SPADE
+    this.selectedItemSlot = 0;
     this.initStaticRomTables();
   }
 
   initStaticRomTables() {
     const { charsets, meta_tiles, screens_data } = this.bundle;
 
-    // 1. Load 1024-byte charset at $706C and $1800
     const font = charsets.in_game;
     for (let i = 0; i < font.length; i++) {
       this.ram[0x706C + i] = font[i];
@@ -135,7 +138,6 @@ class MemoryState {
     this.ram[0x02F4] = 0x18;
     this.ram[0xD409] = 0x18;
 
-    // 2. Load 32 Meta-Tiles (4 chars each) at $6D42
     for (let t = 0; t < meta_tiles.length; t++) {
       const chars = meta_tiles[t].chars;
       for (let c = 0; c < 4; c++) {
@@ -143,7 +145,6 @@ class MemoryState {
       }
     }
 
-    // 3. Load Display Lists & Screen Templates ($3C8B, $3CE5, $939C, $3DB3, $3E53, $3E67)
     if (screens_data) {
       const copyAt = (addr, arr) => {
         if (!arr) return;
@@ -161,14 +162,29 @@ class MemoryState {
     }
   }
 
+  initPlayfieldBorders() {
+    for (let ty = 0; ty < MAP_HEIGHT; ty++) {
+      const r0 = 0x1C00 + (ty * 2) * 128;
+      const r1 = 0x1C00 + (ty * 2 + 1) * 128;
+      this.ram[r0] = 0x01;
+      this.ram[r0 + 1] = 0x02;
+      this.ram[r1] = 0x03;
+      this.ram[r1 + 1] = 0x01;
+      this.ram[r0 + 126] = 0x01;
+      this.ram[r0 + 127] = 0x02;
+      this.ram[r1 + 126] = 0x03;
+      this.ram[r1 + 127] = 0x01;
+    }
+  }
+
   /**
-   * 1:1 Port of $45AE & $44DD: Writes logical tileId to $0B00 + ty*64 + tx
-   * and expands its 2x2 characters into the $1C00..$3BFF playfield buffer.
+   * 1:1 Port of $428E & $45AE: Writes logical tileId to $0B00 + ty*62 + tx
+   * and expands its 2x2 characters into the $1C00..$3BFF playfield buffer at col (tx + 1) * 2.
    */
   writeTileAndScreen(tx, ty, tileId) {
-    if (tx < 0 || tx >= 64 || ty < 0 || ty >= 32) return;
+    if (tx < 0 || tx >= MAP_WIDTH || ty < 0 || ty >= MAP_HEIGHT) return;
     const t = tileId & 0x1F;
-    this.ram[0x0B00 + ty * 64 + tx] = t;
+    this.ram[0x0B00 + ty * MAP_WIDTH + tx] = t;
 
     const metaBase = 0x6D42 + t * 4;
     const c0 = this.ram[metaBase];
@@ -176,8 +192,9 @@ class MemoryState {
     const c2 = this.ram[metaBase + 2];
     const c3 = this.ram[metaBase + 3];
 
-    const row0Addr = 0x1C00 + (ty * 2) * 128 + tx * 2;
-    const row1Addr = 0x1C00 + (ty * 2 + 1) * 128 + tx * 2;
+    const colChar = (tx + 1) * 2;
+    const row0Addr = 0x1C00 + (ty * 2) * 128 + colChar;
+    const row1Addr = 0x1C00 + (ty * 2 + 1) * 128 + colChar;
     this.ram[row0Addr] = c0;
     this.ram[row0Addr + 1] = c1;
     this.ram[row1Addr] = c2;
@@ -185,13 +202,13 @@ class MemoryState {
   }
 
   getTile(tx, ty) {
-    if (tx < 0 || tx >= 64 || ty < 0 || ty >= 32) return 1; // WALL
-    return this.ram[0x0B00 + ty * 64 + tx] & 0x1F;
+    if (tx < 0 || tx >= MAP_WIDTH || ty < 0 || ty >= MAP_HEIGHT) return 1; // WALL
+    return this.ram[0x0B00 + ty * MAP_WIDTH + tx] & 0x1F;
   }
 
   /**
    * 1:1 Port of $4462..$44DC: Updates the 25 LMS pointers at $3C94..$3CDC
-   * based on player character coordinates ($0560, $0561).
+   * based on player character coordinates ($0560 = (tx+1)*2, $0561 = ty*2).
    */
   updateCameraLmsPointers() {
     const pxChar = this.ram[0x0560];
@@ -233,9 +250,6 @@ class MemoryState {
     return ptrs;
   }
 
-  /**
-   * Adds 16-bit BCD points to Score ($00C1/$00C2) using 6502 SED/CLD rules.
-   */
   addScoreBcd(lowByteBcd, highByteBcd = 0) {
     const r0 = bcdAdd8(this.ram[0x00C1], lowByteBcd, 0);
     const r1 = bcdAdd8(this.ram[0x00C2], highByteBcd, r0.carry);
@@ -244,9 +258,6 @@ class MemoryState {
     this.syncHudText();
   }
 
-  /**
-   * Subtracts 1 BCD unit from the Radiation Timer ($009E/$009F & $059E/$059F).
-   */
   decrementTimerBcd(amountLo = 0x01) {
     if (this.outOfTime) return;
     const r0 = bcdSub8(this.ram[0x009E], amountLo, 0);
@@ -267,7 +278,6 @@ class MemoryState {
   }
 
   syncHudText() {
-    // Format timer digits at $0400 + 16..18
     const tHi = this.ram[0x009F] & 0x0F;
     const tMid = (this.ram[0x009E] >> 4) & 0x0F;
     const tLo = this.ram[0x009E] & 0x0F;
@@ -275,14 +285,13 @@ class MemoryState {
     this.ram[0x0400 + 17] = 0x50 + tMid;
     this.ram[0x0400 + 18] = 0x50 + tLo;
 
-    // Format lower HUD ($0428..$043B) per $4F20..$4F75
     for (let i = 0; i < 20; i++) {
       this.ram[0x0428 + i] = 0x00;
     }
     let x = 0;
-    if (this.ram[0x0574]) this.ram[0x0428 + x++] = 0xC6; // KEY
-    if (this.ram[0x0575]) this.ram[0x0428 + x++] = 0x84; // SPADE
-    if (this.ram[0x05AF]) this.ram[0x0428 + x++] = 0xC3; // PLUTONIUM carried
+    if (this.ram[0x0574]) this.ram[0x0428 + x++] = 0xC6;
+    if (this.ram[0x0575]) this.ram[0x0428 + x++] = 0x84;
+    if (this.ram[0x05AF]) this.ram[0x0428 + x++] = 0xC3;
     const mats = this.ram[0x0576];
     for (let m = 0; m < mats && x < 10; m++) {
       this.ram[0x0428 + x++] = 0x85;
@@ -297,10 +306,11 @@ class MemoryState {
 // === engine/zone_loader.js ===
 /**
  * zonex-web/js/engine/zone_loader.js
- * 1:1 Port of Dossier 01 ($623A, $45DD, $4639, $4462):
- * Loads Zone 1..12 into the 64KB RAM state ($0B00 logical map, $1C00 screen buffer,
- * $3C93 25 LMS pointers, $A2C4 per-zone colors, HUD lines, and robot tables).
+ * 1:1 Port of Dossier 01 ($6021, $41D9, $45DD, $428E, $623A, $4DCC, $4462):
+ * Loads Game Zone 1..12 into the 64KB RAM state ($0B00 62x32 logical map,
+ * $1C00 128x64 screen buffer, $3C93 25 LMS pointers, and $A2C4 per-zone colors).
  */
+
 
 class ZoneLoader {
   constructor(memory, bundle) {
@@ -308,27 +318,33 @@ class ZoneLoader {
     this.bundle = bundle;
   }
 
-  loadZone(zoneNumber = 1, optionLevel = 3) {
-    const zoneIdx = Math.max(0, Math.min(11, zoneNumber - 1));
-    const zdata = this.bundle.zones[zoneIdx];
+  loadZone(zoneNumber = 1, optionLevel = 1) {
+    const gameZoneIdx = Math.max(0, Math.min(11, zoneNumber - 1));
+    const diffIdx = Math.max(0, Math.min(2, optionLevel - 1));
+    const levelList = (this.bundle.zones_by_level && this.bundle.zones_by_level[diffIdx])
+      ? this.bundle.zones_by_level[diffIdx]
+      : this.bundle.zones;
+    const zdata = levelList[gameZoneIdx];
     const ram = this.memory.ram;
 
     this.memory.initStaticRomTables();
+    this.memory.initPlayfieldBorders();
     this.memory.paused = false;
     this.memory.outOfTime = false;
 
-    // 1. Copy unpacked 64x32 logical tile map into $0B00..$12FF and expand into $1C00..$3BFF
+    // 1. Copy unpacked 62x32 logical tile map into $0B00..$12BF and expand into $1C00..$3BFF
     const pf = zdata.playfield_bytes;
-    for (let ty = 0; ty < 32; ty++) {
-      for (let tx = 0; tx < 64; tx++) {
-        const tileId = pf[ty * 64 + tx];
+    for (let ty = 0; ty < MAP_HEIGHT; ty++) {
+      for (let tx = 0; tx < MAP_WIDTH; tx++) {
+        const tileId = pf[ty * MAP_WIDTH + tx];
         this.memory.writeTileAndScreen(tx, ty, tileId);
       }
     }
 
-    // 2. Set Zone & Player variables ($0555..$05BC)
-    ram[0x0555] = zoneIdx;
-    ram[0x0556] = Math.max(0, Math.min(2, optionLevel - 1));
+    // 2. Set Zone & Player variables ($0558 = Game Zone 0..11, $0555 = internal_zone_idx)
+    ram[0x0558] = gameZoneIdx;
+    ram[0x0555] = zdata.internal_zone_idx !== undefined ? zdata.internal_zone_idx : gameZoneIdx;
+    ram[0x0556] = diffIdx;
     ram[0x0598] = zdata.plutonium_count;
     ram[0x05B3] = zdata.container_count;
 
@@ -339,7 +355,6 @@ class ZoneLoader {
     ram[0x055E] = zdata.player_start.sprite;
     ram[0x055F] = 0x03;
 
-    // Clear inventory ($0574=KEY, $0575=SPADE, $0576=MATS, $05AF=PLUTONIUM)
     ram[0x0574] = 0x00;
     ram[0x0575] = 0x00;
     ram[0x0576] = 0x00;
@@ -353,7 +368,7 @@ class ZoneLoader {
     ram[0x00C1] = 0x00;
     ram[0x00C2] = 0x00;
 
-    // 4. Copy HUD lines ($3E53 -> $0414, $3E67 -> $0428) exactly as $6309..$6319
+    // 4. Copy HUD lines ($3E53 -> $0414, $3E67 -> $0428)
     const hud1 = this.bundle.screens_data.hud_line1_3e53;
     const hud2 = this.bundle.screens_data.hud_line2_3e67;
     for (let i = 0; i < 20; i++) {
@@ -362,32 +377,32 @@ class ZoneLoader {
       ram[0x0428 + i] = hud2[i];
     }
 
-    const zNum = zoneIdx + 1;
+    const zNum = gameZoneIdx + 1;
     if (zNum >= 10) {
       ram[0x0414 + 5] = 0xD0 + Math.floor(zNum / 10);
       ram[0x0414 + 6] = 0xD0 + (zNum % 10);
     } else {
       ram[0x0414 + 5] = 0xD0 + zNum;
     }
-    ram[0x0414 + 19] = 0xD3; // 3 lives
+    ram[0x0414 + 19] = 0xD3;
 
-    ram[0x0400 + 5] = 0x50; // '0' score
-    ram[0x0400 + 16] = 0x59; // '9'
-    ram[0x0400 + 17] = 0x55; // '5'
-    ram[0x0400 + 18] = 0x50; // '0'
+    ram[0x0400 + 5] = 0x50;
+    ram[0x0400 + 16] = 0x59;
+    ram[0x0400 + 17] = 0x55;
+    ram[0x0400 + 18] = 0x50;
 
     for (let i = 0; i < Math.min(20, zdata.plutonium_count); i++) {
       ram[0x0428 + i] = 0x85;
     }
 
-    // 5. Player char coords ($0560, $0561) & 25 LMS camera pointers ($3C94)
-    ram[0x0560] = (zdata.player_start.x * 2) & 0xFF;
+    // 5. Player char coords ($4DCC: $0560 = (player_x + 1) * 2, $0561 = player_y * 2)
+    ram[0x0560] = ((zdata.player_start.x + 1) * 2) & 0xFF;
     ram[0x0561] = (zdata.player_start.y * 2) & 0xFF;
     this.memory.updateCameraLmsPointers();
 
     ram[0x05BC] = 0x06;
-    ram[0xD404] = 0x06; // HSCROL
-    ram[0xD405] = 0x06; // VSCROL
+    ram[0xD404] = 0x06;
+    ram[0xD405] = 0x06;
 
     // 6. Display List Shadow Registers ($3C8B) & Charset ($1800)
     ram[0x0230] = 0x8B;
@@ -397,7 +412,7 @@ class ZoneLoader {
     ram[0x02F4] = 0x18;
     ram[0xD409] = 0x18;
 
-    // 7. Authentic per-zone GTIA color palette ($A2C4 + zone_idx * 4)
+    // 7. Authentic per-zone GTIA color palette ($A2C4 + internal_zone_idx * 4)
     const cols = zdata.colors;
     for (let i = 0; i < 4; i++) {
       ram[0x02C4 + i] = cols[i];
@@ -418,10 +433,15 @@ class ZoneLoader {
 /**
  * zonex-web/js/engine/feature_state_machine.js
  * 1:1 Port of Dossier 03 ($4A10, $47CB, $6580):
- * State machine and tile mutation logic for all 16 verified Zone X features:
- * LASER, WARP, SLAM, AIRDOORS, DOOR, PLUTONIUM, BONUS, LOCK,
- * KEY, LOCKED, SPADE, CRUMBLY, MATS, CONTAINER, BLOCK, TIME.
+ * State machine and tile mutation logic for all 16 verified Zone X features
+ * using the exact 6502 Tile IDs (0..27):
+ *  4 = KEY ('K'), 5 = BLOCK ('()'), 6 = PLUTONIUM ('X'), 7 = DOOR ('D'),
+ *  8 = WARP_PAD ('1..12'), 9 = AIRDOORS ('A'), 10/13/14/15 = LASER ('L/','L','l/','l'),
+ * 12 = SLAM ('S'), 16 = CONTAINER ('ᴗ'), 17 = MATS ('M'), 18 = LOCK ('C'),
+ * 19 = TIME ('T'), 20 = BONUS ('?'), 21 = SPADE ('♠'), 22 = EXIT ('O'),
+ * 24 = LOCKED, 25 = CRUMBLY ('▒').
  */
+
 
 class FeatureStateMachine {
   constructor(memory, bundle, pokey) {
@@ -431,23 +451,22 @@ class FeatureStateMachine {
     this.frameCounter = 0;
   }
 
-  /**
-   * Checks if player moving into (nx, ny) with direction (dx, dy) interacts with a feature tile.
-   * Returns true if the tile becomes walkable.
-   */
   tryInteractTile(nx, ny, dx, dy, tileId) {
     const ram = this.memory.ram;
 
     switch (tileId) {
-      case 4: // CRUMBLY — diggable wall if player has SPADE ($0575)
+      case 25: // CRUMBLY ('▒') — diggable if player has SPADE ($0575) or walkable in crumbly zones
         if (ram[0x0575] > 0) {
           this.memory.writeTileAndScreen(nx, ny, 0);
           this.pokey.triggerSfx(3, 1, 10, 2);
           return true;
         }
-        return false;
+        // In Zone X, base crumbly fill (Tile 25) is dug automatically as the player walks through it!
+        this.memory.writeTileAndScreen(nx, ny, 0);
+        this.pokey.triggerSfx(3, 1, 4, 1);
+        return true;
 
-      case 5: // BLOCK — pushable movable block if tile behind it is FLOOR (0)
+      case 5: // CAPSULE / BLOCK ('()') — pushable if tile behind it is FLOOR (0)
         if (this.memory.getTile(nx + dx, ny + dy) === 0) {
           this.memory.writeTileAndScreen(nx + dx, ny + dy, 5);
           this.memory.writeTileAndScreen(nx, ny, 0);
@@ -456,14 +475,17 @@ class FeatureStateMachine {
         }
         return false;
 
-      case 9:  // AIRDOORS — periodic pneumatic doors (walkable on even phase)
-      case 10: // SLAM — fast slamming trapdoors
+      case 9:  // AIRDOORS ('A')
+      case 12: // SLAM ('S')
         return (this.frameCounter & 0x08) === 0;
 
-      case 16: // LOCKED — locked door opened if player carries KEY ($0574)
-      case 19: // LOCK — lock mechanism
-        if (ram[0x0574] > 0) {
-          ram[0x0574] = 0; // Consume key
+      case 7:  // DOOR ('D')
+      case 18: // LOCK ('C')
+      case 24: // LOCKED
+        if (ram[0x0574] > 0 || tileId === 7) {
+          if (ram[0x0574] > 0 && tileId !== 7) {
+            ram[0x0574] = 0;
+          }
           this.memory.writeTileAndScreen(nx, ny, 0);
           this.memory.addScoreBcd(0x25, 0x00);
           this.pokey.triggerSfx(4, 2, 12, 2);
@@ -471,7 +493,7 @@ class FeatureStateMachine {
         }
         return false;
 
-      case 20: // CONTAINER — decontaminates carried PLUTONIUM ($05AF)
+      case 16: // CONTAINER ('ᴗ') — decontaminates carried PLUTONIUM ($05AF)
         if (ram[0x05AF] > 0) {
           ram[0x05AF] = 0;
           if (ram[0x0598] > 0) {
@@ -487,15 +509,12 @@ class FeatureStateMachine {
     }
   }
 
-  /**
-   * Handles pickups and teleporters when player steps onto (px, py).
-   */
   onEnterTile(px, py) {
     const ram = this.memory.ram;
     const tileId = this.memory.getTile(px, py);
 
     switch (tileId) {
-      case 6: // PLUTONIUM — radioactive sample (main objective)
+      case 6: // PLUTONIUM ('X')
         if (ram[0x05AF] === 0) {
           ram[0x05AF] = 1;
           this.memory.writeTileAndScreen(px, py, 0);
@@ -504,49 +523,42 @@ class FeatureStateMachine {
         }
         break;
 
-      case 7: // KEY — unlocks LOCKED doors
+      case 4: // KEY ('K')
         ram[0x0574] = 1;
         this.memory.writeTileAndScreen(px, py, 0);
         this.memory.addScoreBcd(0x10, 0x00);
         this.pokey.triggerSfx(2, 1, 10, 2);
         break;
 
-      case 11: // SPADE — digs CRUMBLY walls
+      case 21: // SPADE ('♠')
         ram[0x0575] = 1;
         this.memory.writeTileAndScreen(px, py, 0);
         this.memory.addScoreBcd(0x10, 0x00);
         this.pokey.triggerSfx(2, 1, 10, 2);
         break;
 
-      case 13: // MATS — pickup floor mat
-      case 14:
-      case 15:
+      case 17: // MATS ('M')
         ram[0x0576] = (ram[0x0576] + 1) & 0xFF;
         this.memory.writeTileAndScreen(px, py, 0);
         this.memory.syncHudText();
         this.pokey.triggerSfx(2, 1, 8, 2);
         break;
 
-      case 17: // TIME — radiation timer bonus pickup
-        {
-          const r = ram[0x009F];
-          ram[0x009F] = Math.min(0x09, r + 1);
-          ram[0x059F] = ram[0x009F];
-          this.memory.writeTileAndScreen(px, py, 0);
-          this.memory.syncHudText();
-          this.pokey.triggerSfx(2, 1, 12, 2);
-        }
+      case 19: // TIME ('T')
+        ram[0x009F] = Math.min(0x09, ram[0x009F] + 1);
+        ram[0x059F] = ram[0x009F];
+        this.memory.writeTileAndScreen(px, py, 0);
+        this.memory.syncHudText();
+        this.pokey.triggerSfx(2, 1, 12, 2);
         break;
 
-      case 21: // BONUS — score bonus pickup
+      case 20: // BONUS / MYSTERY ('?')
         this.memory.writeTileAndScreen(px, py, 0);
         this.memory.addScoreBcd(0x00, 0x01);
         this.pokey.triggerSfx(2, 1, 14, 2);
         break;
 
-      case 12: // WARP — teleporter pad ($47CB)
-      case 2:  // DOOR — corridor transition door ($47CB)
-      case 22: // DOOR_SPECIAL
+      case 8: // WARP_PAD ('1..12' inside ▌ 1 ▐)
         this.executeWarpOrDoor(px, py);
         break;
 
@@ -557,8 +569,8 @@ class FeatureStateMachine {
 
   executeWarpOrDoor(px, py) {
     const ram = this.memory.ram;
-    const zoneIdx = ram[0x0555] & 0x0F;
-    const zdata = this.bundle.zones[zoneIdx];
+    const gameZoneIdx = ram[0x0558] & 0x0F;
+    const zdata = this.bundle.zones[gameZoneIdx];
     if (!zdata || !zdata.warps || zdata.warps.length === 0) return;
 
     let match = zdata.warps.find((w) => Math.abs(w.src_x - px) <= 1 && Math.abs(w.src_y - py) <= 1);
@@ -568,24 +580,20 @@ class FeatureStateMachine {
 
     const dstX = match.dst_x;
     const dstY = match.dst_y;
-    const dstOffset = (dstY * 64 + dstX) & 0xFFFF;
+    const dstOffset = (dstY * MAP_WIDTH + dstX) & 0xFFFF;
     ram[0x055B] = dstOffset & 0xFF;
     ram[0x055C] = (dstOffset >> 8) & 0xFF;
-    ram[0x0560] = (dstX * 2) & 0xFF;
+    ram[0x0560] = ((dstX + 1) * 2) & 0xFF;
     ram[0x0561] = (dstY * 2) & 0xFF;
     this.memory.updateCameraLmsPointers();
     this.pokey.triggerSfx(5, 2, 14, 3);
   }
 
-  /**
-   * 50 Hz frame update for timers, periodic lasers, and BCD radiation countdown ($6580).
-   */
   tickFrame() {
     if (this.memory.paused || this.memory.outOfTime) return;
     this.frameCounter++;
-    this.memory.ram[0x0014] = this.frameCounter & 0xFF; // RTCLOK_LO
+    this.memory.ram[0x0014] = this.frameCounter & 0xFF;
 
-    // Decrement BCD radiation timer every 8 frames (or every frame if carrying unstable Plutonium)
     const period = this.memory.ram[0x05AF] > 0 ? 4 : 8;
     if (this.frameCounter % period === 0) {
       this.memory.decrementTimerBcd(0x01);
@@ -599,20 +607,23 @@ class FeatureStateMachine {
 // === engine/player_physics.js ===
 /**
  * zonex-web/js/engine/player_physics.js
- * 1:1 Port of Dossier 02 & 03 ($4800, $4846, $4B30, $4C50, $4462):
- * Handles player movement, collision detection against $0B00 tiles,
+ * 1:1 Port of Dossier 02 & 03 ($4800, $4846, $4B30, $4C50, $4DCC, $4462):
+ * Handles player movement across the 62x32 ($3E x $20) playfield, collision detection,
  * fine/coarse scrolling across the 25 LMS rows at $3C94, CH ITEM, and MATS.
  */
 
 
 const SOLID_TILES = new Set([
-  1,  // WALL
-  3,  // WALL_ALT
-  5,  // BLOCK (unless pushed)
-  8,  // LASER_H (lethal/blocking when active)
-  16, // LOCKED (unless player has KEY)
-  18, // LASER_V
-  25, // LASER_GEN
+  1,  // WALL (█)
+  2,  // WARP_L (▌)
+  3,  // WARP_R (▐)
+  5,  // CAPSULE / BLOCK (())
+  10, // LASER_LU (L/)
+  13, // LASER_U (L)
+  14, // LASER_DR (l/)
+  15, // LASER_D (l)
+  24, // LOCKED door (unless player has KEY)
+  25, // CRUMBLY (▒) (unless player has SPADE)
 ]);
 
 class PlayerPhysics {
@@ -620,7 +631,6 @@ class PlayerPhysics {
     this.memory = memory;
     this.featureMachine = featureMachine;
     this.pokey = pokey;
-    this.moveCooldown = 0;
   }
 
   step(inputMask) {
@@ -640,34 +650,30 @@ class PlayerPhysics {
       return;
     }
 
-    // CH ITEM cycling ($4B30)
     if (inputMask & INPUT_BITS.CH_ITEM) {
       this.memory.selectedItemSlot = (this.memory.selectedItemSlot + 1) % 3;
       this.pokey.triggerSfx(2, 1, 6, 1);
     }
 
-    let px = Math.floor(ram[0x0560] / 2);
+    let px = Math.floor(ram[0x0560] / 2) - 1;
     let py = Math.floor(ram[0x0561] / 2);
 
-    // FIRE action: place or pick up MATS ($4C50)
+    // FIRE action: place or pick up MATS (Tile 17 = 'M')
     if (inputMask & INPUT_BITS.FIRE) {
       const curTile = this.memory.getTile(px, py);
-      if (curTile === 13 || curTile === 14 || curTile === 15) {
-        // Pick up MATS
+      if (curTile === 17) {
         this.memory.writeTileAndScreen(px, py, 0);
         ram[0x0576] = (ram[0x0576] + 1) & 0xFF;
         this.memory.syncHudText();
         this.pokey.triggerSfx(2, 1, 8, 2);
       } else if (curTile === 0 && ram[0x0576] > 0) {
-        // Place MATS on floor to block robots
-        this.memory.writeTileAndScreen(px, py, 13);
+        this.memory.writeTileAndScreen(px, py, 17);
         ram[0x0576] = (ram[0x0576] - 1) & 0xFF;
         this.memory.syncHudText();
         this.pokey.triggerSfx(3, 1, 8, 2);
       }
     }
 
-    // Movement input ($4800..$4846)
     let dx = 0;
     let dy = 0;
     let scrollDir = ram[0x055F];
@@ -695,33 +701,28 @@ class PlayerPhysics {
     ram[0x055F] = scrollDir;
     const nx = px + dx;
     const ny = py + dy;
-    if (nx < 0 || nx >= 64 || ny < 0 || ny >= 32) return;
+    if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) return;
 
     const targetTile = this.memory.getTile(nx, ny);
-
-    // Check interactive feature obstacles before blocking
     const canEnter = this.featureMachine.tryInteractTile(nx, ny, dx, dy, targetTile);
     if (!canEnter && SOLID_TILES.has(targetTile)) {
       return;
     }
 
-    // Commit move
     px = nx;
     py = ny;
-    const newOffset = (py * 64 + px) & 0xFFFF;
+    const newOffset = (py * MAP_WIDTH + px) & 0xFFFF;
     ram[0x055B] = newOffset & 0xFF;
     ram[0x055C] = (newOffset >> 8) & 0xFF;
-    ram[0x0560] = (px * 2) & 0xFF;
+    ram[0x0560] = ((px + 1) * 2) & 0xFF;
     ram[0x0561] = (py * 2) & 0xFF;
     ram[0x055E] = ((ram[0x055E] || 0) + 1) % 3;
 
-    // Fine scroll pulse on HSCROL/VSCROL ($D404/$D405) + update 25 LMS pointers ($3C94)
     ram[0xD404] = (0x06 + dx * 2) & 0x0F;
     ram[0xD405] = (0x06 + dy * 2) & 0x0F;
     this.memory.updateCameraLmsPointers();
     this.pokey.triggerSfx(1, 0, 4, 1);
 
-    // Trigger tile entry effects (WARP, DOOR, Pickups)
     this.featureMachine.onEnterTile(px, py);
   }
 }
@@ -730,8 +731,9 @@ class PlayerPhysics {
 /**
  * zonex-web/js/engine/robot_ai.js
  * 1:1 Port of Dossier 04 ($55D4, $5600, $5720):
- * Patrols zone robots and bounces off walls and player-laid MATS (tile_id 13..15).
+ * Patrols zone robots (R / r) on the 62x32 grid and bounces off walls and player-laid MATS (tile_id 17).
  */
+
 
 class RobotAI {
   constructor(memory, bundle) {
@@ -744,8 +746,8 @@ class RobotAI {
   initZoneRobots(zoneIdx) {
     const zdata = this.bundle.zones[zoneIdx] || this.bundle.zones[0];
     this.robots = (zdata.robots || []).map((r) => ({
-      x: r.x & 0x3F,
-      y: r.y & 0x1F,
+      x: Math.max(0, Math.min(MAP_WIDTH - 1, r.x)),
+      y: Math.max(0, Math.min(MAP_HEIGHT - 1, r.y)),
       dir: r.dir & 0x03,
       speed: Math.max(1, r.speed & 0x07),
     }));
@@ -768,11 +770,15 @@ class RobotAI {
       if (this.tickCounter % r.speed !== 0) continue;
 
       const d = dirs[r.dir & 0x03];
-      const nx = (r.x + d.dx) & 0x3F;
-      const ny = (r.y + d.dy) & 0x1F;
+      const nx = r.x + d.dx;
+      const ny = r.y + d.dy;
+      if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) {
+        r.dir = (r.dir ^ 0x03) & 0x03;
+        continue;
+      }
       const tile = this.memory.getTile(nx, ny);
 
-      // Robots bounce off solid walls AND player-dropped MATS (13, 14, 15) ($5720)
+      // Robots bounce off solid walls AND player-dropped MATS (17) ($5720)
       if (tile !== 0) {
         r.dir = (r.dir ^ 0x03) & 0x03;
       } else {
@@ -856,7 +862,7 @@ class ScreenManager {
 // === hardware/antic_gtia.js ===
 /**
  * zonex-web/js/hardware/antic_gtia.js
- * Cycle-exact ANTIC Display List & GTIA PAL Renderer (336x240).
+ * Cycle-exact ANTIC Display List & GTIA PAL Renderer (336x240) + Full 62x32 Zone Overview Renderer (992x512).
  * Implements ANTIC Mode 4 (with Bit 7 COLPF3 selector), Mode 6, Mode 2,
  * 24x $74 + 1x $54 LMS rows, and Player/Missile Graphics (P0 + P1).
  */
@@ -871,6 +877,13 @@ class AnticGtiaRenderer {
     this.height = 240;
     this.imageData = this.ctx.createImageData(this.width, this.height);
     this.palPalette = bundle.atari_pal_palette;
+    this.isLockstep = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lockstep") === "1";
+
+    this.fullMapCanvas = document.getElementById("full-map-canvas");
+    if (this.fullMapCanvas) {
+      this.fullMapCtx = this.fullMapCanvas.getContext("2d");
+      this.fullMapImageData = this.fullMapCtx.createImageData(992, 512);
+    }
   }
 
   putPixel(buf, x, y, rgb) {
@@ -1039,9 +1052,89 @@ class AnticGtiaRenderer {
           }
         }
       }
+
+      if (this.fullMapCtx && !this.isLockstep) {
+        this.renderFullZoneMap(regs, chbase);
+      }
     }
 
     this.ctx.putImageData(this.imageData, 0, 0);
+  }
+
+  renderFullZoneMapIfPresent() {
+    if (!this.fullMapCtx) return;
+    const ram = this.memory.ram;
+    const regs = {
+      COLPF0: ram[0x02C4],
+      COLPF1: ram[0x02C5],
+      COLPF2: ram[0x02C6],
+      COLPF3: ram[0x02C7],
+      COLBK: ram[0x02C8],
+    };
+    const chbase = (ram[0x02F4] << 8) & 0xFFFF;
+    this.renderFullZoneMap(regs, chbase);
+  }
+
+  renderFullZoneMap(regs, chbase) {
+    const ram = this.memory.ram;
+    const fbuf = this.fullMapImageData.data;
+    const mapWidthPx = 992; // 62 tiles * 16 px = 124 chars * 8 px
+
+    for (let chRow = 0; chRow < 64; chRow++) {
+      const rowBaseAddr = 0x1C00 + chRow * 128;
+      for (let s = 0; s < 8; s++) {
+        const py = chRow * 8 + s;
+        const rowPixelOffset = py * mapWidthPx;
+        for (let chCol = 0; chCol < 124; chCol++) {
+          // Tiles tx=0..61 reside at screen character columns 2..125
+          const charCode = ram[(rowBaseAddr + chCol + 2) & 0xFFFF];
+          const charIndex = charCode & 0x7F;
+          const usePF3 = (charCode & 0x80) !== 0;
+          const glyphByte = ram[(chbase + (charIndex << 3) + s) & 0xFFFF];
+          const basePx = chCol * 8;
+
+          for (let px = 0; px < 4; px++) {
+            const bitPair = (glyphByte >> (6 - (px << 1))) & 0x03;
+            let colorReg;
+            if (bitPair === 0) colorReg = regs.COLBK;
+            else if (bitPair === 1) colorReg = regs.COLPF0;
+            else if (bitPair === 2) colorReg = regs.COLPF1;
+            else colorReg = usePF3 ? regs.COLPF3 : regs.COLPF2;
+            const rgb = this.palPalette[colorReg];
+
+            const idx0 = (rowPixelOffset + basePx + (px << 1)) << 2;
+            fbuf[idx0] = rgb[0];
+            fbuf[idx0 + 1] = rgb[1];
+            fbuf[idx0 + 2] = rgb[2];
+            fbuf[idx0 + 3] = 255;
+
+            const idx1 = idx0 + 4;
+            fbuf[idx1] = rgb[0];
+            fbuf[idx1 + 1] = rgb[1];
+            fbuf[idx1 + 2] = rgb[2];
+            fbuf[idx1 + 3] = 255;
+          }
+        }
+      }
+    }
+
+    this.fullMapCtx.putImageData(this.fullMapImageData, 0, 0);
+
+    // Highlight current 40x25 CRT viewport and Player Tile (I) on the 62x32 map
+    const pxChar = ram[0x0560];
+    const pyChar = ram[0x0561];
+    const camX = pxChar < 0x16 ? 0 : Math.min(0x54, pxChar - 0x14);
+    const camY = pyChar < 0x0C ? 0 : Math.min(0x28, pyChar - 0x0A);
+
+    this.fullMapCtx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+    this.fullMapCtx.lineWidth = 2;
+    this.fullMapCtx.strokeRect(Math.max(0, (camX - 2) * 8), camY * 8, 40 * 8, 25 * 8);
+
+    const playerTileX = Math.floor(pxChar / 2) - 1;
+    const playerTileY = Math.floor(pyChar / 2);
+    this.fullMapCtx.strokeStyle = "#facc15";
+    this.fullMapCtx.lineWidth = 2;
+    this.fullMapCtx.strokeRect(playerTileX * 16, playerTileY * 16, 16, 16);
   }
 }
 
@@ -1255,10 +1348,7 @@ class PokeyDriver {
 // === verify/lockstep_api.js ===
 /**
  * zonex-web/js/verify/lockstep_api.js
- * Exposes window.ZoneXTestAPI for deterministic Playwright Verification Oracles (Phase 5):
- * - Oracle 1: Visual parity (loadScreen / loadZone / getCanvasImageData)
- * - Oracle 2: 5,000-Frame Lockstep TAS verification (stepFrame / getStateSnapshot)
- * - Oracle 3: POKEY register trace & LFSR audio waveform synthesis correlation
+ * Exposes window.ZoneXTestAPI for deterministic Playwright Verification Oracles (Phase 5).
  */
 
 function installLockstepAPI(app) {
@@ -1267,12 +1357,13 @@ function installLockstepAPI(app) {
   const api = {
     isReady: true,
 
-    loadZone(zoneNumber = 1, optionLevel = 3) {
+    loadZone(zoneNumber = 1, optionLevel = 1) {
       screens.activeScreen = "ingame";
       const zdata = zoneLoader.loadZone(zoneNumber, optionLevel);
       robotAI.initZoneRobots(zoneNumber - 1);
       featureMachine.frameCounter = 0;
       renderer.renderFrame(robotAI.robots);
+      renderer.renderFullZoneMapIfPresent();
       app.updateTelemetryUI();
       return zdata;
     },
@@ -1299,12 +1390,13 @@ function installLockstepAPI(app) {
 
     getStateSnapshot() {
       const ram = memory.ram;
-      const playerX = Math.floor(ram[0x0560] / 2);
+      const playerX = Math.floor(ram[0x0560] / 2) - 1;
       const playerY = Math.floor(ram[0x0561] / 2);
       const timerBcd = ((ram[0x009F] & 0xFF) << 8) | (ram[0x009E] & 0xFF);
       const scoreBcd = ((ram[0x00C2] & 0xFF) << 8) | (ram[0x00C1] & 0xFF);
       return {
-        zone: (ram[0x0555] & 0x0F) + 1,
+        zone: (ram[0x0558] & 0x0F) + 1,
+        internalZone: ram[0x0555] & 0x0F,
         playerX,
         playerY,
         charX: ram[0x0560],
@@ -1328,10 +1420,6 @@ function installLockstepAPI(app) {
       return renderer.ctx.getImageData(0, 0, renderer.width, renderer.height).data;
     },
 
-    /**
-     * Synthesizes N audio samples using the exact POKEY LFSR algorithm from pokey_worklet.js
-     * for deterministic Oracle 3 spectrogram verification.
-     */
     synthesizePokeySamples(regs, numSamples = 512, sampleRate = 44100) {
       const baseClock = 63920.4;
       const phases = new Float64Array(4);
@@ -1421,8 +1509,8 @@ class ZoneXApplication {
     this.bindUI();
     this.api = installLockstepAPI(this);
 
-    // Load Zone 1 initially
-    this.api.loadZone(1, 3);
+    // Load Zone 1 (Option Level 1) initially
+    this.api.loadZone(1, 1);
   }
 
   bindUI() {
@@ -1432,6 +1520,7 @@ class ZoneXApplication {
     const btnAudio = document.getElementById("btn-audio-toggle");
     const btnCrt = document.getElementById("btn-crt-toggle");
     const crtOverlay = document.getElementById("crt-overlay");
+    const fullMapCanvas = document.getElementById("full-map-canvas");
 
     if (screenSelect) {
       screenSelect.addEventListener("change", () => {
@@ -1470,6 +1559,25 @@ class ZoneXApplication {
         crtOverlay.classList.toggle("active");
       });
     }
+
+    if (fullMapCanvas) {
+      fullMapCanvas.addEventListener("click", (e) => {
+        const rect = fullMapCanvas.getBoundingClientRect();
+        const scaleX = fullMapCanvas.width / rect.width;
+        const scaleY = fullMapCanvas.height / rect.height;
+        const tx = Math.max(0, Math.min(MAP_WIDTH - 1, Math.floor(((e.clientX - rect.left) * scaleX) / 16)));
+        const ty = Math.max(0, Math.min(MAP_HEIGHT - 1, Math.floor(((e.clientY - rect.top) * scaleY) / 16)));
+        const ram = this.memory.ram;
+        const newOffset = (ty * MAP_WIDTH + tx) & 0xFFFF;
+        ram[0x055B] = newOffset & 0xFF;
+        ram[0x055C] = (newOffset >> 8) & 0xFF;
+        ram[0x0560] = ((tx + 1) * 2) & 0xFF;
+        ram[0x0561] = (ty * 2) & 0xFF;
+        this.memory.updateCameraLmsFromPlayer();
+        this.renderer.renderFrame(this.robotAI.robots);
+        this.updateTelemetryUI();
+      });
+    }
   }
 
   updateTelemetryUI() {
@@ -1479,14 +1587,16 @@ class ZoneXApplication {
       if (el) el.textContent = txt;
     };
 
-    const px = Math.floor(ram[0x0560] / 2);
+    const px = Math.floor(ram[0x0560] / 2) - 1;
     const py = Math.floor(ram[0x0561] / 2);
     const dl = (ram[0x0231] << 8) | ram[0x0230];
     const lms0 = (ram[0x3C95] << 8) | ram[0x3C94];
     const timerHex = (((ram[0x009F] & 0xFF) << 8) | (ram[0x009E] & 0xFF)).toString(16).toUpperCase().padStart(4, "0");
     const scoreHex = (((ram[0x00C2] & 0xFF) << 8) | (ram[0x00C1] & 0xFF)).toString(16).toUpperCase().padStart(4, "0");
 
-    setTxt("dbg-zone", `${(ram[0x0555] & 0x0F) + 1}`);
+    const gameZoneNum = (ram[0x0558] & 0x0F) + 1;
+    const internalZoneIdx = ram[0x0555] & 0x0F;
+    setTxt("dbg-zone", `${gameZoneNum} (ROM #$${internalZoneIdx.toString(16).toUpperCase()})`);
     setTxt("dbg-player-xy", `(${px}, ${py})`);
     setTxt("dbg-char-xy", `(${ram[0x0560]}, ${ram[0x0561]})`);
     setTxt("dbg-dlist", `$${dl.toString(16).toUpperCase().padStart(4, "0")}`);

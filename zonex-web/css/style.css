@@ -23,7 +23,7 @@ body {
 }
 
 .app-shell {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 16px;
   width: 100%;
@@ -98,6 +98,12 @@ body {
   align-items: start;
 }
 
+.stage-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .crt-frame {
   position: relative;
   background: #000;
@@ -133,6 +139,52 @@ body {
 
 .crt-overlay.active {
   opacity: 1;
+}
+
+.full-map-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-col);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.full-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.full-map-header h2 {
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+.full-map-header span {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.full-map-scroll {
+  overflow-x: auto;
+  background: #000;
+  border: 1px solid var(--border-col);
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+#full-map-canvas {
+  width: 100%;
+  max-width: 992px;
+  height: auto;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  display: block;
 }
 
 .telemetry-panel {

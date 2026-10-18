@@ -1,6 +1,6 @@
 /**
  * zonex-web/js/hardware/antic_gtia.js
- * Cycle-exact ANTIC Display List & GTIA PAL Renderer (336x240).
+ * Cycle-exact ANTIC Display List & GTIA PAL Renderer (336x240) + Full 62x32 Zone Overview Renderer (992x512).
  * Implements ANTIC Mode 4 (with Bit 7 COLPF3 selector), Mode 6, Mode 2,
  * 24x $74 + 1x $54 LMS rows, and Player/Missile Graphics (P0 + P1).
  */
@@ -15,6 +15,13 @@ export class AnticGtiaRenderer {
     this.height = 240;
     this.imageData = this.ctx.createImageData(this.width, this.height);
     this.palPalette = bundle.atari_pal_palette;
+    this.isLockstep = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lockstep") === "1";
+
+    this.fullMapCanvas = document.getElementById("full-map-canvas");
+    if (this.fullMapCanvas) {
+      this.fullMapCtx = this.fullMapCanvas.getContext("2d");
+      this.fullMapImageData = this.fullMapCtx.createImageData(992, 512);
+    }
   }
 
   putPixel(buf, x, y, rgb) {
@@ -183,8 +190,88 @@ export class AnticGtiaRenderer {
           }
         }
       }
+
+      if (this.fullMapCtx && !this.isLockstep) {
+        this.renderFullZoneMap(regs, chbase);
+      }
     }
 
     this.ctx.putImageData(this.imageData, 0, 0);
+  }
+
+  renderFullZoneMapIfPresent() {
+    if (!this.fullMapCtx) return;
+    const ram = this.memory.ram;
+    const regs = {
+      COLPF0: ram[0x02C4],
+      COLPF1: ram[0x02C5],
+      COLPF2: ram[0x02C6],
+      COLPF3: ram[0x02C7],
+      COLBK: ram[0x02C8],
+    };
+    const chbase = (ram[0x02F4] << 8) & 0xFFFF;
+    this.renderFullZoneMap(regs, chbase);
+  }
+
+  renderFullZoneMap(regs, chbase) {
+    const ram = this.memory.ram;
+    const fbuf = this.fullMapImageData.data;
+    const mapWidthPx = 992; // 62 tiles * 16 px = 124 chars * 8 px
+
+    for (let chRow = 0; chRow < 64; chRow++) {
+      const rowBaseAddr = 0x1C00 + chRow * 128;
+      for (let s = 0; s < 8; s++) {
+        const py = chRow * 8 + s;
+        const rowPixelOffset = py * mapWidthPx;
+        for (let chCol = 0; chCol < 124; chCol++) {
+          // Tiles tx=0..61 reside at screen character columns 2..125
+          const charCode = ram[(rowBaseAddr + chCol + 2) & 0xFFFF];
+          const charIndex = charCode & 0x7F;
+          const usePF3 = (charCode & 0x80) !== 0;
+          const glyphByte = ram[(chbase + (charIndex << 3) + s) & 0xFFFF];
+          const basePx = chCol * 8;
+
+          for (let px = 0; px < 4; px++) {
+            const bitPair = (glyphByte >> (6 - (px << 1))) & 0x03;
+            let colorReg;
+            if (bitPair === 0) colorReg = regs.COLBK;
+            else if (bitPair === 1) colorReg = regs.COLPF0;
+            else if (bitPair === 2) colorReg = regs.COLPF1;
+            else colorReg = usePF3 ? regs.COLPF3 : regs.COLPF2;
+            const rgb = this.palPalette[colorReg];
+
+            const idx0 = (rowPixelOffset + basePx + (px << 1)) << 2;
+            fbuf[idx0] = rgb[0];
+            fbuf[idx0 + 1] = rgb[1];
+            fbuf[idx0 + 2] = rgb[2];
+            fbuf[idx0 + 3] = 255;
+
+            const idx1 = idx0 + 4;
+            fbuf[idx1] = rgb[0];
+            fbuf[idx1 + 1] = rgb[1];
+            fbuf[idx1 + 2] = rgb[2];
+            fbuf[idx1 + 3] = 255;
+          }
+        }
+      }
+    }
+
+    this.fullMapCtx.putImageData(this.fullMapImageData, 0, 0);
+
+    // Highlight current 40x25 CRT viewport and Player Tile (I) on the 62x32 map
+    const pxChar = ram[0x0560];
+    const pyChar = ram[0x0561];
+    const camX = pxChar < 0x16 ? 0 : Math.min(0x54, pxChar - 0x14);
+    const camY = pyChar < 0x0C ? 0 : Math.min(0x28, pyChar - 0x0A);
+
+    this.fullMapCtx.strokeStyle = "rgba(56, 189, 248, 0.85)";
+    this.fullMapCtx.lineWidth = 2;
+    this.fullMapCtx.strokeRect(Math.max(0, (camX - 2) * 8), camY * 8, 40 * 8, 25 * 8);
+
+    const playerTileX = Math.floor(pxChar / 2) - 1;
+    const playerTileY = Math.floor(pyChar / 2);
+    this.fullMapCtx.strokeStyle = "#facc15";
+    this.fullMapCtx.lineWidth = 2;
+    this.fullMapCtx.strokeRect(playerTileX * 16, playerTileY * 16, 16, 16);
   }
 }

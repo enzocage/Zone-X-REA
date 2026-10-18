@@ -40,9 +40,9 @@
         </label>
         <label>Option Level:
           <select id="ui-level-select">
-            <option value="1">Level 1</option>
+            <option value="1" selected>Level 1</option>
             <option value="2">Level 2</option>
-            <option value="3" selected>Level 3</option>
+            <option value="3">Level 3</option>
           </select>
         </label>
         <button id="btn-audio-toggle" type="button">Enable POKEY Audio</button>
@@ -51,23 +51,35 @@
     </header>
 
     <main class="main-stage">
-      <div class="crt-frame" id="crt-container">
-        <canvas id="atari-canvas" width="336" height="240"></canvas>
-        <div class="crt-overlay" id="crt-overlay"></div>
+      <div class="stage-left">
+        <div class="crt-frame" id="crt-container">
+          <canvas id="atari-canvas" width="336" height="240"></canvas>
+          <div class="crt-overlay" id="crt-overlay"></div>
+        </div>
+
+        <section class="full-map-panel">
+          <div class="full-map-header">
+            <h2>Full Zone Playfield Map (62 &times; 32 Meta-Tiles = $0B00..$12BF / $1C00..$3BFF)</h2>
+            <span>Click any tile on the 62&times;32 map to move camera &amp; player</span>
+          </div>
+          <div class="full-map-scroll">
+            <canvas id="full-map-canvas" width="992" height="512"></canvas>
+          </div>
+        </section>
       </div>
 
       <aside class="telemetry-panel">
         <h2>6502 / ANTIC / POKEY Telemetry</h2>
         <div class="telemetry-grid">
-          <div><span>Zone ($0555):</span> <strong id="dbg-zone">1</strong></div>
-          <div><span>Player Tile ($055B):</span> <strong id="dbg-player-xy">(17, 23)</strong></div>
-          <div><span>Char XY ($0560/61):</span> <strong id="dbg-char-xy">(34, 46)</strong></div>
+          <div><span>Zone ($0558/$0555):</span> <strong id="dbg-zone">1 (ROM #4)</strong></div>
+          <div><span>Player Tile ($055B):</span> <strong id="dbg-player-xy">(26, 29)</strong></div>
+          <div><span>Char XY ($0560/61):</span> <strong id="dbg-char-xy">(54, 58)</strong></div>
           <div><span>DL ($0230/31):</span> <strong id="dbg-dlist">$3C8B</strong></div>
-          <div><span>First LMS ($3C94):</span> <strong id="dbg-lms0">$2E0E</strong></div>
+          <div><span>First LMS ($3C94):</span> <strong id="dbg-lms0">$3322</strong></div>
           <div><span>HSCROL/VSCROL:</span> <strong id="dbg-scroll">$06 / $06</strong></div>
           <div><span>Timer BCD ($9E/9F):</span> <strong id="dbg-timer">0950</strong></div>
           <div><span>Score BCD ($C1/C2):</span> <strong id="dbg-score">0000</strong></div>
-          <div><span>Plutonium ($0598):</span> <strong id="dbg-plutonium">12</strong></div>
+          <div><span>Plutonium ($0598):</span> <strong id="dbg-plutonium">9</strong></div>
           <div><span>Mats ($0576):</span> <strong id="dbg-mats">0</strong></div>
           <div><span>Inventory:</span> <strong id="dbg-inv">NONE</strong></div>
           <div><span>POKEY ($D200..07):</span> <strong id="dbg-pokey">00 00 00 00</strong></div>

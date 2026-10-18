@@ -3,7 +3,7 @@
 """
 scripts/03_extract_assets.py
 Deterministische Asset-Extraktion aus dem RAM-Image von Zone X.
-Erzeugt das strukturierte Bundle zonex-web/assets/zonex_rom_bundle.json.
+Erzeugt zonex-web/assets/zonex_rom_bundle.json, zonex_rom_bundle.js und zonex_standalone.js.
 """
 
 import json
@@ -40,7 +40,11 @@ def generate_atari_pal_palette():
 
 
 def main():
-    ram = open("build/ram_relocated.bin", "rb").read()
+    ram = bytearray(open("build/ram_relocated.bin", "rb").read())
+
+    # Populate R ($5575: $C8..$CB) and r ($557C: $4C..$4F) into Meta-Tile slots 26 & 27
+    ram[0x6D42 + 26 * 4 : 0x6D42 + 27 * 4] = bytes([0xC8, 0xC9, 0xCA, 0xCB])
+    ram[0x6D42 + 27 * 4 : 0x6D42 + 28 * 4] = bytes([0x4C, 0x4D, 0x4E, 0x4F])
 
     assets_dir = Path("zonex-web/assets")
     assets_dir.mkdir(exist_ok=True, parents=True)
@@ -52,11 +56,11 @@ def main():
     meta_tiles = []
     tile_table_raw = ram[0x6D42 : 0x6D42 + 32 * 4]
     tile_names = [
-        "FLOOR", "WALL", "DOOR", "WALL_ALT", "CRUMBLY", "BLOCK",
-        "PLUTONIUM", "KEY", "LASER_H", "AIRDOORS", "SLAM", "SPADE",
-        "WARP", "MATS", "MATS_2", "MATS_3", "LOCKED", "TIME",
-        "LASER_V", "LOCK", "CONTAINER", "BONUS", "DOOR_SPECIAL",
-        "DECOR_1", "DECOR_2", "LASER_GEN", "EMPTY_26", "EMPTY_27",
+        "FLOOR", "WALL", "WARP_L", "WARP_R", "KEY", "CAPSULE",
+        "PLUTONIUM", "DOOR", "WARP_PAD", "AIRDOORS", "LASER_LU", "PLAYER_START_I",
+        "SLAM", "LASER_U", "LASER_DR", "LASER_D", "CONTAINER", "MATS",
+        "LOCK_C", "TIME", "MYSTERY", "SPADE", "EXIT_O", "LASER_BEAM",
+        "LOCKED", "CRUMBLY", "ROBOT_R", "ROBOT_r",
         "EMPTY_28", "EMPTY_29", "EMPTY_30", "EMPTY_31"
     ]
     for t in range(32):
@@ -84,33 +88,14 @@ def main():
         "pcolr1": 0x18
     }
 
-    # 4. Zonen-Daten (1 bis 12) inkl. Zone-Farbpaletten ($A2C4) & Roboter ($A438/$A450/$A468)
-    zones = []
-    for z in range(12):
-        zdata = unpack_zone(ram, z, difficulty=2)
-        zdata["colors"] = list(ram[0xA2C4 + z * 4 : 0xA2C4 + (z + 1) * 4])
+    # 4. Zonen-Daten (1 bis 12) für alle 3 Option Levels (0=Level 1, 1=Level 2, 2=Level 3)
+    zones_by_level = []
+    for diff in range(3):
+        level_zones = [unpack_zone(ram, z, difficulty=diff) for z in range(12)]
+        zones_by_level.append(level_zones)
 
-        p0 = ram[0xA438 + z * 2] | (ram[0xA438 + z * 2 + 1] << 8)
-        p1 = ram[0xA450 + z * 2] | (ram[0xA450 + z * 2 + 1] << 8)
-        p2 = ram[0xA468 + z * 2] | (ram[0xA468 + z * 2 + 1] << 8)
-
-        robots = []
-        for ptr in [p0, p1, p2]:
-            cnt = ram[ptr]
-            for r in range(cnt):
-                rx = ram[ptr + 1 + r * 4]
-                ry = ram[ptr + 1 + r * 4 + 1]
-                rdir = ram[ptr + 1 + r * 4 + 2]
-                rspd = ram[ptr + 1 + r * 4 + 3]
-                robots.append({
-                    "x": rx,
-                    "y": ry,
-                    "dir": rdir,
-                    "speed": rspd
-                })
-
-        zdata["robots"] = robots
-        zones.append(zdata)
+    # Default zones = Option Level 1 (matching the Excel sheets and game boot default)
+    zones = zones_by_level[0]
 
     # 5. Screen & Display List Templates (Title, Features $939C, Hall of Fame, HUD)
     screens_data = {
@@ -149,19 +134,18 @@ def main():
         "meta_tiles": meta_tiles,
         "sprites": sprites,
         "zones": zones,
+        "zones_by_level": zones_by_level,
         "screens_data": screens_data,
         "audio_tables": audio_tables,
         "atari_pal_palette": palette
     }
 
     out_file = assets_dir / "zonex_rom_bundle.json"
-    json_text = json.dumps(bundle, indent=2)
-    out_file.write_text(json_text, encoding="utf-8")
+    out_file.write_text(json.dumps(bundle, indent=2), encoding="utf-8")
 
     js_bundle_file = assets_dir / "zonex_rom_bundle.js"
     js_bundle_file.write_text(f"window.ZONEX_ROM_BUNDLE = {json.dumps(bundle)};\n", encoding="utf-8")
 
-    # Build classic script bundle zonex-web/js/zonex_standalone.js for file:// compatibility
     js_root = Path("zonex-web/js")
     module_order = [
         "hardware/input_bridge.js",

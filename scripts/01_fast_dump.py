@@ -16,7 +16,7 @@ from pathlib import Path
 import sys
 
 sys.path.append(str(Path(__file__).parent))
-from unpack_all_zones import unpack_zone
+from unpack_all_zones import unpack_zone, MAP_WIDTH, MAP_HEIGHT
 
 
 def generate_atari_pal_palette():
@@ -55,7 +55,7 @@ def write_png_rgb(path: Path, width: int, height: int, rgb_bytes: bytes):
     raw_rows = bytearray()
     stride = width * 3
     for y in range(height):
-        raw_rows.append(0)  # Filter type 0 (None)
+        raw_rows.append(0)
         raw_rows.extend(rgb_bytes[y * stride : (y + 1) * stride])
 
     ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
@@ -65,10 +65,6 @@ def write_png_rgb(path: Path, width: int, height: int, rgb_bytes: bytes):
 
 
 def verify_playfield_display_list(ram_64k: bytes) -> dict:
-    """
-    Prüft, ob die aktive ANTIC Display List (SDLSTL/H $0230/$0231 bzw. DLISTL/H)
-    oder der bekannte Playfield-DL-Bereich die 24 gescrollten Mode-4-Zeilen ($74) enthält.
-    """
     lms_pointers = []
     for pos in range(0x0400, 0xC000):
         if ram_64k[pos] == 0x74 and ram_64k[pos + 3] == 0x74 and ram_64k[pos + 6] == 0x74:
@@ -93,7 +89,6 @@ def verify_playfield_display_list(ram_64k: bytes) -> dict:
 
 
 def validate_all_zone_dumps(zone_dir: Path):
-    """Gatekeeper-Assertion: Stellt sicher, dass alle 12 Zonen-Dumps existieren und distinkt sind."""
     hashes = set()
     report = {}
     for z in range(1, 13):
@@ -115,37 +110,48 @@ def validate_all_zone_dumps(zone_dir: Path):
     return report
 
 
-def expand_playfield_and_lms(ram: bytearray, zdata: dict, zone_idx: int):
+def expand_playfield_and_lms(ram: bytearray, zdata: dict):
     """
-    1:1 Portierung der 6502-Routinen $4462..$456A & $62E2..$6348:
-    - Expandiert die 64x32 Tile-Matrix ($0B00..$12FF) über die Meta-Tile-Tabelle ($6D42)
-      in den 128x64 Charakter-Puffer ($1C00..$3BFF).
-    - Berechnet die Kamera-Startadresse ($0577/$0578) aus der Spielerposition ($0560/$0561)
-      und schreibt alle 25 LMS-Zeiger in die Display List ab $3C94.
+    1:1 Portierung der 6502-Routinen $428E..$435E, $4DCC..$4E36 & $4462..$44DC:
+    - Setzt R ($5575: $C8..$CB) und r ($557C: $4C..$4F) in die Meta-Tile-Slots 26 & 27 ($6D42).
+    - Expandiert die 62x32 Tile-Matrix ($0B00..$12BF) inkl. 2-Char-Randspalten in den
+      128x64 Charakter-Puffer ($1C00..$3BFF).
+    - Berechnet $0560 = (player_x + 1) * 2 und $0561 = player_y * 2 ($4DCC)
+      und schreibt alle 25 LMS-Zeiger in die Display List ab $3C94 ($4462).
     """
-    # 1. Expand 64x32 tiles ($0B00) into 128x64 chars ($1C00..$3BFF)
-    for ty in range(32):
-        for tx in range(64):
-            tile_id = ram[0x0B00 + ty * 64 + tx] & 0x1F
+    # Store R (Tile 26) and r (Tile 27) character quads at $6D42 + 26*4 and 27*4 ($5575/$557C)
+    ram[0x6D42 + 26 * 4 : 0x6D42 + 27 * 4] = bytes([0xC8, 0xC9, 0xCA, 0xCB])
+    ram[0x6D42 + 27 * 4 : 0x6D42 + 28 * 4] = bytes([0x4C, 0x4D, 0x4E, 0x4F])
+
+    for ty in range(MAP_HEIGHT):
+        row0_base = 0x1C00 + (ty * 2) * 128
+        row1_base = 0x1C00 + (ty * 2 + 1) * 128
+        # Left & right 2-char border walls ($429E & $4312)
+        ram[row0_base : row0_base + 2] = bytes([0x01, 0x02])
+        ram[row1_base : row1_base + 2] = bytes([0x03, 0x01])
+        ram[row0_base + 126 : row0_base + 128] = bytes([0x01, 0x02])
+        ram[row1_base + 126 : row1_base + 128] = bytes([0x03, 0x01])
+
+        for tx in range(MAP_WIDTH):
+            tile_id = ram[0x0B00 + ty * MAP_WIDTH + tx] & 0x1F
             meta_base = 0x6D42 + tile_id * 4
             c0 = ram[meta_base + 0]
             c1 = ram[meta_base + 1]
             c2 = ram[meta_base + 2]
             c3 = ram[meta_base + 3]
-            row0_addr = 0x1C00 + (ty * 2) * 128 + (tx * 2)
-            row1_addr = 0x1C00 + (ty * 2 + 1) * 128 + (tx * 2)
-            ram[row0_addr] = c0
-            ram[row0_addr + 1] = c1
-            ram[row1_addr] = c2
-            ram[row1_addr + 1] = c3
+            col_char = (tx + 1) * 2
+            ram[row0_base + col_char] = c0
+            ram[row0_base + col_char + 1] = c1
+            ram[row1_base + col_char] = c2
+            ram[row1_base + col_char + 1] = c3
 
-    # 2. Player char coords ($0560 = player_x * 2, $0561 = player_y * 2)
-    px_char = (zdata["player_start"]["x"] * 2) & 0xFF
+    # $4DCC..$4E36: Player char coords ($0560 = (player_x + 1) * 2, $0561 = player_y * 2)
+    px_char = ((zdata["player_start"]["x"] + 1) * 2) & 0xFF
     py_char = (zdata["player_start"]["y"] * 2) & 0xFF
     ram[0x0560] = px_char
     ram[0x0561] = py_char
 
-    # 3. Camera base address calculation ($4462..$44DC)
+    # $4462..$44DC: Camera base address calculation
     cam_addr = 0x1C00
     if py_char >= 0x0C:
         row_scroll = py_char - 0x0A
@@ -159,7 +165,6 @@ def expand_playfield_and_lms(ram: bytearray, zdata: dict, zone_idx: int):
             col_scroll = 0x54
         cam_addr = (cam_addr + col_scroll) & 0xFFFF
 
-    # Write 25 LMS pointers at $3C94 + row * 3
     cur_lms = cam_addr
     for row in range(25):
         dl_entry = 0x3C93 + row * 3
@@ -169,24 +174,25 @@ def expand_playfield_and_lms(ram: bytearray, zdata: dict, zone_idx: int):
 
     ram[0x0577] = cur_lms & 0xFF
     ram[0x0578] = (cur_lms >> 8) & 0xFF
-    ram[0x05BC] = 0x06  # Fine-scroll center state
-    ram[0xD404] = 0x06  # HSCROL
-    ram[0xD405] = 0x06  # VSCROL
+    ram[0x05BC] = 0x06
+    ram[0xD404] = 0x06
+    ram[0xD405] = 0x06
 
 
-def build_zone_ram(ram_relocated: bytes, zone_idx: int) -> bytearray:
-    """Baut das bitgenaue 64KB RAM-Abbild für Zone zone_idx (0..11) auf."""
+def build_zone_ram(ram_relocated: bytes, game_zone_idx: int) -> bytearray:
+    """Baut das bitgenaue 64KB RAM-Abbild für Game Zone (0..11 = Zone 1..12, Option Level 1) auf."""
     ram = bytearray(ram_relocated)
 
-    # 1. Unpack zone data into $0B00
-    zdata = unpack_zone(ram_relocated, zone_idx, difficulty=2)
+    # 1. Unpack 62x32 zone data into $0B00..$12BF
+    zdata = unpack_zone(ram_relocated, game_zone_idx, difficulty=0)
     pf_bytes = zdata["playfield_bytes"]
     for i in range(len(pf_bytes)):
         ram[0x0B00 + i] = pf_bytes[i]
 
-    # 2. Set zone variables & BCD timer/score ($6299..$6348)
-    ram[0x0555] = zone_idx
-    ram[0x0556] = 2  # Option Level 3 (index 2)
+    # 2. Set zone variables ($0558 = selected zone 0..11, $0555 = internal_zone_idx)
+    ram[0x0558] = game_zone_idx
+    ram[0x0555] = zdata["internal_zone_idx"]
+    ram[0x0556] = 0  # Option Level 1 (difficulty 0)
     ram[0x0598] = zdata["plutonium_count"]
     ram[0x05B3] = zdata["container_count"]
     ram[0x055B] = zdata["player_start"]["offset"] & 0xFF
@@ -195,7 +201,6 @@ def build_zone_ram(ram_relocated: bytes, zone_idx: int) -> bytearray:
     ram[0x055E] = zdata["player_start"]["sprite"]
     ram[0x055F] = 0x03
 
-    # BCD Timer ($009E/$009F & $059E/$059F) and Lives ($05D4)
     ram[0x009E] = 0x50
     ram[0x009F] = 0x09
     ram[0x059E] = 0x50
@@ -203,33 +208,30 @@ def build_zone_ram(ram_relocated: bytes, zone_idx: int) -> bytearray:
     ram[0x00C1] = 0x00
     ram[0x00C2] = 0x00
 
-    # 3. Copy HUD templates ($3E53 -> $0414, $3E67 -> $0428) and format zone number & timer
+    # 3. Copy HUD templates ($3E53 -> $0414, $3E67 -> $0428)
     for i in range(20):
         ram[0x0400 + i] = 0x00
         ram[0x0414 + i] = ram[0x3E53 + i]
         ram[0x0428 + i] = ram[0x3E67 + i]
 
-    # Put zone number in HUD ($0414+5..6) and time in ($0400+7..10)
-    z_num = zone_idx + 1
+    z_num = game_zone_idx + 1
     if z_num >= 10:
         ram[0x0414 + 5] = 0xD0 + (z_num // 10)
         ram[0x0414 + 6] = 0xD0 + (z_num % 10)
     else:
         ram[0x0414 + 5] = 0xD0 + z_num
-    ram[0x0414 + 19] = 0xD3  # 3 men
+    ram[0x0414 + 19] = 0xD3
 
-    # Upper HUD row 0 ($0400..$0413): Score (left) and Timer (right)
-    ram[0x0400 + 5] = 0x50  # '0' score
-    ram[0x0400 + 16] = 0x59  # '9'
-    ram[0x0400 + 17] = 0x55  # '5'
-    ram[0x0400 + 18] = 0x50  # '0'
+    ram[0x0400 + 5] = 0x50
+    ram[0x0400 + 16] = 0x59
+    ram[0x0400 + 17] = 0x55
+    ram[0x0400 + 18] = 0x50
 
-    # Lower HUD ($0428..$043B): Plutonium remaining bars
     for i in range(min(20, zdata["plutonium_count"])):
         ram[0x0428 + i] = 0x85
 
-    # 4. Expand playfield to $1C00..$3BFF and set 25 LMS pointers at $3C94
-    expand_playfield_and_lms(ram, zdata, zone_idx)
+    # 4. Expand 62x32 playfield to $1C00..$3BFF and set 25 LMS pointers at $3C94
+    expand_playfield_and_lms(ram, zdata)
 
     # 5. Setup Display List Shadow Registers ($3C8B)
     ram[0x0230] = 0x8B
@@ -243,24 +245,23 @@ def build_zone_ram(ram_relocated: bytes, zone_idx: int) -> bytearray:
     ram[0x02F4] = 0x18
     ram[0xD409] = 0x18
 
-    # 7. Set authentic per-zone colors from $A2C4 + zone_idx * 4 ($62E9..$62FC)
-    c_base = 0xA2C4 + zone_idx * 4
+    # 7. Set authentic per-zone colors from $A2C4 + internal_zone_idx * 4 ($62E9..$62FC)
+    cols = zdata["colors"]
     for i in range(4):
-        ram[0x02C4 + i] = ram[c_base + i]
-        ram[0xD016 + i] = ram[c_base + i]
+        ram[0x02C4 + i] = cols[i]
+        ram[0xD016 + i] = cols[i]
     ram[0x02C8] = 0x00
     ram[0xD01A] = 0x00
-    ram[0x02C0] = 0xA6  # PCOLR0
-    ram[0x02C1] = 0x18  # PCOLR1
-    ram[0xD012] = 0xA6  # COLPM0
-    ram[0xD013] = 0x18  # COLPM1
+    ram[0x02C0] = 0xA6
+    ram[0x02C1] = 0x18
+    ram[0xD012] = 0xA6
+    ram[0xD013] = 0x18
 
     return ram
 
 
 def build_title_ram(ram_relocated: bytes) -> bytearray:
     ram = bytearray(ram_relocated)
-    # Title / Menu Display List & screen buffer
     ram[0x0230] = 0xE5
     ram[0x0231] = 0x3C
     ram[0xD402] = 0xE5
@@ -276,7 +277,6 @@ def build_title_ram(ram_relocated: bytes) -> bytearray:
     ram[0x02C8] = 0x00
     for i in range(5):
         ram[0xD016 + i] = ram[0x02C4 + i]
-    # Populate title text at $0400..$04FF from $3DB3..$3E52
     for i in range(160):
         ram[0x0400 + i] = ram[0x3DB3 + i]
     return ram
@@ -284,7 +284,6 @@ def build_title_ram(ram_relocated: bytes) -> bytearray:
 
 def build_features_ram(ram_relocated: bytes) -> bytearray:
     ram = bytearray(ram_relocated)
-    # Feature screen display list at $939C
     ram[0x0230] = 0x9C
     ram[0x0231] = 0x93
     ram[0xD402] = 0x9C
@@ -324,11 +323,6 @@ def build_halloffame_ram(ram_relocated: bytes) -> bytearray:
 
 
 def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
-    """
-    Renders a 64KB Atari RAM snapshot into a 336x240 RGB framebuffer following the exact
-    ANTIC Display List (Mode 2, Mode 4, Mode 6, Mode 7, Blank lines, LMS, DLI) and GTIA PAL palette.
-    Matches antic_gtia.js pixel-for-pixel.
-    """
     fb = bytearray(width * height * 3)
     colpf0 = ram[0x02C4]
     colpf1 = ram[0x02C5]
@@ -345,10 +339,10 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
     dl_addr = ram[0x0230] | (ram[0x0231] << 8)
     chbase = (ram[0x02F4] << 8) & 0xFFFF
 
-    scanline_y = 8  # Top border offset inside 240p frame
+    scanline_y = 8
     pc = dl_addr
     cur_lms = 0
-    x_offset = 8  # 320px active playfield centered inside 336px canvas
+    x_offset = 8
 
     def put_px(x: int, y: int, rgb: tuple):
         if 0 <= x < width and 0 <= y < height:
@@ -363,7 +357,7 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
         ir = ram[pc & 0xFFFF]
         pc = (pc + 1) & 0xFFFF
 
-        if ir == 0x41:  # JVB (Jump and wait for Vertical Blank)
+        if ir == 0x41:
             break
 
         mode = ir & 0x0F
@@ -380,7 +374,7 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
             pc = (pc + 2) & 0xFFFF
             cur_lms = (hi << 8) | lo
 
-        if mode == 4:  # ANTIC Mode 4 (40 chars x 8 scanlines, 4-color + Bit 7 PF3)
+        if mode == 4:
             for s in range(8):
                 if scanline_y >= height:
                     break
@@ -406,7 +400,7 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
                 scanline_y += 1
             cur_lms = (cur_lms + 40) & 0xFFFF
 
-        elif mode == 6:  # ANTIC Mode 6 (20 chars x 8 scanlines, 4-color text mapped via upper 2 bits)
+        elif mode == 6:
             for s in range(8):
                 if scanline_y >= height:
                     break
@@ -427,7 +421,7 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
                 scanline_y += 1
             cur_lms = (cur_lms + 20) & 0xFFFF
 
-        elif mode == 2:  # ANTIC Mode 2 (40 chars x 8 scanlines, high-res 1-bit text)
+        elif mode == 2:
             for s in range(8):
                 if scanline_y >= height:
                     break
@@ -447,14 +441,12 @@ def render_ram_to_rgb(ram: bytes, width: int = 336, height: int = 240) -> bytes:
         else:
             scanline_y += 8
 
-    # Overlay Player Sprite (P0 + P1 multicolor) if in-game ($3C8B DL)
     if dl_addr == 0x3C8B:
         p0_col = PAL_PALETTE[ram[0x02C0]]
         p1_col = PAL_PALETTE[ram[0x02C1]]
         f_idx = (ram[0x055E] % 3) * 16
         p0_shape = ram[0x69D2 + f_idx : 0x69E2 + f_idx]
         p1_shape = ram[0x6B12 + f_idx : 0x6B22 + f_idx]
-        # Center / start screen coordinates of player
         px_char = ram[0x0560]
         py_char = ram[0x0561]
         cam_x = 0 if px_char < 0x16 else min(0x54, px_char - 0x14)
@@ -484,11 +476,10 @@ def main():
 
     ram_relocated_file = build_dir / "ram_relocated.bin"
     if not ram_relocated_file.exists():
-        raise FileNotFoundError(f"{ram_relocated_file} nicht gefunden. Führe zuerst load_ram.py / emu6502.py aus.")
+        raise FileNotFoundError(f"{ram_relocated_file} nicht gefunden.")
 
     ram_relocated = ram_relocated_file.read_bytes()
 
-    # 1. Title, Features, Hall of Fame Dumps + Reference PNGs
     title_ram = build_title_ram(ram_relocated)
     (zone_dir / "ram_title.bin").write_bytes(title_ram)
     write_png_rgb(zone_dir / "ref_title.png", 336, 240, render_ram_to_rgb(title_ram))
@@ -501,17 +492,14 @@ def main():
     (zone_dir / "ram_halloffame.bin").write_bytes(hof_ram)
     write_png_rgb(zone_dir / "ref_halloffame.png", 336, 240, render_ram_to_rgb(hof_ram))
 
-    # 2. Dumps & Reference PNGs für alle 12 Zonen erzeugen
     for z in range(12):
         zone_ram = build_zone_ram(ram_relocated, z)
         dump_path = zone_dir / f"ram_zone_{z+1:02d}.bin"
         dump_path.write_bytes(zone_ram)
-        png_path = zone_dir / f"ref_zone_{z+1:02d}.bin.png"
         write_png_rgb(zone_dir / f"ref_zone_{z+1:02d}.png", 336, 240, render_ram_to_rgb(zone_ram))
 
     print(f"Generated 15 RAM dumps and 15 lossless reference PNGs in {zone_dir}")
 
-    # 3. Gatekeeper Validation ausführen
     report = validate_all_zone_dumps(zone_dir)
     summary_path = build_dir / "phase1_dump_summary.json"
     summary_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
