@@ -411,6 +411,90 @@ export class ZoneXApp {
         crtOverlay.classList.toggle("active");
       });
     }
+
+    const crtContainer = document.getElementById("crt-container");
+    const btnFullscreen = document.getElementById("btn-fullscreen-toggle");
+    const btnCamFullscreen = document.getElementById("btn-cam-fullscreen");
+
+    const updateFullscreenUI = () => {
+      const nativeFs =
+        document.fullscreenElement === crtContainer ||
+        document.webkitFullscreenElement === crtContainer;
+      const cssFs = crtContainer ? crtContainer.classList.contains("is-fullscreen") : false;
+      const isFs = Boolean(nativeFs || cssFs);
+      if (crtContainer && nativeFs && !cssFs) {
+        crtContainer.classList.add("is-fullscreen");
+      } else if (crtContainer && !nativeFs && this._wasNativeFs) {
+        crtContainer.classList.remove("is-fullscreen");
+      }
+      this._wasNativeFs = Boolean(nativeFs);
+      const activeFs = crtContainer ? crtContainer.classList.contains("is-fullscreen") : false;
+      document.body.classList.toggle("fullscreen-active", activeFs);
+      if (btnFullscreen) {
+        btnFullscreen.textContent = activeFs ? "✕ Vollbild beenden" : "⛶ Vollbild";
+      }
+      if (btnCamFullscreen) {
+        btnCamFullscreen.textContent = activeFs ? "✕ Beenden" : "⛶ Vollbild";
+      }
+      this.renderer.render3DPass();
+    };
+
+    this.toggleFullscreen = async () => {
+      if (!crtContainer) return;
+      const isCurrentlyFs =
+        document.fullscreenElement === crtContainer ||
+        document.webkitFullscreenElement === crtContainer ||
+        crtContainer.classList.contains("is-fullscreen");
+
+      if (isCurrentlyFs) {
+        crtContainer.classList.remove("is-fullscreen");
+        document.body.classList.remove("fullscreen-active");
+        if (document.fullscreenElement || document.webkitFullscreenElement) {
+          try {
+            if (document.exitFullscreen) await document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+          } catch (_) {
+            // Fallback already handled via CSS class removal
+          }
+        }
+      } else {
+        crtContainer.classList.add("is-fullscreen");
+        document.body.classList.add("fullscreen-active");
+        try {
+          if (crtContainer.requestFullscreen) {
+            await crtContainer.requestFullscreen();
+          } else if (crtContainer.webkitRequestFullscreen) {
+            crtContainer.webkitRequestFullscreen();
+          }
+        } catch (_) {
+          // CSS .is-fullscreen fallback expands viewport to 100vw x 100vh
+        }
+      }
+      updateFullscreenUI();
+    };
+
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener("click", () => this.toggleFullscreen());
+    }
+    if (btnCamFullscreen) {
+      btnCamFullscreen.addEventListener("click", () => this.toggleFullscreen());
+    }
+
+    document.addEventListener("fullscreenchange", updateFullscreenUI);
+    document.addEventListener("webkitfullscreenchange", updateFullscreenUI);
+
+    window.addEventListener("keydown", (e) => {
+      const tag = e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
+      if (tag === "input" || tag === "select" || tag === "textarea") return;
+      if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        this.toggleFullscreen();
+      } else if (e.key === "Escape" && crtContainer && crtContainer.classList.contains("is-fullscreen")) {
+        crtContainer.classList.remove("is-fullscreen");
+        document.body.classList.remove("fullscreen-active");
+        updateFullscreenUI();
+      }
+    });
   }
 
   /**
@@ -434,13 +518,26 @@ export class ZoneXApp {
       : this.state.selectedZoneNumber;
     const romZoneIdx = this.state.romZoneIndex;
 
+    const zoneStr = `ZONE ${String(gameZoneNum).padStart(2, "0")}`;
+    const livesStr = `${this.state.ram[SystemAddressMap.LIVES_COUNT]}`;
+    const plutStr = `${this.state.remainingPlutonium}`;
+    const contStr = `${this.state.ram[SystemAddressMap.CONTAINERS_REMAINING]}`;
+    const matsStr = `${this.state.insulatingMatsCount}`;
+
     // Holographic HUD cards
-    setTxt("hud-zone-val", `ZONE ${String(gameZoneNum).padStart(2, "0")}`);
+    setTxt("hud-zone-val", zoneStr);
     setTxt("hud-score-val", this.state.scoreHex);
-    setTxt("hud-lives-val", `${this.state.ram[SystemAddressMap.LIVES_COUNT]}`);
-    setTxt("hud-plutonium-val", `${this.state.remainingPlutonium}`);
-    setTxt("hud-containers-val", `${this.state.ram[SystemAddressMap.CONTAINERS_REMAINING]}`);
-    setTxt("hud-mats-val", `${this.state.insulatingMatsCount}`);
+    setTxt("hud-lives-val", livesStr);
+    setTxt("hud-plutonium-val", plutStr);
+    setTxt("hud-containers-val", contStr);
+    setTxt("hud-mats-val", matsStr);
+
+    // Compact Fullscreen HUD bar
+    setTxt("fs-hud-zone", zoneStr);
+    setTxt("fs-hud-score", this.state.scoreHex);
+    setTxt("fs-hud-lives", livesStr);
+    setTxt("fs-hud-plutonium", plutStr);
+    setTxt("fs-hud-containers", contStr);
 
     // Radiation & Sector Countdown Gauge (4-digit BCD at $059D:$059E)
     const bcdHi = this.state.ram[0x059d] & 0xff;
@@ -453,6 +550,8 @@ export class ZoneXApp {
     const timerHexStr =
       bcdHi.toString(16).toUpperCase().padStart(2, "0") +
       bcdLo.toString(16).toUpperCase().padStart(2, "0");
+
+    setTxt("fs-hud-timer", screenMode === ScreenMode.IN_GAME && timerVal > 0 ? timerHexStr : "SAFE");
 
     const radBar = document.getElementById("hud-radiation-fill");
     const radText = document.getElementById("hud-radiation-text");
@@ -474,10 +573,21 @@ export class ZoneXApp {
       const el = document.getElementById(id);
       if (el) el.classList.toggle("active", Boolean(active));
     };
-    toggleBadge("badge-inv-key", this.state.ram[SystemAddressMap.INV_HAS_KEY] > 0);
-    toggleBadge("badge-inv-mask", this.state.ram[SystemAddressMap.INV_HAS_MASK] > 0);
-    toggleBadge("badge-inv-spade", this.state.ram[SystemAddressMap.INV_HAS_SPADE] > 0);
-    toggleBadge("badge-inv-mats", this.state.insulatingMatsCount > 0);
+    const hasKey = this.state.ram[SystemAddressMap.INV_HAS_KEY] > 0;
+    const hasMask = this.state.ram[SystemAddressMap.INV_HAS_MASK] > 0;
+    const hasSpade = this.state.ram[SystemAddressMap.INV_HAS_SPADE] > 0;
+    const hasMats = this.state.insulatingMatsCount > 0;
+    toggleBadge("badge-inv-key", hasKey);
+    toggleBadge("badge-inv-mask", hasMask);
+    toggleBadge("badge-inv-spade", hasSpade);
+    toggleBadge("badge-inv-mats", hasMats);
+
+    const fsInvIcons = [];
+    if (hasKey) fsInvIcons.push("🔑");
+    if (hasMask) fsInvIcons.push("🛡️");
+    if (hasSpade) fsInvIcons.push("⛏️");
+    if (hasMats) fsInvIcons.push(`🟨×${this.state.insulatingMatsCount}`);
+    setTxt("fs-hud-inv", fsInvIcons.join(" "));
 
     // Hardware Diagnostics Telemetry
     setTxt("dbg-zone", `${gameZoneNum} (ROM #$${romZoneIdx.toString(16).toUpperCase()})`);

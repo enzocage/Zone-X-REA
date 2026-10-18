@@ -95,6 +95,7 @@
         <button id="btn-hz-toggle" type="button" title="Zwischen 50 Hz (PAL) und 60 Hz (NTSC) umschalten">Mode: 50 Hz (PAL)</button>
         <button id="btn-audio-toggle" type="button" class="btn-audio">🔊 Enable FM Audio</button>
         <button id="btn-crt-toggle" type="button">CRT Scanlines</button>
+        <button id="btn-fullscreen-toggle" type="button" class="btn-fullscreen" title="3D-Spiel im Vollbildmodus spielen (Taste F)">⛶ Vollbild</button>
       </div>
     </header>
 
@@ -165,12 +166,24 @@
           <canvas id="atari-canvas" width="336" height="240" class="viewport-2d-hologram"></canvas>
           <div class="crt-overlay" id="crt-overlay"></div>
 
-          <!-- Floating 3D Camera Quick-Controls -->
+          <!-- Compact Translucent Telemetry HUD shown automatically in Fullscreen Mode -->
+          <div class="fullscreen-hud-bar" id="fullscreen-hud-bar">
+            <span class="fs-hud-item"><strong id="fs-hud-zone" class="cyan-glow">ZONE 01</strong></span>
+            <span class="fs-hud-item">SCORE <strong id="fs-hud-score" class="gold-glow">000000</strong></span>
+            <span class="fs-hud-item">ANZÜGE <strong id="fs-hud-lives" class="emerald-glow">5</strong></span>
+            <span class="fs-hud-item">☢ PLUTONIUM <strong id="fs-hud-plutonium" class="emerald-glow">0</strong></span>
+            <span class="fs-hud-item">🛢 CONTAINER <strong id="fs-hud-containers" class="cyan-glow">0</strong></span>
+            <span class="fs-hud-item">⏱ ZEIT <strong id="fs-hud-timer" class="gold-glow">3050</strong></span>
+            <span class="fs-hud-item" id="fs-hud-inv"></span>
+          </div>
+
+          <!-- Floating 3D Camera & Fullscreen Quick-Controls -->
           <div class="cam-quick-bar">
             <button type="button" id="btn-cam-zoom-in" title="Näher heranzoomen">🔍+</button>
             <button type="button" id="btn-cam-zoom-out" title="Weiter herauszoomen">🔍−</button>
             <button type="button" id="btn-cam-tilt-up" title="Steilere Vogelperspektive">📐▲</button>
             <button type="button" id="btn-cam-tilt-down" title="Flacherer 3D-Winkel">📐▼</button>
+            <button type="button" id="btn-cam-fullscreen" class="btn-cam-fs" title="Vollbildmodus umschalten (Taste F / ESC)">⛶ Vollbild</button>
           </div>
         </div>
 
@@ -182,6 +195,7 @@
             <span><strong>Pfeiltasten / WASD:</strong> 3D Bewegung</span>
             <span><strong>Space / Z:</strong> Aktion / Graben / Teleport</span>
             <span><strong>C:</strong> Item wechseln</span>
+            <span><strong>F:</strong> Vollbild</span>
             <span><strong>Mausrad:</strong> 3D Kamera-Zoom</span>
             <span><strong>P:</strong> Pause</span>
           </div>

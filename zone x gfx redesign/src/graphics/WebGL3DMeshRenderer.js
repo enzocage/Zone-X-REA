@@ -276,11 +276,27 @@ export class WebGL3DMeshRenderer {
   }
 
   /**
+   * Keeps the WebGL drawingbuffer resolution synchronized 1:1 with the actual CSS display size
+   * (including when entering or exiting Fullscreen mode on 16:9 / ultrawide monitors).
+   */
+  _syncCanvasResolution() {
+    if (!this.webglCanvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const targetW = Math.max(320, Math.round(this.webglCanvas.clientWidth * dpr));
+    const targetH = Math.max(200, Math.round(this.webglCanvas.clientHeight * dpr));
+    if (this.webglCanvas.width !== targetW || this.webglCanvas.height !== targetH) {
+      this.webglCanvas.width = targetW;
+      this.webglCanvas.height = targetH;
+    }
+  }
+
+  /**
    * Renders the 3D WebGL Bird's-Eye pass at full display refresh rate (60Hz/120Hz/144Hz).
    */
   render3DPass() {
     this._syncCanvasVisibility();
     if (!this.gl || !this.program || this.renderMode === "classic_2d") return;
+    this._syncCanvasResolution();
 
     const dlAddr =
       this.state.ram[SystemAddressMap.DLIST_PTR_LO] |
@@ -351,11 +367,13 @@ export class WebGL3DMeshRenderer {
     gl.uniform4fv(this.uniforms.uPointLights, this.pointLightsFlat);
     gl.uniform3fv(this.uniforms.uPointColors, this.pointColorsFlat);
 
-    // Visible tile frustum bounds around camera target
-    const minTx = Math.max(-1, Math.floor(camTargetX - 15));
-    const maxTx = Math.min(GridConfig.WIDTH, Math.ceil(camTargetX + 15));
-    const minTz = Math.max(-1, Math.floor(camTargetZ - 11));
-    const maxTz = Math.min(GridConfig.HEIGHT, Math.ceil(camTargetZ + 10));
+    // Visible tile frustum bounds around camera target (scales with zoom & widescreen aspect ratio)
+    const halfSpanZ = Math.max(11, Math.ceil(dist * 0.82));
+    const halfSpanX = Math.max(15, Math.ceil(halfSpanZ * aspect + 3));
+    const minTx = Math.max(-1, Math.floor(camTargetX - halfSpanX));
+    const maxTx = Math.min(GridConfig.WIDTH, Math.ceil(camTargetX + halfSpanX));
+    const minTz = Math.max(-1, Math.floor(camTargetZ - halfSpanZ));
+    const maxTz = Math.min(GridConfig.HEIGHT, Math.ceil(camTargetZ + halfSpanZ));
 
     // 1. Render 3D Floor Grid & Playfield Tiles
     for (let tz = minTz; tz <= maxTz; tz++) {
