@@ -1,0 +1,413 @@
+:root {
+  --bg-dark: #090b10;
+  --panel-bg: #121620;
+  --border-col: #262f45;
+  --accent: #38bdf8;
+  --accent-gold: #f59e0b;
+  --accent-green: #22c55e;
+  --text-main: #e2e8f0;
+  --text-dim: #94a3b8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: radial-gradient(circle at 50% 20%, #151b2b 0%, var(--bg-dark) 75%);
+  color: var(--text-main);
+  font-family: "JetBrains Mono", Consolas, Monaco, monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.top-bar {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-col);
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.brand h1 {
+  font-size: 1.1rem;
+  margin-top: 3px;
+  letter-spacing: 0.5px;
+}
+
+.brand h1 small {
+  color: var(--text-dim);
+  font-weight: normal;
+  font-size: 0.8rem;
+}
+
+.badge {
+  display: inline-block;
+  background: #1e293b;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.controls-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.controls-bar label {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.controls-bar select,
+.controls-bar button {
+  background: #0f172a;
+  color: var(--text-main);
+  border: 1px solid var(--border-col);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.controls-bar button:hover,
+.controls-bar select:hover {
+  border-color: var(--accent);
+}
+
+.controls-bar .btn-accent {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  border-color: #38bdf8;
+  color: #fff;
+  font-weight: 600;
+}
+
+.arcade-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+}
+
+.zone-banner {
+  background: rgba(18, 22, 32, 0.9);
+  border: 1px solid var(--border-col);
+  color: var(--accent);
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-align: center;
+}
+
+.crt-frame {
+  position: relative;
+  background: #000;
+  border: 4px solid #2b3346;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px;
+  box-shadow:
+    0 0 0 2px #0f131d,
+    0 20px 50px rgba(0, 0, 0, 0.8),
+    inset 0 0 24px rgba(0, 0, 0, 0.9);
+}
+
+#atari-canvas {
+  width: 840px;
+  height: 600px;
+  max-width: 92vw;
+  max-height: 68vh;
+  aspect-ratio: 336 / 240;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+  display: block;
+}
+
+.crt-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.crt-overlay.active {
+  opacity: 1;
+}
+
+.atari-console-deck {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-col);
+  border-radius: 10px;
+  padding: 10px 20px;
+  width: 100%;
+  max-width: 880px;
+}
+
+.console-btn {
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+  color: #0f172a;
+  border: 2px solid #475569;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #334155;
+  transition: transform 0.08s ease;
+}
+
+.console-btn span {
+  font-weight: 500;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.console-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #334155;
+}
+
+.console-btn-start {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  border-color: #b45309;
+  color: #111827;
+}
+
+.controls-hint {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.74rem;
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+
+.controls-hint strong {
+  color: var(--text-main);
+}
+
+.hidden-diagnostics {
+  display: none !important;
+}
+
+/* =========================================================================
+   Interactive Level Editor Modal
+   ========================================================================= */
+.editor-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 7, 12, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.editor-modal.hidden {
+  display: none !important;
+}
+
+.editor-window {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-col);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 1360px;
+  max-height: 94vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+}
+
+.editor-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #0d111a;
+  border-bottom: 1px solid var(--border-col);
+}
+
+.editor-header h2 {
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+
+.editor-header p {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.editor-actions label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.editor-actions select,
+.editor-actions button {
+  background: #161e2e;
+  color: var(--text-main);
+  border: 1px solid var(--border-col);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.editor-actions button:hover {
+  border-color: var(--accent);
+}
+
+.editor-actions .btn-play-now {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-color: #4ade80;
+  color: #fff;
+  font-weight: 700;
+}
+
+.editor-actions .btn-close-editor {
+  background: #3f1d28;
+  border-color: #f43f5e;
+  color: #fda4af;
+}
+
+.editor-body {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 12px;
+  padding: 12px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.editor-sidebar {
+  background: #0d111a;
+  border: 1px solid var(--border-col);
+  border-radius: 8px;
+  padding: 10px;
+  overflow-y: auto;
+  max-height: 76vh;
+}
+
+.editor-sidebar h3 {
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+
+.editor-palette {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+
+.editor-tile-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #151c2c;
+  color: var(--text-main);
+  border: 1px solid var(--border-col);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: 0.74rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.editor-tile-btn canvas {
+  width: 24px;
+  height: 24px;
+  image-rendering: pixelated;
+  background: #000;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.editor-tile-btn.active {
+  border-color: var(--accent);
+  background: #1e293b;
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.editor-canvas-wrap {
+  background: #000;
+  border: 1px solid var(--border-col);
+  border-radius: 8px;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+}
+
+#editor-canvas {
+  width: 992px;
+  height: 512px;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  display: block;
+}
