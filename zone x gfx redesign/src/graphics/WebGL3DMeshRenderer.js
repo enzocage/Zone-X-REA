@@ -66,16 +66,17 @@ const FRAGMENT_SHADER_SRC = `
     vec3 N = normalize(vNormal);
     vec3 V = normalize(uCameraPos - vWorldPos);
 
-    // Hemisphere ambient + Directional key light
+    // Sculptural architectural hemisphere + side-face contrast so white/light-grey blocks have crisp 3D depth
     float hemi = 0.5 + 0.5 * N.y;
-    vec3 lighting = uAmbientColor * (0.65 + 0.55 * hemi);
+    float faceContrast = 0.90 + 0.10 * abs(N.z);
+    vec3 lighting = uAmbientColor * (0.62 + 0.46 * hemi) * faceContrast;
 
     float ndotl = max(dot(N, uSunDir), 0.0);
     vec3 H = normalize(uSunDir + V);
-    float spec = pow(max(dot(N, H), 0.0), 28.0) * 0.38;
-    lighting += uSunColor * (ndotl * 0.85 + spec);
+    float spec = pow(max(dot(N, H), 0.0), 34.0) * 0.22;
+    lighting += uSunColor * (ndotl * 0.68 + spec);
 
-    // 8 Dynamic Point Lights (Player, Plutonium, Lasers, Portals, Droids)
+    // 8 Dynamic Point Lights (subtle colored accents from Plutonium, Active Barrels, Lasers & Portals)
     for (int i = 0; i < 8; i++) {
       vec3 lVec = uPointLights[i].xyz - vWorldPos;
       float radius = uPointLights[i].w;
@@ -83,23 +84,23 @@ const FRAGMENT_SHADER_SRC = `
         float dist = length(lVec);
         if (dist < radius) {
           vec3 L = lVec / max(dist, 0.001);
-          float atten = pow(1.0 - dist / radius, 1.8);
+          float atten = pow(1.0 - dist / radius, 2.0);
           float diff = max(dot(N, L), 0.0);
           vec3 Hp = normalize(L + V);
-          float pSpec = pow(max(dot(N, Hp), 0.0), 20.0) * 0.45;
-          lighting += uPointColors[i] * atten * (diff + pSpec + 0.2);
+          float pSpec = pow(max(dot(N, Hp), 0.0), 22.0) * 0.25;
+          lighting += uPointColors[i] * atten * (diff * 0.42 + pSpec + 0.08);
         }
       }
     }
 
     vec3 baseLit = vColor * lighting;
-    vec3 emissiveGlow = vColor * (1.35 * vEmissive);
-    vec3 finalRgb = mix(baseLit, emissiveGlow, clamp(vEmissive * 0.72, 0.0, 1.0)) + emissiveGlow * 0.35;
+    vec3 emissiveGlow = vColor * (1.18 * vEmissive);
+    vec3 finalRgb = mix(baseLit, emissiveGlow, clamp(vEmissive * 0.68, 0.0, 1.0)) + emissiveGlow * 0.24;
 
-    // Subtle distance depth fog toward deep cyber-indigo
+    // Subtle distance depth fog toward calm studio slate-grey
     float camDist = length(uCameraPos - vWorldPos);
-    float fogFactor = clamp((camDist - 20.0) / 26.0, 0.0, 0.55);
-    vec3 fogColor = vec3(0.03, 0.05, 0.10);
+    float fogFactor = clamp((camDist - 22.0) / 28.0, 0.0, 0.45);
+    vec3 fogColor = vec3(0.20, 0.22, 0.26);
     finalRgb = mix(finalRgb, fogColor, fogFactor);
 
     gl_FragColor = vec4(finalRgb, 1.0);
@@ -320,7 +321,7 @@ export class WebGL3DMeshRenderer {
     const t = this.anim.time;
 
     gl.viewport(0, 0, this.webglCanvas.width, this.webglCanvas.height);
-    gl.clearColor(0.03, 0.05, 0.1, 1.0);
+    gl.clearColor(0.20, 0.22, 0.26, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.useProgram(this.program);
 
@@ -342,25 +343,19 @@ export class WebGL3DMeshRenderer {
     gl.uniformMatrix4fv(this.uniforms.uViewProj, false, this.viewProjMatrix);
     gl.uniform3f(this.uniforms.uCameraPos, eyeX, eyeY, eyeZ);
 
-    // Extract Zone's Atari Palette tint and harmonize it into the Industrial Slate Design System
-    const wallPalIdx = ram[SystemAddressMap.COLOR0_SHADOW] & 0xfe;
-    const wallRgb = this.atari2d.palPalette[wallPalIdx] || [70, 130, 210];
-    const wallTint = [
-      0.74 + (wallRgb[0] / 255) * 0.32,
-      0.76 + (wallRgb[1] / 255) * 0.32,
-      0.80 + (wallRgb[2] / 255) * 0.32,
-    ];
+    // Keep walls crisp Alabaster-White & Light-Grey across all zones
+    const wallTint = [1.0, 1.0, 1.0];
 
-    // Global directional + ambient lights
+    // Balanced architectural studio lighting (sculptural top/front/side shading without blowing out white)
     const hurtFlash = this.anim.player.hurtFlash;
     gl.uniform3f(
       this.uniforms.uAmbientColor,
-      0.34 + hurtFlash * 0.45,
-      0.38 - hurtFlash * 0.15,
-      0.48 - hurtFlash * 0.15
+      0.54 + hurtFlash * 0.35,
+      0.56 - hurtFlash * 0.12,
+      0.59 - hurtFlash * 0.12
     );
-    gl.uniform3f(this.uniforms.uSunDir, 0.36, 0.84, 0.41);
-    gl.uniform3f(this.uniforms.uSunColor, 0.95, 0.97, 1.0);
+    gl.uniform3f(this.uniforms.uSunDir, 0.38, 0.82, 0.42);
+    gl.uniform3f(this.uniforms.uSunColor, 0.54, 0.55, 0.57);
 
     // Gather up to 8 dynamic point lights (Player + closest Plutonium/Active Barrels/Lasers/Portals/Droids)
     this._populateDynamicPointLights(ram, t);
@@ -380,12 +375,12 @@ export class WebGL3DMeshRenderer {
       for (let tx = minTx; tx <= maxTx; tx++) {
         // Outer border walls around the 62x32 arena
         if (tx < 0 || tx >= GridConfig.WIDTH || tz < 0 || tz >= GridConfig.HEIGHT) {
-          this._drawMesh("wallBlock", tx, 0, tz, 0, 1, 1, 1, wallTint, 0.05);
+          this._drawMesh("wallBlock", tx, 0, tz, 0, 1, 1, 1, wallTint, 0.02);
           continue;
         }
 
-        // Floor plate
-        const checker = (tx + tz) & 1 ? 1.03 : 0.97;
+        // Subtle light-grey floor checkerboard
+        const checker = (tx + tz) & 1 ? 1.02 : 0.98;
         this._drawMesh("floorTile", tx, 0, tz, 0, 1, 1, 1, [checker, checker, checker], 0);
 
         const idx = tz * GridConfig.WIDTH + tx;
@@ -411,11 +406,11 @@ export class WebGL3DMeshRenderer {
           case TileType.PLUTONIUM:
             if (isVis) {
               const bob = Math.sin(t * 4.2 + tx * 0.7 + tz * 0.5) * 0.08;
-              const pulse = 0.55 + 0.35 * Math.sin(t * 7.5 + tx);
-              const haloScale = 1.08 + 0.10 * Math.sin(t * 6.0 + tx);
-              this._drawMesh("plutoniumHalo", tx, 0, tz, t * 1.2, haloScale, 1.0, haloScale, [1, 1, 1], 0.85);
-              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.2, 1.2, 1.2, [1, 1, 1], pulse);
-              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.4 + tz, 1.2, 1.2, 1.2, [1, 1, 1], 0.75);
+              const pulse = 0.35 + 0.25 * Math.sin(t * 7.5 + tx);
+              const haloScale = 1.06 + 0.08 * Math.sin(t * 6.0 + tx);
+              this._drawMesh("plutoniumHalo", tx, 0, tz, t * 1.2, haloScale, 1.0, haloScale, [1, 1, 1], 0.45);
+              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.15, 1.15, 1.15, [1, 1, 1], pulse);
+              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.0 + tz, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
             }
             break;
 
@@ -423,19 +418,19 @@ export class WebGL3DMeshRenderer {
             const carryingPlutonium = this.anim.player.plutoniumGlow > 0.05;
             if (carryingPlutonium) {
               // ACTIVE COUNTDOWN MODE: Plutonium is picked up & timer is running!
-              // Barrel blazes with radioactive emerald-lime & signal-gold beacon rings + large target arrow!
-              const activePulse = 0.55 + 0.40 * Math.sin(t * 10.5 + tx);
-              const ringScale = 1.08 + 0.12 * Math.sin(t * 9.0 + tx);
+              // Barrel illuminates with Mint-Emerald rings & floating target arrow!
+              const activePulse = 0.20 + 0.20 * Math.sin(t * 10.5 + tx);
+              const ringScale = 1.06 + 0.10 * Math.sin(t * 9.0 + tx);
               this._drawMesh(
                 "containerVault",
                 tx,
                 0,
                 tz,
                 0,
-                1.12,
-                1.12,
-                1.12,
-                [1.05, 1.35, 1.08],
+                1.08,
+                1.08,
+                1.08,
+                [0.95, 1.08, 0.98],
                 activePulse
               );
               this._drawMesh(
@@ -445,13 +440,13 @@ export class WebGL3DMeshRenderer {
                 tz,
                 -t * 3.5,
                 ringScale,
-                1.12,
+                1.08,
                 ringScale,
                 [1, 1, 1],
-                0.95
+                0.65
               );
-              const arrowBob = Math.sin(t * 9.5 + tx) * 0.16;
-              const arrowScale = 1.25 + 0.12 * Math.sin(t * 9.5 + tx);
+              const arrowBob = Math.sin(t * 9.5 + tx) * 0.14;
+              const arrowScale = 1.18 + 0.10 * Math.sin(t * 9.5 + tx);
               this._drawMesh(
                 "containerArrow",
                 tx,
@@ -462,21 +457,21 @@ export class WebGL3DMeshRenderer {
                 arrowScale,
                 arrowScale,
                 [1, 1, 1],
-                0.95
+                0.65
               );
             } else {
-              // STANDBY MODE: Calm industrial gunmetal/amber drum so Plutonium remains the #1 focal point
+              // STANDBY MODE: Clean, calm white/light-grey barrel
               this._drawMesh(
                 "containerVault",
                 tx,
                 0,
                 tz,
                 0,
-                1.05,
-                1.05,
-                1.05,
+                1.04,
+                1.04,
+                1.04,
                 [1, 1, 1],
-                0.08
+                0.0
               );
             }
             break;
@@ -484,52 +479,50 @@ export class WebGL3DMeshRenderer {
 
           case TileType.KEY:
             if (isVis) {
-              const bob = Math.sin(t * 3.8 + tx) * 0.08;
-              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.8 + tx) * 0.07;
+              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.12, 1.12, 1.12, [1, 1, 1], 0.04);
             }
             break;
 
           case TileType.RADIATION_CAPSULE:
             if (isVis) {
-              const bob = Math.sin(t * 3.5 + tz) * 0.08;
-              this._drawMesh("capsuleItem", tx, bob, tz, t * 1.9, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.5 + tz) * 0.07;
+              this._drawMesh("capsuleItem", tx, bob, tz, t * 1.9, 1.12, 1.12, 1.12, [1, 1, 1], 0.04);
             }
             break;
 
           case TileType.SPADE:
             if (isVis) {
-              const bob = Math.sin(t * 3.5 + tz) * 0.08;
-              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.16, 1.16, 1.16, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.5 + tz) * 0.07;
+              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.12, 1.12, 1.12, [1, 1, 1], 0.04);
             }
             break;
 
           case TileType.INSULATING_MAT:
             if (isVis) {
-              const bob = Math.sin(t * 3.0 + tx) * 0.05;
-              this._drawMesh("matItem", tx, bob, tz, t * 1.2, 1.08, 1.08, 1.08, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.0 + tx) * 0.04;
+              this._drawMesh("matItem", tx, bob, tz, t * 1.2, 1.06, 1.06, 1.06, [1, 1, 1], 0.02);
             }
             break;
 
           case TileType.EXTRA_TIME:
             if (isVis) {
-              const bob = Math.sin(t * 4.0 + tx) * 0.09;
-              this._drawMesh("extraTimeItem", tx, bob, tz, t * 2.2, 1.12, 1.12, 1.12, [1, 1, 1], 0.35);
+              const bob = Math.sin(t * 4.0 + tx) * 0.07;
+              this._drawMesh("extraTimeItem", tx, bob, tz, t * 2.2, 1.10, 1.10, 1.10, [1, 1, 1], 0.05);
             }
             break;
 
           case TileType.MYSTERY_BOX:
             if (isVis) {
-              const bob = Math.sin(t * 3.2 + tx) * 0.06;
-              this._drawMesh("mysteryBox", tx, bob, tz, t * 1.1, 1.08, 1.08, 1.08, [1, 1, 1], 0.3);
+              const bob = Math.sin(t * 3.2 + tx) * 0.05;
+              this._drawMesh("mysteryBox", tx, bob, tz, t * 1.1, 1.06, 1.06, 1.06, [1, 1, 1], 0.02);
             }
             break;
 
           case TileType.LOCKED_DOOR:
           case TileType.DOOR_MARKER_A:
             if (isVis) {
-              // Both Tile 7 (Original Key-Locked Door) and Tile 9 (Security/Airlock Door)
-              const meshId = rawTile === TileType.DOOR_MARKER_A ? "lockedDoor" : "lockedDoor";
-              this._drawMesh(meshId, tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.25);
+              this._drawMesh("lockedDoor", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.02);
             }
             break;
 
@@ -537,8 +530,8 @@ export class WebGL3DMeshRenderer {
           case TileType.LASER_DOOR_1B:
           case TileType.LASER_DOOR_2A:
           case TileType.LASER_DOOR_2B: {
-            // 1. Low-profile North & South floor threshold rails
-            this._drawMesh("laserPylons", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.15);
+            // 1. Clean White North & South floor threshold rails
+            this._drawMesh("laserPylons", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.0);
 
             // Check exact hardware state (0 = SAFE/OPEN, 1..6 = DEADLY/CLOSING-OR-CLOSED)
             let rawClosure = 0;
@@ -548,52 +541,52 @@ export class WebGL3DMeshRenderer {
             else if (rawTile === TileType.LASER_DOOR_2B) rawClosure = ram[0x058a] & 0x07;
 
             if (rawClosure === 0) {
-              // 100% OPEN & SAFE: Completely unobstructed corridor with glowing emerald-green walkway + overhead green beacons
-              this._drawMesh("laserSafeOpen", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.65);
+              // 100% OPEN & SAFE: Calm unobstructed corridor with white guide lines
+              this._drawMesh("laserSafeOpen", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.15);
             } else {
-              // CLOSING OR CLOSED & DEADLY: Flashing crimson danger beacons + North/South 3D laser blast gates sliding shut
-              this._drawMesh("laserDangerClosed", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.75);
+              // CLOSING OR CLOSED & DEADLY: Coral-Red warning strip + sliding White/Coral-Red barrier blocks
+              this._drawMesh("laserDangerClosed", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.35);
               const closure = Math.max(0.22, this.anim.laserIntensity[idx]);
               const northZ = tz - 0.36 + closure * 0.18;
               const southZ = tz + 0.36 - closure * 0.18;
-              this._drawMesh("laserBeams", tx, 0, northZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.65);
-              this._drawMesh("laserBeams", tx, 0, southZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.65);
+              this._drawMesh("laserBeams", tx, 0, northZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.08);
+              this._drawMesh("laserBeams", tx, 0, southZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.08);
             }
             break;
           }
 
           case TileType.WARP_PAD:
-            this._drawMesh("warpPad", tx, 0, tz, t * 2.8, 1, 1, 1, [1, 1, 1], 0.3);
+            this._drawMesh("warpPad", tx, 0, tz, t * 2.8, 1, 1, 1, [1, 1, 1], 0.06);
             break;
 
           case TileType.WARP_FRAME_LEFT:
           case TileType.WARP_FRAME_RIGHT:
-            this._drawMesh("warpFrame", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.2);
+            this._drawMesh("warpFrame", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.02);
             break;
 
           case 18: // Original Atari Crumbly Block (0x12) dug with Spade
           case TileType.CRUMBLY_DIRT:
             if (isVis) {
-              this._drawMesh("crumblyDirt", tx, 0, tz, (tx * 1.7 + tz * 2.3) % 6.28, 1, 1, 1, [1, 1, 1], 0.08);
+              this._drawMesh("crumblyDirt", tx, 0, tz, (tx * 1.7 + tz * 2.3) % 6.28, 1, 1, 1, [1, 1, 1], 0.0);
             }
             break;
 
           case TileType.FORCEFIELD:
             if (isVis) {
-              this._drawMesh("hazardField", tx, 0, tz, t * 3.2, 1, 1, 1, [1, 1, 1], 0.45);
+              this._drawMesh("hazardField", tx, 0, tz, t * 3.2, 1, 1, 1, [1, 1, 1], 0.08);
             }
             break;
 
           case TileType.SKULL_HAZARD:
             if (isVis) {
-              this._drawMesh("skullHazard", tx, 0, tz, Math.sin(t * 2.5 + tx) * 0.2, 1, 1, 1, [1, 1, 1], 0.4);
+              this._drawMesh("skullHazard", tx, 0, tz, Math.sin(t * 2.5 + tx) * 0.2, 1, 1, 1, [1, 1, 1], 0.06);
             }
             break;
 
           case TileType.EXIT_PORTAL: {
             const plutLeft = ram[SystemAddressMap.PLUTONIUM_REMAINING];
-            const exitBoost = plutLeft === 0 ? 0.65 + 0.35 * Math.sin(t * 8.0) : 0.25;
-            this._drawMesh("exitPortal", tx, 0, tz, t * 1.8, 1.12, 1.12, 1.12, [1, 1, 1], exitBoost);
+            const exitBoost = plutLeft === 0 ? 0.35 + 0.25 * Math.sin(t * 8.0) : 0.04;
+            this._drawMesh("exitPortal", tx, 0, tz, t * 1.8, 1.10, 1.10, 1.10, [1, 1, 1], exitBoost);
             break;
           }
 

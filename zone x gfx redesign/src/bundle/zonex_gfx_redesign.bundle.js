@@ -3022,378 +3022,300 @@ class MeshGeometryBuilder {
     };
 
     // =========================================================================
-    // UNIFIED DESIGN SYSTEM PALETTE ("Zone X Industrial Reactor Architecture")
-    // - Base Chassis / Structural Metal: Dark Gunmetal-Slate & Titanium
-    // - Role 1 (Primary Objective): Radioactive Emerald-Lime (ONLY Plutonium & Active Barrels)
-    // - Role 2 (Tools, Collectibles & Locks): Titanium-Silver + Warm Amber-Gold
-    // - Role 3 (Player, Safe Passages, Warp & Exit): Ceramic-White + Cryo-Cyan
-    // - Role 4 (Lethal Hazards, Closed Lasers & Aliens): Obsidian-Graphite + Crimson-Red
+    // MINIMALIST ARCHITECTURAL PALETTE ("Clean Light-Grey & White Diorama")
+    // - Base Palette (90% of scene): Crisp Porcelain White, Alabaster Off-White,
+    //   Architectural Light-Grey & Brushed Silver-Grey.
+    // - Primary Gameplay Attention Accent: Luminous Mint-Emerald (exclusively
+    //   for Plutonium crystals & Active Delivery Barrels when timer runs).
+    // - Secondary Subtle Accents:
+    //   * Warm Sand-Gold (subtle detail on Keys, Locks, Spade, Mat & Crumbly Blocks)
+    //   * Soft Sky-Blue (subtle detail on Warp Pads, Portals, Time & Shield)
+    //   * Crisp Coral-Red (exclusively for closed/closing Laser Barriers & Lethal Hazards)
     // =========================================================================
-    const SLATE_DARK   = [0.10, 0.13, 0.18];
-    const SLATE_MID    = [0.16, 0.21, 0.29];
-    const SLATE_LIGHT  = [0.25, 0.32, 0.42];
-    const TITANIUM     = [0.76, 0.82, 0.90];
-    const TITANIUM_HI  = [0.92, 0.95, 1.00];
+    const PURE_WHITE    = [0.96, 0.97, 0.99]; // Crisp porcelain white (top caps, highlights)
+    const OFF_WHITE     = [0.87, 0.89, 0.92]; // Alabaster white (walls, clean geometric blocks)
+    const LIGHT_GREY    = [0.75, 0.78, 0.82]; // Soft architectural light-grey (pedestals, frames, barrels)
+    const SILVER_GREY   = [0.62, 0.65, 0.70]; // Brushed silver-grey (floor plates, robot armor)
+    const SLATE_GREY    = [0.45, 0.48, 0.53]; // Calm medium slate-grey (grooves, joints, normal aliens)
+    const CHARCOAL_DARK = [0.22, 0.25, 0.30]; // Deep anthracite contrast (robot face screen, keyholes)
 
-    const PLUT_GREEN   = [0.06, 1.00, 0.26];
-    const PLUT_CORE    = [0.22, 1.00, 0.42];
-    const PLUT_DEEP    = [0.03, 0.48, 0.14];
+    // Focal Gameplay Attention Accents
+    const PLUT_EMERALD  = [0.10, 0.92, 0.46]; // Primary Focus: Plutonium & Active Barrels
+    const PLUT_MINT     = [0.58, 1.00, 0.78]; // Bright mint crystal core
+    const PLUT_MUTED    = [0.22, 0.56, 0.38]; // Subtle standby barrel indicator
 
-    const AMBER_GOLD   = [0.98, 0.74, 0.14];
-    const AMBER_MUTED  = [0.68, 0.50, 0.12];
-    const AMBER_DARK   = [0.32, 0.24, 0.08];
+    const ACCENT_GOLD   = [0.92, 0.72, 0.22]; // Subtle warm gold for tools/locks
+    const ACCENT_SAND   = [0.78, 0.72, 0.62]; // Warm sand-grey for diggable regolith cubes
+    const ACCENT_SKY    = [0.30, 0.75, 0.96]; // Soft sky-blue for warp/exit/shield
+    const ACCENT_CORAL  = [0.95, 0.24, 0.28]; // Crisp coral-red for closed laser barriers & hazards
 
-    const CRYO_CYAN    = [0.16, 0.84, 1.00];
-    const CRYO_DEEP    = [0.08, 0.42, 0.58];
-
-    const CRIMSON_RED  = [1.00, 0.14, 0.20];
-    const CRIMSON_DEEP = [0.46, 0.06, 0.10];
-    const OBSIDIAN     = [0.09, 0.10, 0.14];
-    const OBSIDIAN_HI  = [0.18, 0.20, 0.26];
-
-    // Helper: Uniform octagonal industrial floor socket for collectibles & mechanisms
-    const addIndustrialPedestal = (radius = 0.36, height = 0.08, rimColor = SLATE_LIGHT, rimEmissive = 0.12) => {
-      b.addCylinderY(0, 0.0, height * 0.65, 0, radius, radius * 0.94, 8, SLATE_DARK, 0.02);
-      b.addCylinderY(0, height * 0.65, height, 0, radius * 0.90, radius * 0.84, 8, SLATE_MID, 0.05);
-      b.addTorusXZ(0, height, 0, radius * 0.82, 0.022, 8, 6, rimColor, rimEmissive);
+    // Helper: Minimalist round white/light-grey base disc for items
+    const addCleanDiscBase = (radius = 0.34, height = 0.05, accentColor = LIGHT_GREY, accentEmissive = 0.05) => {
+      b.addCylinderY(0, 0.0, height, 0, radius, radius * 0.95, 12, OFF_WHITE, 0.02);
+      b.addTorusXZ(0, height, 0, radius * 0.82, 0.018, 12, 6, accentColor, accentEmissive);
     };
 
-    // 1. Sci-Fi Floor Tile (1x1 unit — Calm Matte Dark Reactor Slate Grid)
-    b.addBox(0, -0.04, 0, 0.96, 0.08, 0.96, [0.08, 0.11, 0.16], 0.0, [0.10, 0.14, 0.20]);
-    b.addBox(0, 0.005, 0, 0.74, 0.01, 0.74, [0.12, 0.16, 0.23], 0.02);
+    // 1. Minimalist Light-Grey Architectural Floor Tile (1x1 unit with clean recessed border)
+    b.addBox(0, -0.04, 0, 0.96, 0.08, 0.96, SILVER_GREY, 0.0, LIGHT_GREY);
+    b.addBox(0, 0.004, 0, 0.84, 0.008, 0.84, LIGHT_GREY, 0.0);
     compile("floorTile");
 
-    // 2. Wall Bulkhead (Clean Bevelled Industrial Reactor Armor Block)
-    b.addBevelledBox(0, 0.35, 0, 0.96, 0.70, 0.96, 0.08, [0.18, 0.25, 0.36], [0.26, 0.35, 0.48], 0.02);
-    b.addBox(0, 0.71, 0, 0.64, 0.04, 0.64, [0.14, 0.19, 0.28], 0.02, [0.28, 0.38, 0.52]);
-    b.addBox(0, 0.38, 0, 0.98, 0.04, 0.98, [0.22, 0.56, 0.78], 0.22);
+    // 2. Clean White & Light-Grey Architectural Wall Block (Simple, sculptural bevelled monolith)
+    b.addBox(0, 0.04, 0, 0.96, 0.08, 0.96, LIGHT_GREY, 0.0);
+    b.addBevelledBox(0, 0.34, 0, 0.92, 0.56, 0.92, 0.06, OFF_WHITE, PURE_WHITE, 0.02);
+    b.addBox(0, 0.63, 0, 0.76, 0.03, 0.76, PURE_WHITE, 0.03);
     compile("wallBlock");
 
-    // 3. PLUTONIUM CORE — Primary Visual Focal Point (Ultra-Luminescent Radioactive Emerald-Lime)
-    // Octagonal heavy containment socket with glowing emerald containment ring
-    addIndustrialPedestal(0.46, 0.10, PLUT_GREEN, 0.85);
-    // 4 Symmetrical Outer Fuel Rods + Tall Central Crystalline Plutonium Core
-    for (let i = 0; i < 4; i++) {
-      const a = (i * Math.PI) * 0.5 + Math.PI * 0.25;
-      const rx = Math.cos(a) * 0.17;
-      const rz = Math.sin(a) * 0.17;
-      b.addCylinderY(rx, 0.10, 0.66, rz, 0.075, 0.075, 8, PLUT_GREEN, 0.82);
-      b.addTorusXZ(rx, 0.64, rz, 0.078, 0.02, 8, 6, SLATE_DARK, 0.05);
-    }
-    b.addCylinderY(0, 0.10, 0.88, 0, 0.14, 0.12, 10, PLUT_CORE, 0.95);
-    b.addOctahedron(0, 0.56, 0, 0.30, 0.40, 0.30, PLUT_GREEN, 0.92);
-    b.addOctahedron(0, 0.98, 0, 0.16, 0.22, 0.16, PLUT_CORE, 1.0); // Floating crown crystal
-    b.addTorusXZ(0, 0.82, 0, 0.16, 0.032, 10, 6, TITANIUM, 0.25);
+    // 3. PLUTONIUM CORE — #1 Gameplay Attention Magnet (Simple, iconic floating Emerald Diamond on White Socket)
+    addCleanDiscBase(0.40, 0.06, PLUT_EMERALD, 0.65);
+    b.addOctahedron(0, 0.50, 0, 0.28, 0.38, 0.28, PLUT_EMERALD, 0.90);
+    b.addOctahedron(0, 0.50, 0, 0.16, 0.24, 0.16, PLUT_MINT, 1.00);
     compile("plutoniumCore");
 
-    // 3b. Plutonium Orbital Gyro-Rings & 3-Blade Radiation Trefoil (☢)
-    b.addTorusXZ(0, 0.48, 0, 0.44, 0.036, 16, 6, PLUT_GREEN, 0.92);
-    b.addTorusXZ(0, 0.24, 0, 0.40, 0.028, 16, 6, PLUT_CORE, 0.85);
-    for (let i = 0; i < 3; i++) {
-      const a = (i * Math.PI * 2) / 3;
-      const fx = Math.cos(a) * 0.34;
-      const fz = Math.sin(a) * 0.34;
-      b.addBevelledBox(fx, 0.24, fz, 0.16, 0.05, 0.16, 0.015, SLATE_DARK, PLUT_GREEN, 0.75);
-      const ex = Math.cos(a + 0.52) * 0.44;
-      const ez = Math.sin(a + 0.52) * 0.44;
-      b.addOctahedron(ex, 0.48, ez, 0.11, 0.11, 0.11, PLUT_CORE, 1.0);
-    }
+    // 3b. Plutonium Minimalist Orbital Ring (Single clean white & emerald ring)
+    b.addTorusXZ(0, 0.50, 0, 0.38, 0.024, 16, 6, PURE_WHITE, 0.55);
+    b.addOctahedron(0.38, 0.50, 0, 0.06, 0.06, 0.06, PLUT_MINT, 0.95);
+    b.addOctahedron(-0.38, 0.50, 0, 0.06, 0.06, 0.06, PLUT_MINT, 0.95);
     compile("plutoniumBeacon");
 
-    // 3c. Plutonium Floor Aura Halo (Makes every Plutonium location pop against the dark floor!)
-    b.addTorusXZ(0, 0.025, 0, 0.49, 0.032, 16, 6, PLUT_GREEN, 0.95);
-    b.addTorusXZ(0, 0.035, 0, 0.36, 0.02, 12, 6, PLUT_CORE, 0.85);
+    // 3c. Plutonium Clean Floor Halo Ring
+    b.addTorusXZ(0, 0.02, 0, 0.44, 0.025, 16, 6, PLUT_EMERALD, 0.85);
     compile("plutoniumHalo");
 
-    // 4. PLUTONIUM CONTAINER / BARREL (Standby = Calm Industrial Gunmetal/Amber Drum; Active = Blazing Emerald/Gold Beacon!)
-    // Base octagonal pedestal
-    addIndustrialPedestal(0.46, 0.08, SLATE_LIGHT, 0.1);
-    // Main heavy cylindrical gunmetal-slate containment drum
-    b.addCylinderY(0, 0.08, 0.68, 0, 0.40, 0.40, 14, SLATE_MID, 0.08);
-    // 3 Recessed Industrial Amber-Gold Structural Ribs / Hoops
-    b.addTorusXZ(0, 0.16, 0, 0.41, 0.035, 14, 6, AMBER_MUTED, 0.18);
-    b.addTorusXZ(0, 0.38, 0, 0.415, 0.040, 14, 6, AMBER_GOLD, 0.28);
-    b.addTorusXZ(0, 0.60, 0, 0.41, 0.035, 14, 6, AMBER_MUTED, 0.18);
-    // 4 Vertical Titanium Structural Stiffeners around the barrel
-    for (let i = 0; i < 4; i++) {
-      const a = (i * Math.PI) * 0.5;
-      b.addBox(Math.cos(a) * 0.39, 0.38, Math.sin(a) * 0.39, 0.07, 0.52, 0.07, SLATE_LIGHT, 0.1);
-    }
-    // Heavy Top Receptor Collar + Inner Containment Well
-    b.addTorusXZ(0, 0.68, 0, 0.35, 0.055, 14, 6, SLATE_LIGHT, 0.12);
-    b.addCylinderY(0, 0.64, 0.71, 0, 0.28, 0.26, 12, PLUT_DEEP, 0.35);
-    b.addCylinderY(0, 0.68, 0.73, 0, 0.20, 0.20, 12, PLUT_GREEN, 0.55);
+    // 4. PLUTONIUM CONTAINER / BARREL (Simple, iconic White/Light-Grey Cylindrical Barrel)
+    // Standby: Calm white/light-grey cylinder with two subtle slate hoops and a dark top opening
+    addCleanDiscBase(0.42, 0.05, LIGHT_GREY, 0.04);
+    b.addCylinderY(0, 0.05, 0.64, 0, 0.36, 0.36, 16, OFF_WHITE, 0.04);
+    b.addTorusXZ(0, 0.22, 0, 0.37, 0.026, 16, 6, SLATE_GREY, 0.04);
+    b.addTorusXZ(0, 0.48, 0, 0.37, 0.026, 16, 6, SLATE_GREY, 0.04);
+    b.addTorusXZ(0, 0.64, 0, 0.34, 0.042, 16, 6, PURE_WHITE, 0.08);
+    b.addCylinderY(0, 0.60, 0.66, 0, 0.25, 0.25, 14, CHARCOAL_DARK, 0.02);
+    b.addTorusXZ(0, 0.65, 0, 0.18, 0.020, 12, 6, PLUT_MUTED, 0.35);
     compile("containerVault");
 
-    // 4b. Container ACTIVE Ignition Overlay (Rendered when player is carrying Plutonium & timer is running!)
-    // Glowing emerald/amber energy shroud around the barrel + blazing open receptor core + dual floor/rim target rings
-    b.addTorusXZ(0, 0.03, 0, 0.52, 0.04, 16, 6, PLUT_GREEN, 1.0);
-    b.addTorusXZ(0, 0.38, 0, 0.44, 0.048, 14, 6, PLUT_GREEN, 0.95);
-    b.addTorusXZ(0, 0.72, 0, 0.38, 0.05, 14, 6, PLUT_CORE, 1.0);
-    b.addCylinderY(0, 0.68, 0.78, 0, 0.24, 0.24, 12, PLUT_CORE, 1.0);
+    // 4b. Container ACTIVE Ignition Overlay (Illuminates the Barrel in Mint-Emerald when player carries Plutonium!)
+    b.addTorusXZ(0, 0.025, 0, 0.48, 0.032, 16, 6, PLUT_EMERALD, 0.95);
+    b.addTorusXZ(0, 0.35, 0, 0.385, 0.034, 16, 6, PLUT_EMERALD, 0.90);
+    b.addTorusXZ(0, 0.66, 0, 0.35, 0.042, 16, 6, PLUT_MINT, 1.00);
+    b.addCylinderY(0, 0.62, 0.70, 0, 0.23, 0.23, 14, PLUT_EMERALD, 0.95);
     compile("containerActiveGlow");
 
-    // 4c. Floating 3D Downward Delivery Target Chevron/Arrow above Container Barrel
-    b.addCylinderY(0, 0.90, 1.22, 0, 0.03, 0.24, 8, PLUT_GREEN, 0.85);
-    b.addBox(0, 1.32, 0, 0.11, 0.22, 0.11, AMBER_GOLD, 0.75);
-    b.addTorusXZ(0, 0.92, 0, 0.26, 0.028, 12, 6, PLUT_CORE, 0.9);
+    // 4c. Clean Abstract Floating Downward Chevron/Cone above Active Container Barrel
+    b.addCylinderY(0, 0.88, 1.18, 0, 0.02, 0.20, 8, PLUT_EMERALD, 0.90);
+    b.addTorusXZ(0, 0.88, 0, 0.22, 0.022, 12, 6, PURE_WHITE, 0.80);
     compile("containerArrow");
 
-    // 5. Security Key (Unified Industrial Pedestal + Warm Amber-Gold & Titanium Key)
-    addIndustrialPedestal(0.34, 0.07, AMBER_GOLD, 0.35);
-    b.addTorusXZ(0, 0.34, -0.20, 0.15, 0.05, 12, 6, AMBER_GOLD, 0.65);
-    b.addBox(0, 0.34, 0.08, 0.08, 0.07, 0.42, TITANIUM_HI, 0.45);
-    b.addBox(0.10, 0.34, 0.14, 0.13, 0.07, 0.06, AMBER_GOLD, 0.75);
-    b.addBox(0.12, 0.34, 0.25, 0.16, 0.07, 0.06, AMBER_GOLD, 0.75);
+    // 5. Security Key (Simple, recognizable 3D Key in White & Warm Gold)
+    addCleanDiscBase(0.32, 0.04, ACCENT_GOLD, 0.25);
+    b.addTorusXZ(0, 0.28, -0.18, 0.14, 0.042, 12, 6, ACCENT_GOLD, 0.45);
+    b.addBox(0, 0.28, 0.08, 0.07, 0.06, 0.38, PURE_WHITE, 0.20);
+    b.addBox(0.09, 0.28, 0.14, 0.11, 0.06, 0.055, ACCENT_GOLD, 0.45);
+    b.addBox(0.09, 0.28, 0.24, 0.11, 0.06, 0.055, ACCENT_GOLD, 0.45);
     compile("keyItem");
 
-    // 6. Excavator Spade (Unified Industrial Pedestal + Titanium Scoop Blade & Amber-Gold Grip)
-    addIndustrialPedestal(0.34, 0.07, AMBER_GOLD, 0.35);
-    b.addBox(0, 0.34, -0.30, 0.24, 0.07, 0.07, AMBER_GOLD, 0.65); // Amber T-grip
-    b.addBox(0, 0.34, -0.06, 0.07, 0.06, 0.42, SLATE_LIGHT, 0.25); // Gunmetal shaft
-    b.addBevelledBox(0, 0.34, 0.20, 0.34, 0.06, 0.24, 0.02, TITANIUM, TITANIUM_HI, 0.45); // Titanium scoop
-    b.addOctahedron(0, 0.34, 0.32, 0.17, 0.04, 0.12, AMBER_GOLD, 0.7); // Cutting edge
+    // 6. Excavator Spade (Clean, simple Shovel Blade in White/Light-Grey + Gold Handle)
+    addCleanDiscBase(0.32, 0.04, ACCENT_GOLD, 0.25);
+    b.addBox(0, 0.28, -0.26, 0.22, 0.06, 0.06, ACCENT_GOLD, 0.40);
+    b.addBox(0, 0.28, -0.04, 0.06, 0.05, 0.38, LIGHT_GREY, 0.10);
+    b.addBevelledBox(0, 0.28, 0.20, 0.30, 0.05, 0.24, 0.02, PURE_WHITE, OFF_WHITE, 0.20);
     compile("spadeItem");
 
-    // 6b. Radiation Shield / Med-Pod Capsule (Unified Titanium & Cryo-Cyan Pod)
-    addIndustrialPedestal(0.34, 0.07, CRYO_CYAN, 0.35);
-    b.addCylinderY(0, 0.12, 0.54, 0, 0.22, 0.22, 12, TITANIUM_HI, 0.35);
-    b.addTorusXZ(0, 0.33, 0, 0.23, 0.032, 12, 6, CRYO_CYAN, 0.75);
-    b.addBox(0, 0.56, 0, 0.24, 0.05, 0.08, CRYO_CYAN, 0.85);
-    b.addBox(0, 0.56, 0, 0.08, 0.05, 0.24, CRYO_CYAN, 0.85);
+    // 6b. Radiation Shield Pod (Simple White Capsule with a clean Sky-Blue Cross)
+    addCleanDiscBase(0.32, 0.04, ACCENT_SKY, 0.25);
+    b.addCylinderY(0, 0.08, 0.46, 0, 0.20, 0.20, 12, PURE_WHITE, 0.15);
+    b.addBox(0, 0.48, 0, 0.22, 0.04, 0.07, ACCENT_SKY, 0.65);
+    b.addBox(0, 0.48, 0, 0.07, 0.04, 0.22, ACCENT_SKY, 0.65);
     compile("capsuleItem");
 
-    // 7. Insulating Mat (Harmonized Gunmetal-Slate Deck Plate with Warm Amber-Gold Insulated Ribs)
-    b.addBevelledBox(0, 0.10, 0, 0.80, 0.12, 0.60, 0.04, SLATE_MID, SLATE_LIGHT, 0.15);
-    b.addBox(-0.22, 0.17, 0, 0.10, 0.035, 0.50, AMBER_GOLD, 0.6);
-    b.addBox(0.0, 0.17, 0, 0.10, 0.035, 0.50, AMBER_GOLD, 0.6);
-    b.addBox(0.22, 0.17, 0, 0.10, 0.035, 0.50, AMBER_GOLD, 0.6);
+    // 7. Insulating Mat (Simple White/Light-Grey Floor Tile with 3 Warm Gold Stripes)
+    b.addBevelledBox(0, 0.08, 0, 0.76, 0.10, 0.56, 0.03, OFF_WHITE, PURE_WHITE, 0.08);
+    b.addBox(-0.20, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
+    b.addBox( 0.00, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
+    b.addBox( 0.20, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
     compile("matItem");
 
-    // 8. Extra Time Chrono Hourglass (Titanium-Silver & Amber-Gold Frame with Cryo-Cyan Stasis Core)
-    addIndustrialPedestal(0.34, 0.07, AMBER_GOLD, 0.35);
-    b.addBox(0, 0.12, 0, 0.46, 0.06, 0.46, AMBER_GOLD, 0.55);
-    b.addCylinderY(0, 0.15, 0.42, 0, 0.22, 0.04, 10, CRYO_CYAN, 0.75);
-    b.addCylinderY(0, 0.42, 0.68, 0, 0.04, 0.22, 10, CRYO_CYAN, 0.75);
-    b.addBox(0, 0.70, 0, 0.46, 0.06, 0.46, AMBER_GOLD, 0.55);
+    // 8. Extra Time Hourglass (Clean Minimalist White & Sky-Blue Hourglass)
+    addCleanDiscBase(0.32, 0.04, ACCENT_SKY, 0.25);
+    b.addBox(0, 0.10, 0, 0.38, 0.05, 0.38, PURE_WHITE, 0.15);
+    b.addCylinderY(0, 0.13, 0.36, 0, 0.18, 0.03, 10, ACCENT_SKY, 0.55);
+    b.addCylinderY(0, 0.36, 0.59, 0, 0.03, 0.18, 10, ACCENT_SKY, 0.55);
+    b.addBox(0, 0.61, 0, 0.38, 0.05, 0.38, PURE_WHITE, 0.15);
     compile("extraTimeItem");
 
-    // 9. Supply / Mystery Crate (Dark Gunmetal-Slate & Titanium Crate with Warm Amber-Gold '?' Emblem — No Clash!)
-    b.addBevelledBox(0, 0.30, 0, 0.66, 0.54, 0.66, 0.06, SLATE_MID, SLATE_LIGHT, 0.15);
-    b.addBox(0, 0.30, 0, 0.70, 0.08, 0.12, TITANIUM, 0.3);
-    b.addBox(0, 0.30, 0, 0.12, 0.08, 0.70, TITANIUM, 0.3);
-    b.addBox(0, 0.60, -0.13, 0.24, 0.06, 0.07, AMBER_GOLD, 0.85);
-    b.addBox(0.08, 0.60, -0.05, 0.07, 0.06, 0.13, AMBER_GOLD, 0.85);
-    b.addBox(0, 0.60, 0.02, 0.15, 0.06, 0.07, AMBER_GOLD, 0.85);
-    b.addBox(0, 0.60, 0.16, 0.08, 0.06, 0.08, AMBER_GOLD, 0.85);
+    // 9. Supply / Mystery Cube (Clean White Bevelled Cube with Light-Grey Cross & Gold Emblem)
+    b.addBevelledBox(0, 0.28, 0, 0.58, 0.48, 0.58, 0.05, OFF_WHITE, PURE_WHITE, 0.08);
+    b.addBox(0, 0.28, 0, 0.61, 0.07, 0.10, LIGHT_GREY, 0.05);
+    b.addBox(0, 0.28, 0, 0.10, 0.07, 0.61, LIGHT_GREY, 0.05);
+    b.addOctahedron(0, 0.58, 0, 0.10, 0.10, 0.10, ACCENT_GOLD, 0.55);
     compile("mysteryBox");
 
-    // 10. Locked Key-Door (Dark Gunmetal-Slate Bulkhead with Warm Amber-Gold Padlock matching the Key!)
-    b.addBevelledBox(0, 0.40, 0, 0.94, 0.80, 0.40, 0.05, SLATE_MID, SLATE_LIGHT, 0.12);
-    b.addTorusXZ(0, 0.88, 0, 0.16, 0.045, 10, 6, AMBER_GOLD, 0.75);
-    b.addBevelledBox(0, 0.58, 0, 0.36, 0.44, 0.50, 0.03, AMBER_GOLD, TITANIUM_HI, 0.65);
-    b.addCylinderY(0, 0.62, 0.84, 0, 0.07, 0.07, 8, SLATE_DARK, 0.0);
+    // 10. Locked Key-Door (Clean Light-Grey/White Gate Block with a clear Warm-Gold Lock Symbol)
+    b.addBevelledBox(0, 0.36, 0, 0.92, 0.68, 0.38, 0.05, OFF_WHITE, PURE_WHITE, 0.05);
+    b.addTorusXZ(0, 0.78, 0, 0.14, 0.038, 10, 6, ACCENT_GOLD, 0.50);
+    b.addBevelledBox(0, 0.52, 0, 0.32, 0.36, 0.46, 0.03, ACCENT_GOLD, PURE_WHITE, 0.40);
+    b.addBox(0, 0.52, 0, 0.08, 0.16, 0.49, CHARCOAL_DARK, 0.0);
     compile("lockedDoor");
 
-    // Airlock / Proximity Door (Dark Gunmetal-Slate Gate with Cryo-Cyan Sensor Ring)
-    b.addBevelledBox(0, 0.40, 0, 0.94, 0.80, 0.40, 0.05, SLATE_MID, SLATE_LIGHT, 0.15);
-    b.addTorusXZ(0, 0.86, 0, 0.22, 0.045, 12, 6, CRYO_CYAN, 0.8);
-    b.addOctahedron(0, 0.86, 0, 0.14, 0.14, 0.14, TITANIUM_HI, 0.75);
+    // Airlock / Proximity Door (Clean White Gate with Sky-Blue Ring)
+    b.addBevelledBox(0, 0.36, 0, 0.92, 0.68, 0.38, 0.05, OFF_WHITE, PURE_WHITE, 0.05);
+    b.addTorusXZ(0, 0.76, 0, 0.18, 0.036, 12, 6, ACCENT_SKY, 0.55);
     compile("proximityDoor");
 
-    // 11. Automatic Laser/Blast Door:
-    // Low-profile floor threshold rails at North (-Z) and South (+Z) edges
-    b.addBox(0, 0.05, -0.43, 0.94, 0.10, 0.12, SLATE_MID, 0.08);
-    b.addBox(0, 0.05, 0.43, 0.94, 0.10, 0.12, SLATE_MID, 0.08);
+    // 11. Automatic Laser/Blast Door (Clean White Thresholds + Coral-Red Laser Bar when closed):
+    b.addBox(0, 0.04, -0.43, 0.92, 0.08, 0.10, OFF_WHITE, 0.04);
+    b.addBox(0, 0.04,  0.43, 0.92, 0.08, 0.10, OFF_WHITE, 0.04);
     compile("laserPylons");
 
-    // OPEN / SAFE indicator: Clean Cryo-Cyan walkthrough guide strips (reserves green 100% for Plutonium & Barrels!)
-    b.addBox(0, 0.025, 0, 0.84, 0.03, 0.66, CRYO_DEEP, 0.45);
-    b.addBox(-0.26, 0.045, 0, 0.10, 0.025, 0.62, CRYO_CYAN, 0.85);
-    b.addBox(0.26, 0.045, 0, 0.10, 0.025, 0.62, CRYO_CYAN, 0.85);
-    b.addOctahedron(0, 0.86, -0.42, 0.12, 0.12, 0.12, CRYO_CYAN, 0.85);
-    b.addOctahedron(0, 0.86, 0.42, 0.12, 0.12, 0.12, CRYO_CYAN, 0.85);
+    // OPEN / SAFE state: Calm white/light-grey walkthrough strips (unobstructed!)
+    b.addBox(-0.24, 0.02, 0, 0.08, 0.02, 0.64, PURE_WHITE, 0.35);
+    b.addBox( 0.24, 0.02, 0, 0.08, 0.02, 0.64, PURE_WHITE, 0.35);
     compile("laserSafeOpen");
 
-    // CLOSED / CLOSING DANGER indicator: Crimson-Red alarm pad + overhead Crimson beacons
-    b.addBox(0, 0.03, 0, 0.86, 0.04, 0.68, CRIMSON_DEEP, 0.65);
-    b.addOctahedron(0, 0.90, -0.42, 0.16, 0.18, 0.16, CRIMSON_RED, 0.95);
-    b.addOctahedron(0, 0.90, 0.42, 0.16, 0.18, 0.16, CRIMSON_RED, 0.95);
+    // CLOSED / DANGER state: Crisp Coral-Red floor warning strip + top indicator nodes
+    b.addBox(0, 0.025, 0, 0.84, 0.03, 0.64, ACCENT_CORAL, 0.65);
+    b.addOctahedron(0, 0.78, -0.42, 0.11, 0.11, 0.11, ACCENT_CORAL, 0.85);
+    b.addOctahedron(0, 0.78,  0.42, 0.11, 0.11, 0.11, ACCENT_CORAL, 0.85);
     compile("laserDangerClosed");
 
-    // Sliding Deadly Door Leaf (Dark Gunmetal Blast Frame + Pure Crimson-Red Plasma Laser Bars)
-    b.addBevelledBox(0, 0.42, 0, 0.88, 0.76, 0.34, 0.03, OBSIDIAN_HI, SLATE_LIGHT, 0.25);
-    b.addBox(0, 0.22, 0, 0.92, 0.08, 0.36, CRIMSON_RED, 0.95);
-    b.addBox(0, 0.46, 0, 0.92, 0.08, 0.36, CRIMSON_RED, 0.95);
-    b.addBox(0, 0.70, 0, 0.92, 0.08, 0.36, CRIMSON_RED, 0.95);
+    // Sliding Door Leaf (Clean White/Light-Grey Barrier Block + Single Bold Coral-Red Laser Bar)
+    b.addBevelledBox(0, 0.34, 0, 0.88, 0.62, 0.32, 0.03, OFF_WHITE, PURE_WHITE, 0.08);
+    b.addBox(0, 0.38, 0, 0.92, 0.12, 0.35, ACCENT_CORAL, 0.90);
     compile("laserBeams");
 
-    // 12. Warp Pad & Warp Frame (Unified Gunmetal-Slate & Cryo-Cyan)
-    addIndustrialPedestal(0.45, 0.08, CRYO_CYAN, 0.65);
-    b.addTorusXZ(0, 0.14, 0, 0.34, 0.04, 14, 6, CRYO_CYAN, 0.85);
-    b.addTorusXZ(0, 0.24, 0, 0.22, 0.03, 12, 6, TITANIUM_HI, 0.8);
+    // 12. Warp Pad & Warp Frame (Minimalist White Ring Pad with Soft Sky-Blue Core)
+    addCleanDiscBase(0.42, 0.05, ACCENT_SKY, 0.45);
+    b.addTorusXZ(0, 0.10, 0, 0.26, 0.032, 14, 6, PURE_WHITE, 0.50);
+    b.addCylinderY(0, 0.05, 0.09, 0, 0.18, 0.18, 12, ACCENT_SKY, 0.65);
     compile("warpPad");
 
-    b.addBevelledBox(0, 0.40, 0, 0.84, 0.80, 0.84, 0.08, SLATE_MID, SLATE_LIGHT, 0.18);
-    b.addTorusXZ(0, 0.52, 0, 0.34, 0.045, 10, 6, CRYO_CYAN, 0.75);
+    b.addBevelledBox(0, 0.34, 0, 0.82, 0.68, 0.82, 0.06, OFF_WHITE, PURE_WHITE, 0.05);
+    b.addTorusXZ(0, 0.44, 0, 0.30, 0.035, 10, 6, ACCENT_SKY, 0.45);
     compile("warpFrame");
 
-    // 13. Crumbly Diggable Regolith (Harmonized Dark Basalt-Slate & Warm Amber Mineral Seams)
-    b.addBevelledBox(0, 0.15, 0, 0.84, 0.30, 0.84, 0.07, [0.22, 0.20, 0.18], [0.32, 0.28, 0.24], 0.05);
-    b.addOctahedron(-0.18, 0.34, -0.14, 0.26, 0.26, 0.26, [0.38, 0.32, 0.24], 0.08);
-    b.addOctahedron(0.18, 0.38, 0.14, 0.24, 0.28, 0.24, AMBER_MUTED, 0.18);
-    b.addOctahedron(0.0, 0.32, 0.02, 0.28, 0.24, 0.28, [0.28, 0.24, 0.20], 0.06);
+    // 13. Crumbly Diggable Regolith (Abstract cluster of 3 rounded Warm Sand-Grey & Light-Grey Cubes)
+    b.addBevelledBox(0, 0.14, 0, 0.78, 0.26, 0.78, 0.05, ACCENT_SAND, OFF_WHITE, 0.03);
+    b.addBevelledBox(-0.16, 0.30, -0.12, 0.34, 0.22, 0.34, 0.04, LIGHT_GREY, PURE_WHITE, 0.04);
+    b.addBevelledBox( 0.16, 0.32,  0.14, 0.32, 0.24, 0.32, 0.04, ACCENT_SAND, OFF_WHITE, 0.04);
     compile("crumblyDirt");
 
-    b.addOctahedron(0, 0.36, 0, 0.42, 0.46, 0.42, SLATE_MID, 0.05);
-    b.addOctahedron(0.15, 0.24, 0.15, 0.26, 0.30, 0.26, SLATE_DARK, 0.04);
+    b.addBevelledBox(0, 0.28, 0, 0.68, 0.52, 0.68, 0.06, LIGHT_GREY, OFF_WHITE, 0.02);
     compile("rockBlock");
 
-    // 14. Forcefield Barrier & Skull Hazard (Unified Obsidian-Graphite + Crimson-Red)
-    b.addBevelledBox(0, 0.38, 0, 0.90, 0.74, 0.90, 0.06, OBSIDIAN_HI, CRIMSON_DEEP, 0.35);
-    b.addTorusXZ(0, 0.76, 0, 0.34, 0.04, 12, 6, CRIMSON_RED, 0.9);
-    b.addOctahedron(0, 0.84, 0, 0.18, 0.22, 0.18, CRIMSON_RED, 0.95);
+    // 14. Forcefield Barrier & Skull Hazard (Minimalist White Base + Crisp Coral-Red Hazard Symbol)
+    b.addBevelledBox(0, 0.32, 0, 0.84, 0.60, 0.84, 0.05, OFF_WHITE, PURE_WHITE, 0.06);
+    b.addOctahedron(0, 0.74, 0, 0.18, 0.22, 0.18, ACCENT_CORAL, 0.85);
     compile("hazardField");
 
-    // 14b. 3D Titanium Skull & Crimson Eyes on Obsidian Threshold
-    addIndustrialPedestal(0.44, 0.06, CRIMSON_RED, 0.55);
-    b.addBevelledBox(0, 0.22, -0.04, 0.34, 0.22, 0.32, 0.05, TITANIUM, TITANIUM_HI, 0.45);
-    b.addBox(0, 0.14, 0.15, 0.20, 0.11, 0.13, TITANIUM, 0.4);
-    b.addBox(-0.08, 0.26, 0.06, 0.07, 0.07, 0.07, CRIMSON_RED, 0.95);
-    b.addBox(0.08, 0.26, 0.06, 0.07, 0.07, 0.07, CRIMSON_RED, 0.95);
+    // 14b. Abstract Minimalist 3D Block-Skull (Clean White Cranium + Coral-Red Eyes)
+    addCleanDiscBase(0.38, 0.05, ACCENT_CORAL, 0.40);
+    b.addBevelledBox(0, 0.22, -0.02, 0.34, 0.22, 0.30, 0.04, PURE_WHITE, OFF_WHITE, 0.15);
+    b.addBox(0, 0.12, 0.12, 0.20, 0.10, 0.12, OFF_WHITE, 0.10);
+    b.addBox(-0.08, 0.24, 0.08, 0.07, 0.07, 0.07, ACCENT_CORAL, 0.85);
+    b.addBox( 0.08, 0.24, 0.08, 0.07, 0.07, 0.07, ACCENT_CORAL, 0.85);
     compile("skullHazard");
 
-    // 15. Exit Extraction Portal (Monumental Dark Titanium & Cryo-Cyan Stargate Archway)
-    addIndustrialPedestal(0.46, 0.10, CRYO_CYAN, 0.75);
-    b.addBox(-0.36, 0.46, 0, 0.12, 0.88, 0.20, TITANIUM, 0.45);
-    b.addBox(0.36, 0.46, 0, 0.12, 0.88, 0.20, TITANIUM, 0.45);
-    b.addBox(0, 0.90, 0, 0.86, 0.13, 0.24, TITANIUM_HI, 0.55);
-    b.addTorusXZ(0, 0.50, 0, 0.36, 0.05, 14, 6, CRYO_CYAN, 0.95);
-    b.addOctahedron(0, 1.12, 0, 0.22, 0.28, 0.22, CRYO_CYAN, 0.95);
+    // 15. Exit Extraction Portal (Clean White Architectural Archway + Sky-Blue Portal Ring)
+    addCleanDiscBase(0.44, 0.06, ACCENT_SKY, 0.50);
+    b.addBox(-0.34, 0.42, 0, 0.12, 0.78, 0.18, PURE_WHITE, 0.15);
+    b.addBox( 0.34, 0.42, 0, 0.12, 0.78, 0.18, PURE_WHITE, 0.15);
+    b.addBox(0, 0.82, 0, 0.82, 0.12, 0.22, PURE_WHITE, 0.20);
+    b.addTorusXZ(0, 0.44, 0, 0.30, 0.04, 14, 6, ACCENT_SKY, 0.75);
     compile("exitPortal");
 
-    // 16. Articulated 3D Grey Player Robot (Metallic Gunmetal/Steel-Grey Chassis + Expressive 3D Robot Face)
-    const ROBOT_GREY_DARK  = [0.24, 0.26, 0.30]; // Anthracite joints, recessed face bezel, boots & backpack frame
-    const ROBOT_GREY_MID   = [0.46, 0.49, 0.54]; // Primary brushed steel-grey robot armor
-    const ROBOT_GREY_LIGHT = [0.66, 0.70, 0.75]; // Silver-grey bevel highlights, brow ridges, nose & chest trim
-    const ROBOT_FACE_DARK  = [0.10, 0.12, 0.15]; // Deep charcoal face screen & pupil core
-    const ROBOT_EYE_GLOW   = [0.82, 0.95, 1.00]; // Crisp expressive robot eyes & vocoder mouth bars
+    // 16. Articulated 3D Light-Grey & White Player Robot (With Friendly 3D Robot Face)
+    const ROBOT_GREY_DARK  = [0.34, 0.37, 0.42]; // Slate-grey joints & boots
+    const ROBOT_GREY_MID   = [0.64, 0.68, 0.73]; // Clean light-grey robot chassis
+    const ROBOT_GREY_LIGHT = [0.88, 0.90, 0.94]; // Crisp off-white bevel highlights & brow/nose
+    const ROBOT_FACE_DARK  = [0.14, 0.16, 0.20]; // Dark face screen & pupils
+    const ROBOT_EYE_GLOW   = [0.92, 0.98, 1.00]; // Crisp white-cyan robot eyes & mouth
 
-    // 16A. Grey Robot Torso, Chest Armor Plate, Dual Rear Thruster Cylinders & Pelvis Joint
-    b.addBevelledBox(0, 0, 0, 0.44, 0.42, 0.28, 0.04, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.18);
-    b.addBox(0, 0.04, 0.15, 0.32, 0.22, 0.04, ROBOT_GREY_LIGHT, 0.25);
-    b.addBox(-0.085, 0.04, 0.172, 0.095, 0.14, 0.02, ROBOT_GREY_DARK, 0.12);
-    b.addBox( 0.085, 0.04, 0.172, 0.095, 0.14, 0.02, ROBOT_GREY_DARK, 0.12);
-    b.addBox(0, 0.02, -0.19, 0.34, 0.34, 0.14, ROBOT_GREY_DARK, 0.15);
-    b.addCylinderY(-0.09, -0.12, 0.16, -0.24, 0.055, 0.055, 8, ROBOT_GREY_MID, 0.22);
-    b.addCylinderY( 0.09, -0.12, 0.16, -0.24, 0.055, 0.055, 8, ROBOT_GREY_MID, 0.22);
-    b.addCylinderY(0, -0.25, -0.16, 0, 0.14, 0.16, 8, ROBOT_GREY_DARK, 0.15);
+    // 16A. Light-Grey & White Robot Torso
+    b.addBevelledBox(0, 0, 0, 0.42, 0.40, 0.26, 0.04, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.12);
+    b.addBox(0, 0.04, 0.14, 0.30, 0.20, 0.03, PURE_WHITE, 0.18);
+    b.addBox(0, 0.02, -0.17, 0.30, 0.30, 0.12, ROBOT_GREY_DARK, 0.08);
+    b.addCylinderY(0, -0.24, -0.15, 0, 0.13, 0.15, 8, ROBOT_GREY_DARK, 0.10);
     compile("playerTorso");
 
-    // 16B. Grey Robot Head with 3D Robot Face (Eyes, Pupils, Eyebrows, Nose Bridge, Vocoder Mouth Grille, Ears & Antenna)
-    b.addCylinderY(0, -0.22, -0.13, 0, 0.11, 0.11, 8, ROBOT_GREY_DARK, 0.15);
-    b.addBevelledBox(0, 0.02, 0, 0.42, 0.38, 0.38, 0.05, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.20);
-    // Cranial crest & top antenna
-    b.addBox(0, 0.225, 0, 0.13, 0.05, 0.28, ROBOT_GREY_LIGHT, 0.28);
-    b.addCylinderY(0, 0.22, 0.37, -0.04, 0.024, 0.015, 6, ROBOT_GREY_LIGHT, 0.32);
-    b.addOctahedron(0, 0.40, -0.04, 0.044, 0.044, 0.044, ROBOT_EYE_GLOW, 0.85);
-    // Side acoustic ear bolts
-    b.addBox(-0.23, 0.02, 0, 0.05, 0.14, 0.14, ROBOT_GREY_DARK, 0.18);
-    b.addBox( 0.23, 0.02, 0, 0.05, 0.14, 0.14, ROBOT_GREY_DARK, 0.18);
-    b.addBox(-0.26, 0.02, 0, 0.03, 0.08, 0.08, ROBOT_GREY_LIGHT, 0.32);
-    b.addBox( 0.26, 0.02, 0, 0.03, 0.08, 0.08, ROBOT_GREY_LIGHT, 0.32);
-    // Recessed dark face screen bezel on +Z
-    b.addBox(0, 0.02, 0.185, 0.35, 0.30, 0.03, ROBOT_FACE_DARK, 0.08);
-    // Left & Right 3D Eye Rims, Glowing Eyes, Pupils & Expressive Brow Ridges
-    b.addBox(-0.098, 0.078, 0.200, 0.116, 0.106, 0.032, ROBOT_GREY_LIGHT, 0.36);
-    b.addBox( 0.098, 0.078, 0.200, 0.116, 0.106, 0.032, ROBOT_GREY_LIGHT, 0.36);
-    b.addBox(-0.098, 0.078, 0.212, 0.094, 0.084, 0.034, ROBOT_EYE_GLOW, 0.95);
-    b.addBox( 0.098, 0.078, 0.212, 0.094, 0.084, 0.034, ROBOT_EYE_GLOW, 0.95);
-    b.addBox(-0.092, 0.080, 0.228, 0.038, 0.042, 0.018, ROBOT_FACE_DARK, 0.05);
-    b.addBox( 0.092, 0.080, 0.228, 0.038, 0.042, 0.018, ROBOT_FACE_DARK, 0.05);
-    b.addBox(-0.098, 0.146, 0.216, 0.126, 0.032, 0.044, ROBOT_GREY_LIGHT, 0.42);
-    b.addBox( 0.098, 0.146, 0.216, 0.126, 0.032, 0.044, ROBOT_GREY_LIGHT, 0.42);
-    // 3D Robot Nose Bridge
-    b.addBox(0, 0.016, 0.215, 0.044, 0.076, 0.044, ROBOT_GREY_LIGHT, 0.38);
-    // 3D Robot Mouth / Vocoder Grille with vertical teeth bars & chin bumper
-    b.addBox(0, -0.076, 0.200, 0.24, 0.076, 0.032, ROBOT_GREY_DARK, 0.18);
-    b.addBox(0, -0.076, 0.210, 0.21, 0.048, 0.028, ROBOT_EYE_GLOW, 0.88);
-    b.addBox(-0.055, -0.076, 0.222, 0.018, 0.054, 0.018, ROBOT_FACE_DARK, 0.08);
-    b.addBox( 0.000, -0.076, 0.222, 0.018, 0.054, 0.018, ROBOT_FACE_DARK, 0.08);
-    b.addBox( 0.055, -0.076, 0.222, 0.018, 0.054, 0.018, ROBOT_FACE_DARK, 0.08);
-    b.addBox(0, -0.145, 0.206, 0.26, 0.034, 0.040, ROBOT_GREY_LIGHT, 0.32);
+    // 16B. Light-Grey & White Robot Head with Simple, Recognizable 3D Robot Face
+    b.addCylinderY(0, -0.21, -0.12, 0, 0.10, 0.10, 8, ROBOT_GREY_DARK, 0.10);
+    b.addBevelledBox(0, 0.02, 0, 0.42, 0.38, 0.36, 0.05, ROBOT_GREY_MID, PURE_WHITE, 0.15);
+    // Simple top antenna
+    b.addCylinderY(0, 0.21, 0.34, -0.02, 0.022, 0.015, 6, ROBOT_GREY_LIGHT, 0.20);
+    b.addOctahedron(0, 0.37, -0.02, 0.042, 0.042, 0.042, PURE_WHITE, 0.70);
+    // Side ear bolts
+    b.addBox(-0.23, 0.02, 0, 0.05, 0.12, 0.12, ROBOT_GREY_DARK, 0.12);
+    b.addBox( 0.23, 0.02, 0, 0.05, 0.12, 0.12, ROBOT_GREY_DARK, 0.12);
+    // Dark recessed face screen on +Z
+    b.addBox(0, 0.02, 0.175, 0.34, 0.28, 0.03, ROBOT_FACE_DARK, 0.05);
+    // Left & Right 3D Eyes, Pupils & Brow Ridges
+    b.addBox(-0.095, 0.075, 0.195, 0.10, 0.09, 0.03, ROBOT_EYE_GLOW, 0.90);
+    b.addBox( 0.095, 0.075, 0.195, 0.10, 0.09, 0.03, ROBOT_EYE_GLOW, 0.90);
+    b.addBox(-0.090, 0.078, 0.212, 0.038, 0.042, 0.015, ROBOT_FACE_DARK, 0.02);
+    b.addBox( 0.090, 0.078, 0.212, 0.038, 0.042, 0.015, ROBOT_FACE_DARK, 0.02);
+    b.addBox(-0.095, 0.140, 0.200, 0.12, 0.03, 0.04, PURE_WHITE, 0.30);
+    b.addBox( 0.095, 0.140, 0.200, 0.12, 0.03, 0.04, PURE_WHITE, 0.30);
+    // Nose bridge & clean vocoder mouth
+    b.addBox(0, 0.015, 0.200, 0.04, 0.07, 0.04, PURE_WHITE, 0.25);
+    b.addBox(0, -0.075, 0.195, 0.20, 0.046, 0.025, ROBOT_EYE_GLOW, 0.85);
+    b.addBox(-0.05, -0.075, 0.208, 0.016, 0.05, 0.015, ROBOT_FACE_DARK, 0.05);
+    b.addBox( 0.00, -0.075, 0.208, 0.016, 0.05, 0.015, ROBOT_FACE_DARK, 0.05);
+    b.addBox( 0.05, -0.075, 0.208, 0.016, 0.05, 0.015, ROBOT_FACE_DARK, 0.05);
     compile("playerHead");
 
-    // 16C. Grey Robot Articulated Limb (Dark Joint Cap + Steel-Grey Strut + Anthracite Boot/Hand)
-    b.addBox(0, -0.02, 0, 0.16, 0.08, 0.16, ROBOT_GREY_DARK, 0.18);
-    b.addBevelledBox(0, -0.15, 0, 0.14, 0.26, 0.14, 0.02, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.20);
-    b.addBox(0, -0.29, 0.03, 0.17, 0.10, 0.20, ROBOT_GREY_DARK, 0.22);
+    // 16C. Light-Grey Robot Limb
+    b.addBox(0, -0.02, 0, 0.15, 0.07, 0.15, ROBOT_GREY_DARK, 0.12);
+    b.addBevelledBox(0, -0.15, 0, 0.13, 0.25, 0.13, 0.02, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.15);
+    b.addBox(0, -0.28, 0.02, 0.16, 0.09, 0.18, ROBOT_GREY_DARK, 0.15);
     compile("playerLimb");
 
-    // 17. Compact, Agile 3D Alien Hunters:
-    // - Normal Alien (Type 0): Monochrome "Grau-in-Grau" (Anthracite / Ash-Grey / Brushed Silver-Grey)
-    // - Fast Alien   (Type 1): "Dunkelblau" (Deep Navy / Midnight Cobalt / Steel-Blue)
-    const ALIEN_GREY_DARK  = [0.28, 0.30, 0.33];
-    const ALIEN_GREY_MID   = [0.46, 0.49, 0.53];
-    const ALIEN_GREY_LIGHT = [0.68, 0.71, 0.76];
-    const ALIEN_GREY_EYE   = [0.88, 0.91, 0.95];
+    // 17. Abstract, Compact 3D Alien Hunters:
+    // - Normal Alien (Type 0): Monochrome "Grau-in-Grau" (Slate-Grey & Light-Grey)
+    // - Fast Alien   (Type 1): "Dunkelblau" (Muted Deep Steel-Blue & Ice-White Eyes)
+    const ALIEN_GREY_DARK  = [0.34, 0.37, 0.42];
+    const ALIEN_GREY_MID   = [0.54, 0.58, 0.63];
+    const ALIEN_GREY_LIGHT = [0.78, 0.81, 0.86];
+    const ALIEN_GREY_EYE   = [0.96, 0.98, 1.00];
 
-    const ALIEN_BLUE_DEEP  = [0.07, 0.14, 0.32];
-    const ALIEN_BLUE_MID   = [0.13, 0.25, 0.52];
-    const ALIEN_BLUE_HI    = [0.22, 0.40, 0.74];
-    const ALIEN_BLUE_EYE   = [0.48, 0.74, 0.98];
+    const ALIEN_BLUE_DEEP  = [0.12, 0.22, 0.44];
+    const ALIEN_BLUE_MID   = [0.20, 0.36, 0.64];
+    const ALIEN_BLUE_HI    = [0.34, 0.52, 0.82];
+    const ALIEN_BLUE_EYE   = [0.75, 0.90, 1.00];
 
-    // 17a. Normal Alien Body ("Grau-in-Grau" Compact Arachnid Stalker)
-    b.addBevelledBox(0, 0.05, 0.06, 0.24, 0.17, 0.30, 0.035, ALIEN_GREY_DARK, ALIEN_GREY_MID, 0.10);
-    b.addOctahedron(0, 0.10, -0.18, 0.18, 0.16, 0.22, ALIEN_GREY_MID, 0.14);
-    b.addOctahedron(0, 0.14, -0.18, 0.11, 0.11, 0.14, ALIEN_GREY_LIGHT, 0.28);
-    b.addCylinderY(0, 0.11, 0.28, 0.08, 0.035, 0.008, 6, ALIEN_GREY_LIGHT, 0.22);
-    b.addCylinderY(0, 0.13, 0.32, -0.03, 0.04, 0.008, 6, ALIEN_GREY_EYE, 0.30);
-    b.addCylinderY(0, 0.14, 0.29, -0.14, 0.035, 0.008, 6, ALIEN_GREY_LIGHT, 0.22);
-    // 6 Pale Silver-Grey Arachnid Eyes
-    b.addBox(-0.06, 0.07, 0.21, 0.04, 0.035, 0.035, ALIEN_GREY_EYE, 0.65);
-    b.addBox(0.06, 0.07, 0.21, 0.04, 0.035, 0.035, ALIEN_GREY_EYE, 0.65);
-    b.addBox(-0.10, 0.10, 0.18, 0.035, 0.03, 0.035, ALIEN_GREY_LIGHT, 0.55);
-    b.addBox(0.10, 0.10, 0.18, 0.035, 0.03, 0.035, ALIEN_GREY_LIGHT, 0.55);
-    b.addBox(-0.03, 0.11, 0.22, 0.03, 0.03, 0.03, [0.95, 0.97, 1.0], 0.75);
-    b.addBox(0.03, 0.11, 0.22, 0.03, 0.03, 0.03, [0.95, 0.97, 1.0], 0.75);
+    // 17a. Normal Alien Body (Clean Abstract Grey-on-Grey Spider Pod)
+    b.addBevelledBox(0, 0.06, 0.02, 0.24, 0.16, 0.28, 0.035, ALIEN_GREY_DARK, ALIEN_GREY_MID, 0.08);
+    b.addOctahedron(0, 0.12, -0.14, 0.16, 0.14, 0.18, ALIEN_GREY_LIGHT, 0.12);
+    b.addBox(-0.06, 0.08, 0.17, 0.05, 0.04, 0.03, ALIEN_GREY_EYE, 0.70);
+    b.addBox( 0.06, 0.08, 0.17, 0.05, 0.04, 0.03, ALIEN_GREY_EYE, 0.70);
     compile("droidCore");
 
-    // 17b. Compact Articulated Alien Spider Leg (Neutral Grey-Steel base so tinting yields Grey-on-Grey or Dark-Blue)
-    b.addBox(0.10, 0.10, 0, 0.18, 0.04, 0.04, [0.50, 0.53, 0.57], 0.12);
-    b.addOctahedron(0.19, 0.13, 0, 0.04, 0.055, 0.04, [0.70, 0.74, 0.79], 0.22);
-    b.addCylinderY(0.25, -0.18, 0.13, 0, 0.012, 0.032, 5, [0.38, 0.41, 0.45], 0.12);
-    b.addOctahedron(0.25, -0.18, 0, 0.028, 0.055, 0.028, [0.82, 0.85, 0.90], 0.35);
+    // 17b. Clean Minimalist Articulated Spider Leg
+    b.addBox(0.10, 0.09, 0, 0.16, 0.038, 0.038, [0.58, 0.62, 0.67], 0.08);
+    b.addCylinderY(0.22, -0.16, 0.11, 0, 0.014, 0.028, 5, [0.44, 0.47, 0.52], 0.08);
     compile("alienSpiderLeg");
 
-    // 17c. Compact Serrated Mandible ("Grau-in-Grau")
-    b.addBox(0, 0.0, 0.08, 0.04, 0.035, 0.14, ALIEN_GREY_MID, 0.15);
-    b.addOctahedron(0, 0.0, 0.16, 0.03, 0.03, 0.055, ALIEN_GREY_EYE, 0.45);
+    // 17c. Clean Minimalist Pincer
+    b.addBox(0, 0.0, 0.07, 0.038, 0.035, 0.12, ALIEN_GREY_LIGHT, 0.15);
     compile("alienMandible");
 
-    // 17d. Fast Alien Body ("Dunkelblau" — Deep Navy / Midnight Cobalt Hunter)
-    b.addBevelledBox(0, 0.11, 0.02, 0.26, 0.23, 0.32, 0.04, ALIEN_BLUE_DEEP, ALIEN_BLUE_MID, 0.15);
-    b.addOctahedron(0, 0.22, -0.15, 0.15, 0.12, 0.26, ALIEN_BLUE_MID, 0.20);
-    b.addCylinderY(-0.12, 0.18, 0.36, -0.07, 0.032, 0.008, 6, ALIEN_BLUE_HI, 0.35);
-    b.addCylinderY(0.12, 0.18, 0.36, -0.07, 0.032, 0.008, 6, ALIEN_BLUE_HI, 0.35);
-    b.addOctahedron(0, 0.10, 0.17, 0.09, 0.10, 0.07, ALIEN_BLUE_HI, 0.55);
-    b.addBox(-0.07, 0.19, 0.18, 0.05, 0.035, 0.04, ALIEN_BLUE_EYE, 0.80);
-    b.addBox(0.07, 0.19, 0.18, 0.05, 0.035, 0.04, ALIEN_BLUE_EYE, 0.80);
-    b.addBox(0, 0.23, 0.19, 0.035, 0.035, 0.035, [0.72, 0.88, 1.0], 0.85);
+    // 17d. Fast Alien Body (Clean Abstract Deep-Blue Hunter Pod)
+    b.addBevelledBox(0, 0.09, 0.0, 0.25, 0.20, 0.30, 0.04, ALIEN_BLUE_DEEP, ALIEN_BLUE_MID, 0.12);
+    b.addOctahedron(0, 0.18, -0.14, 0.14, 0.12, 0.22, ALIEN_BLUE_HI, 0.18);
+    b.addBox(-0.06, 0.14, 0.16, 0.055, 0.04, 0.035, ALIEN_BLUE_EYE, 0.80);
+    b.addBox( 0.06, 0.14, 0.16, 0.055, 0.04, 0.035, ALIEN_BLUE_EYE, 0.80);
     compile("fastDroidBody");
 
-    // 17e. Compact Scythe Claw Arm ("Dunkelblau" Cobalt Blade)
-    b.addBox(0, 0.10, 0.11, 0.045, 0.05, 0.21, ALIEN_BLUE_MID, 0.18);
-    b.addOctahedron(0, 0.03, 0.23, 0.032, 0.15, 0.11, ALIEN_BLUE_HI, 0.55);
+    // 17e. Fast Alien Blade Arm
+    b.addBox(0, 0.08, 0.10, 0.04, 0.045, 0.18, ALIEN_BLUE_MID, 0.15);
+    b.addOctahedron(0, 0.03, 0.20, 0.03, 0.12, 0.09, ALIEN_BLUE_HI, 0.40);
     compile("alienScytheClaw");
 
-    // 17f. Compact Scorpion Tail ("Dunkelblau" Cobalt Stinger)
-    b.addCylinderY(0, 0.06, 0.32, -0.21, 0.038, 0.016, 6, ALIEN_BLUE_MID, 0.20);
-    b.addOctahedron(0, 0.34, -0.17, 0.038, 0.05, 0.09, ALIEN_BLUE_EYE, 0.65);
+    // 17f. Fast Alien Tail Fin
+    b.addCylinderY(0, 0.06, 0.28, -0.18, 0.032, 0.014, 6, ALIEN_BLUE_MID, 0.15);
+    b.addOctahedron(0, 0.30, -0.16, 0.035, 0.045, 0.08, ALIEN_BLUE_EYE, 0.55);
     compile("alienTailStinger");
 
-    // 17g. Subtle Dark Aura Ring
-    b.addTorusXZ(0, 0.03, 0, 0.28, 0.02, 12, 6, ALIEN_GREY_MID, 0.35);
+    // 17g. Subtle Base Ring
+    b.addTorusXZ(0, 0.02, 0, 0.24, 0.016, 12, 6, ALIEN_GREY_LIGHT, 0.20);
     compile("droidRing");
 
     // 18. 3D Particle Crystal Shard, Volumetric Fireball, Armor Shrapnel & Shockwave Ring
@@ -3408,17 +3330,17 @@ class MeshGeometryBuilder {
     b.addBox(0, 0, 0, 0.54, 0.30, 0.30, [1.0, 0.55, 0.12], 0.9);
     b.addBox(0, 0, 0, 0.30, 0.54, 0.30, [1.0, 0.55, 0.12], 0.9);
     b.addBox(0, 0, 0, 0.30, 0.30, 0.54, [1.0, 0.55, 0.12], 0.9);
-    b.addTorusXZ(0, 0, 0, 0.46, 0.07, 12, 6, CRIMSON_RED, 0.95);
+    b.addTorusXZ(0, 0, 0, 0.46, 0.07, 12, 6, ACCENT_CORAL, 0.95);
     compile("explosionFireball");
 
-    // 20. Jagged 3D Hull / Door / Suit Shrapnel Plate
-    b.addBevelledBox(0, 0, 0, 0.28, 0.08, 0.22, 0.02, TITANIUM, AMBER_GOLD, 0.65);
-    b.addOctahedron(0.08, 0.04, 0, 0.12, 0.08, 0.10, CRIMSON_RED, 0.85);
+    // 20. Clean Light-Grey/White 3D Shrapnel Plate
+    b.addBevelledBox(0, 0, 0, 0.26, 0.08, 0.22, 0.02, LIGHT_GREY, OFF_WHITE, 0.35);
+    b.addOctahedron(0.06, 0.04, 0, 0.10, 0.07, 0.09, ACCENT_CORAL, 0.65);
     compile("debrisArmorChunk");
 
-    // 21. Exploded Alien Chitin Carapace Fragment (Neutral Grey/Steel so tinting matches Grey or Dark-Blue alien)
-    b.addBevelledBox(0, 0, 0, 0.20, 0.10, 0.22, 0.025, [0.52, 0.55, 0.60], [0.74, 0.78, 0.84], 0.35);
-    b.addOctahedron(0, 0.05, 0, 0.11, 0.11, 0.11, [0.85, 0.88, 0.94], 0.55);
+    // 21. Exploded Alien Carapace Fragment (Neutral Grey/Steel so tinting matches Grey or Dark-Blue alien)
+    b.addBevelledBox(0, 0, 0, 0.20, 0.10, 0.22, 0.025, [0.52, 0.55, 0.60], [0.74, 0.78, 0.84], 0.25);
+    b.addOctahedron(0, 0.05, 0, 0.11, 0.11, 0.11, [0.85, 0.88, 0.94], 0.40);
     compile("alienBioChunk");
 
     return meshes;
@@ -4571,16 +4493,17 @@ const FRAGMENT_SHADER_SRC = `
     vec3 N = normalize(vNormal);
     vec3 V = normalize(uCameraPos - vWorldPos);
 
-    // Hemisphere ambient + Directional key light
+    // Sculptural architectural hemisphere + side-face contrast so white/light-grey blocks have crisp 3D depth
     float hemi = 0.5 + 0.5 * N.y;
-    vec3 lighting = uAmbientColor * (0.65 + 0.55 * hemi);
+    float faceContrast = 0.90 + 0.10 * abs(N.z);
+    vec3 lighting = uAmbientColor * (0.62 + 0.46 * hemi) * faceContrast;
 
     float ndotl = max(dot(N, uSunDir), 0.0);
     vec3 H = normalize(uSunDir + V);
-    float spec = pow(max(dot(N, H), 0.0), 28.0) * 0.38;
-    lighting += uSunColor * (ndotl * 0.85 + spec);
+    float spec = pow(max(dot(N, H), 0.0), 34.0) * 0.22;
+    lighting += uSunColor * (ndotl * 0.68 + spec);
 
-    // 8 Dynamic Point Lights (Player, Plutonium, Lasers, Portals, Droids)
+    // 8 Dynamic Point Lights (subtle colored accents from Plutonium, Active Barrels, Lasers & Portals)
     for (int i = 0; i < 8; i++) {
       vec3 lVec = uPointLights[i].xyz - vWorldPos;
       float radius = uPointLights[i].w;
@@ -4588,23 +4511,23 @@ const FRAGMENT_SHADER_SRC = `
         float dist = length(lVec);
         if (dist < radius) {
           vec3 L = lVec / max(dist, 0.001);
-          float atten = pow(1.0 - dist / radius, 1.8);
+          float atten = pow(1.0 - dist / radius, 2.0);
           float diff = max(dot(N, L), 0.0);
           vec3 Hp = normalize(L + V);
-          float pSpec = pow(max(dot(N, Hp), 0.0), 20.0) * 0.45;
-          lighting += uPointColors[i] * atten * (diff + pSpec + 0.2);
+          float pSpec = pow(max(dot(N, Hp), 0.0), 22.0) * 0.25;
+          lighting += uPointColors[i] * atten * (diff * 0.42 + pSpec + 0.08);
         }
       }
     }
 
     vec3 baseLit = vColor * lighting;
-    vec3 emissiveGlow = vColor * (1.35 * vEmissive);
-    vec3 finalRgb = mix(baseLit, emissiveGlow, clamp(vEmissive * 0.72, 0.0, 1.0)) + emissiveGlow * 0.35;
+    vec3 emissiveGlow = vColor * (1.18 * vEmissive);
+    vec3 finalRgb = mix(baseLit, emissiveGlow, clamp(vEmissive * 0.68, 0.0, 1.0)) + emissiveGlow * 0.24;
 
-    // Subtle distance depth fog toward deep cyber-indigo
+    // Subtle distance depth fog toward calm studio slate-grey
     float camDist = length(uCameraPos - vWorldPos);
-    float fogFactor = clamp((camDist - 20.0) / 26.0, 0.0, 0.55);
-    vec3 fogColor = vec3(0.03, 0.05, 0.10);
+    float fogFactor = clamp((camDist - 22.0) / 28.0, 0.0, 0.45);
+    vec3 fogColor = vec3(0.20, 0.22, 0.26);
     finalRgb = mix(finalRgb, fogColor, fogFactor);
 
     gl_FragColor = vec4(finalRgb, 1.0);
@@ -4824,7 +4747,7 @@ class WebGL3DMeshRenderer {
     const t = this.anim.time;
 
     gl.viewport(0, 0, this.webglCanvas.width, this.webglCanvas.height);
-    gl.clearColor(0.03, 0.05, 0.1, 1.0);
+    gl.clearColor(0.20, 0.22, 0.26, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.useProgram(this.program);
 
@@ -4846,25 +4769,19 @@ class WebGL3DMeshRenderer {
     gl.uniformMatrix4fv(this.uniforms.uViewProj, false, this.viewProjMatrix);
     gl.uniform3f(this.uniforms.uCameraPos, eyeX, eyeY, eyeZ);
 
-    // Extract Zone's Atari Palette tint and harmonize it into the Industrial Slate Design System
-    const wallPalIdx = ram[SystemAddressMap.COLOR0_SHADOW] & 0xfe;
-    const wallRgb = this.atari2d.palPalette[wallPalIdx] || [70, 130, 210];
-    const wallTint = [
-      0.74 + (wallRgb[0] / 255) * 0.32,
-      0.76 + (wallRgb[1] / 255) * 0.32,
-      0.80 + (wallRgb[2] / 255) * 0.32,
-    ];
+    // Keep walls crisp Alabaster-White & Light-Grey across all zones
+    const wallTint = [1.0, 1.0, 1.0];
 
-    // Global directional + ambient lights
+    // Balanced architectural studio lighting (sculptural top/front/side shading without blowing out white)
     const hurtFlash = this.anim.player.hurtFlash;
     gl.uniform3f(
       this.uniforms.uAmbientColor,
-      0.34 + hurtFlash * 0.45,
-      0.38 - hurtFlash * 0.15,
-      0.48 - hurtFlash * 0.15
+      0.54 + hurtFlash * 0.35,
+      0.56 - hurtFlash * 0.12,
+      0.59 - hurtFlash * 0.12
     );
-    gl.uniform3f(this.uniforms.uSunDir, 0.36, 0.84, 0.41);
-    gl.uniform3f(this.uniforms.uSunColor, 0.95, 0.97, 1.0);
+    gl.uniform3f(this.uniforms.uSunDir, 0.38, 0.82, 0.42);
+    gl.uniform3f(this.uniforms.uSunColor, 0.54, 0.55, 0.57);
 
     // Gather up to 8 dynamic point lights (Player + closest Plutonium/Active Barrels/Lasers/Portals/Droids)
     this._populateDynamicPointLights(ram, t);
@@ -4884,12 +4801,12 @@ class WebGL3DMeshRenderer {
       for (let tx = minTx; tx <= maxTx; tx++) {
         // Outer border walls around the 62x32 arena
         if (tx < 0 || tx >= GridConfig.WIDTH || tz < 0 || tz >= GridConfig.HEIGHT) {
-          this._drawMesh("wallBlock", tx, 0, tz, 0, 1, 1, 1, wallTint, 0.05);
+          this._drawMesh("wallBlock", tx, 0, tz, 0, 1, 1, 1, wallTint, 0.02);
           continue;
         }
 
-        // Floor plate
-        const checker = (tx + tz) & 1 ? 1.03 : 0.97;
+        // Subtle light-grey floor checkerboard
+        const checker = (tx + tz) & 1 ? 1.02 : 0.98;
         this._drawMesh("floorTile", tx, 0, tz, 0, 1, 1, 1, [checker, checker, checker], 0);
 
         const idx = tz * GridConfig.WIDTH + tx;
@@ -4915,11 +4832,11 @@ class WebGL3DMeshRenderer {
           case TileType.PLUTONIUM:
             if (isVis) {
               const bob = Math.sin(t * 4.2 + tx * 0.7 + tz * 0.5) * 0.08;
-              const pulse = 0.55 + 0.35 * Math.sin(t * 7.5 + tx);
-              const haloScale = 1.08 + 0.10 * Math.sin(t * 6.0 + tx);
-              this._drawMesh("plutoniumHalo", tx, 0, tz, t * 1.2, haloScale, 1.0, haloScale, [1, 1, 1], 0.85);
-              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.2, 1.2, 1.2, [1, 1, 1], pulse);
-              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.4 + tz, 1.2, 1.2, 1.2, [1, 1, 1], 0.75);
+              const pulse = 0.35 + 0.25 * Math.sin(t * 7.5 + tx);
+              const haloScale = 1.06 + 0.08 * Math.sin(t * 6.0 + tx);
+              this._drawMesh("plutoniumHalo", tx, 0, tz, t * 1.2, haloScale, 1.0, haloScale, [1, 1, 1], 0.45);
+              this._drawMesh("plutoniumCore", tx, bob, tz, t * 1.8 + tx, 1.15, 1.15, 1.15, [1, 1, 1], pulse);
+              this._drawMesh("plutoniumBeacon", tx, bob, tz, -t * 3.0 + tz, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
             }
             break;
 
@@ -4927,19 +4844,19 @@ class WebGL3DMeshRenderer {
             const carryingPlutonium = this.anim.player.plutoniumGlow > 0.05;
             if (carryingPlutonium) {
               // ACTIVE COUNTDOWN MODE: Plutonium is picked up & timer is running!
-              // Barrel blazes with radioactive emerald-lime & signal-gold beacon rings + large target arrow!
-              const activePulse = 0.55 + 0.40 * Math.sin(t * 10.5 + tx);
-              const ringScale = 1.08 + 0.12 * Math.sin(t * 9.0 + tx);
+              // Barrel illuminates with Mint-Emerald rings & floating target arrow!
+              const activePulse = 0.20 + 0.20 * Math.sin(t * 10.5 + tx);
+              const ringScale = 1.06 + 0.10 * Math.sin(t * 9.0 + tx);
               this._drawMesh(
                 "containerVault",
                 tx,
                 0,
                 tz,
                 0,
-                1.12,
-                1.12,
-                1.12,
-                [1.05, 1.35, 1.08],
+                1.08,
+                1.08,
+                1.08,
+                [0.95, 1.08, 0.98],
                 activePulse
               );
               this._drawMesh(
@@ -4949,13 +4866,13 @@ class WebGL3DMeshRenderer {
                 tz,
                 -t * 3.5,
                 ringScale,
-                1.12,
+                1.08,
                 ringScale,
                 [1, 1, 1],
-                0.95
+                0.65
               );
-              const arrowBob = Math.sin(t * 9.5 + tx) * 0.16;
-              const arrowScale = 1.25 + 0.12 * Math.sin(t * 9.5 + tx);
+              const arrowBob = Math.sin(t * 9.5 + tx) * 0.14;
+              const arrowScale = 1.18 + 0.10 * Math.sin(t * 9.5 + tx);
               this._drawMesh(
                 "containerArrow",
                 tx,
@@ -4966,21 +4883,21 @@ class WebGL3DMeshRenderer {
                 arrowScale,
                 arrowScale,
                 [1, 1, 1],
-                0.95
+                0.65
               );
             } else {
-              // STANDBY MODE: Calm industrial gunmetal/amber drum so Plutonium remains the #1 focal point
+              // STANDBY MODE: Clean, calm white/light-grey barrel
               this._drawMesh(
                 "containerVault",
                 tx,
                 0,
                 tz,
                 0,
-                1.05,
-                1.05,
-                1.05,
+                1.04,
+                1.04,
+                1.04,
                 [1, 1, 1],
-                0.08
+                0.0
               );
             }
             break;
@@ -4988,52 +4905,50 @@ class WebGL3DMeshRenderer {
 
           case TileType.KEY:
             if (isVis) {
-              const bob = Math.sin(t * 3.8 + tx) * 0.08;
-              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.8 + tx) * 0.07;
+              this._drawMesh("keyItem", tx, bob, tz, t * 2.1, 1.12, 1.12, 1.12, [1, 1, 1], 0.04);
             }
             break;
 
           case TileType.RADIATION_CAPSULE:
             if (isVis) {
-              const bob = Math.sin(t * 3.5 + tz) * 0.08;
-              this._drawMesh("capsuleItem", tx, bob, tz, t * 1.9, 1.15, 1.15, 1.15, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.5 + tz) * 0.07;
+              this._drawMesh("capsuleItem", tx, bob, tz, t * 1.9, 1.12, 1.12, 1.12, [1, 1, 1], 0.04);
             }
             break;
 
           case TileType.SPADE:
             if (isVis) {
-              const bob = Math.sin(t * 3.5 + tz) * 0.08;
-              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.16, 1.16, 1.16, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.5 + tz) * 0.07;
+              this._drawMesh("spadeItem", tx, bob, tz, t * 1.9, 1.12, 1.12, 1.12, [1, 1, 1], 0.04);
             }
             break;
 
           case TileType.INSULATING_MAT:
             if (isVis) {
-              const bob = Math.sin(t * 3.0 + tx) * 0.05;
-              this._drawMesh("matItem", tx, bob, tz, t * 1.2, 1.08, 1.08, 1.08, [1, 1, 1], 0.25);
+              const bob = Math.sin(t * 3.0 + tx) * 0.04;
+              this._drawMesh("matItem", tx, bob, tz, t * 1.2, 1.06, 1.06, 1.06, [1, 1, 1], 0.02);
             }
             break;
 
           case TileType.EXTRA_TIME:
             if (isVis) {
-              const bob = Math.sin(t * 4.0 + tx) * 0.09;
-              this._drawMesh("extraTimeItem", tx, bob, tz, t * 2.2, 1.12, 1.12, 1.12, [1, 1, 1], 0.35);
+              const bob = Math.sin(t * 4.0 + tx) * 0.07;
+              this._drawMesh("extraTimeItem", tx, bob, tz, t * 2.2, 1.10, 1.10, 1.10, [1, 1, 1], 0.05);
             }
             break;
 
           case TileType.MYSTERY_BOX:
             if (isVis) {
-              const bob = Math.sin(t * 3.2 + tx) * 0.06;
-              this._drawMesh("mysteryBox", tx, bob, tz, t * 1.1, 1.08, 1.08, 1.08, [1, 1, 1], 0.3);
+              const bob = Math.sin(t * 3.2 + tx) * 0.05;
+              this._drawMesh("mysteryBox", tx, bob, tz, t * 1.1, 1.06, 1.06, 1.06, [1, 1, 1], 0.02);
             }
             break;
 
           case TileType.LOCKED_DOOR:
           case TileType.DOOR_MARKER_A:
             if (isVis) {
-              // Both Tile 7 (Original Key-Locked Door) and Tile 9 (Security/Airlock Door)
-              const meshId = rawTile === TileType.DOOR_MARKER_A ? "lockedDoor" : "lockedDoor";
-              this._drawMesh(meshId, tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.25);
+              this._drawMesh("lockedDoor", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.02);
             }
             break;
 
@@ -5041,8 +4956,8 @@ class WebGL3DMeshRenderer {
           case TileType.LASER_DOOR_1B:
           case TileType.LASER_DOOR_2A:
           case TileType.LASER_DOOR_2B: {
-            // 1. Low-profile North & South floor threshold rails
-            this._drawMesh("laserPylons", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.15);
+            // 1. Clean White North & South floor threshold rails
+            this._drawMesh("laserPylons", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.0);
 
             // Check exact hardware state (0 = SAFE/OPEN, 1..6 = DEADLY/CLOSING-OR-CLOSED)
             let rawClosure = 0;
@@ -5052,52 +4967,52 @@ class WebGL3DMeshRenderer {
             else if (rawTile === TileType.LASER_DOOR_2B) rawClosure = ram[0x058a] & 0x07;
 
             if (rawClosure === 0) {
-              // 100% OPEN & SAFE: Completely unobstructed corridor with glowing emerald-green walkway + overhead green beacons
-              this._drawMesh("laserSafeOpen", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.65);
+              // 100% OPEN & SAFE: Calm unobstructed corridor with white guide lines
+              this._drawMesh("laserSafeOpen", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.15);
             } else {
-              // CLOSING OR CLOSED & DEADLY: Flashing crimson danger beacons + North/South 3D laser blast gates sliding shut
-              this._drawMesh("laserDangerClosed", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.75);
+              // CLOSING OR CLOSED & DEADLY: Coral-Red warning strip + sliding White/Coral-Red barrier blocks
+              this._drawMesh("laserDangerClosed", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.35);
               const closure = Math.max(0.22, this.anim.laserIntensity[idx]);
               const northZ = tz - 0.36 + closure * 0.18;
               const southZ = tz + 0.36 - closure * 0.18;
-              this._drawMesh("laserBeams", tx, 0, northZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.65);
-              this._drawMesh("laserBeams", tx, 0, southZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.65);
+              this._drawMesh("laserBeams", tx, 0, northZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.08);
+              this._drawMesh("laserBeams", tx, 0, southZ, 0, 1.0, 1.0, closure, [1, 1, 1], 0.08);
             }
             break;
           }
 
           case TileType.WARP_PAD:
-            this._drawMesh("warpPad", tx, 0, tz, t * 2.8, 1, 1, 1, [1, 1, 1], 0.3);
+            this._drawMesh("warpPad", tx, 0, tz, t * 2.8, 1, 1, 1, [1, 1, 1], 0.06);
             break;
 
           case TileType.WARP_FRAME_LEFT:
           case TileType.WARP_FRAME_RIGHT:
-            this._drawMesh("warpFrame", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.2);
+            this._drawMesh("warpFrame", tx, 0, tz, 0, 1, 1, 1, [1, 1, 1], 0.02);
             break;
 
           case 18: // Original Atari Crumbly Block (0x12) dug with Spade
           case TileType.CRUMBLY_DIRT:
             if (isVis) {
-              this._drawMesh("crumblyDirt", tx, 0, tz, (tx * 1.7 + tz * 2.3) % 6.28, 1, 1, 1, [1, 1, 1], 0.08);
+              this._drawMesh("crumblyDirt", tx, 0, tz, (tx * 1.7 + tz * 2.3) % 6.28, 1, 1, 1, [1, 1, 1], 0.0);
             }
             break;
 
           case TileType.FORCEFIELD:
             if (isVis) {
-              this._drawMesh("hazardField", tx, 0, tz, t * 3.2, 1, 1, 1, [1, 1, 1], 0.45);
+              this._drawMesh("hazardField", tx, 0, tz, t * 3.2, 1, 1, 1, [1, 1, 1], 0.08);
             }
             break;
 
           case TileType.SKULL_HAZARD:
             if (isVis) {
-              this._drawMesh("skullHazard", tx, 0, tz, Math.sin(t * 2.5 + tx) * 0.2, 1, 1, 1, [1, 1, 1], 0.4);
+              this._drawMesh("skullHazard", tx, 0, tz, Math.sin(t * 2.5 + tx) * 0.2, 1, 1, 1, [1, 1, 1], 0.06);
             }
             break;
 
           case TileType.EXIT_PORTAL: {
             const plutLeft = ram[SystemAddressMap.PLUTONIUM_REMAINING];
-            const exitBoost = plutLeft === 0 ? 0.65 + 0.35 * Math.sin(t * 8.0) : 0.25;
-            this._drawMesh("exitPortal", tx, 0, tz, t * 1.8, 1.12, 1.12, 1.12, [1, 1, 1], exitBoost);
+            const exitBoost = plutLeft === 0 ? 0.35 + 0.25 * Math.sin(t * 8.0) : 0.04;
+            this._drawMesh("exitPortal", tx, 0, tz, t * 1.8, 1.10, 1.10, 1.10, [1, 1, 1], exitBoost);
             break;
           }
 
