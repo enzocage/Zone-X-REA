@@ -20,6 +20,7 @@ import { LevelEditorController } from "../editor/LevelEditorController.js";
 import { GameEngine } from "../engine/GameEngine.js";
 import { InputController } from "../engine/InputController.js";
 import { SmoothAnimationTracker } from "../graphics/SmoothAnimationTracker.js";
+import { MeshGeometryBuilder } from "../graphics/MeshGeometryBuilder.js";
 import { WebGL3DMeshRenderer } from "../graphics/WebGL3DMeshRenderer.js";
 import { buildBonusLevels } from "../levels/BonusLevelPack.js";
 import { GameState } from "../models/GameState.js";
@@ -66,12 +67,18 @@ export class ZoneXApp {
     this.accumulatorMs = 0.0;
     this.autoLoopEnabled = true;
 
+    this.meshMixConfig = { defaultSourceId: 20 };
+    for (const cat of MeshGeometryBuilder.ELEMENT_CATEGORIES) {
+      this.meshMixConfig[cat.id] = 20;
+    }
+
     this.pokey.setFrameStepper(() => this.stepFrame());
 
     this.levelEditor = new LevelEditorController(this);
     this.levelEditor.initUI();
     this.refreshZoneDropdown();
     this.bindUIControls();
+    this.initMeshStudioUI();
 
     // Boot authentically into the Title Screen with 3D Showcase Backdrop
     this.loadInteractiveScreen(ScreenMode.TITLE);
@@ -495,6 +502,216 @@ export class ZoneXApp {
         updateFullscreenUI();
       }
     });
+  }
+
+  /**
+   * Initializes the 20-Source 3D Mesh Studio & 16-Element Mix-and-Match Configurator UI.
+   */
+  initMeshStudioUI() {
+    const topSelect = document.getElementById("ui-mesh-source-select");
+    const btnOpenStudio = document.getElementById("btn-open-mesh-studio");
+    const btnCamShowcase = document.getElementById("btn-cam-showcase-toggle");
+    const drawer = document.getElementById("mesh-studio-drawer");
+    const btnViewToggle = document.getElementById("btn-mesh-view-toggle");
+    const btnPlayLive = document.getElementById("btn-mesh-play-live");
+    const btnClose = document.getElementById("btn-mesh-studio-close");
+    const sourcesListEl = document.getElementById("mesh-sources-list");
+    const mixGridEl = document.getElementById("mesh-mix-grid");
+
+    // Populate the 20 3D Mesh Sources cards
+    if (sourcesListEl) {
+      sourcesListEl.innerHTML = "";
+      for (const src of MeshGeometryBuilder.MESH_SOURCES) {
+        const card = document.createElement("div");
+        card.className = "mesh-source-card" + (src.id === 20 ? " active" : "");
+        card.dataset.sourceId = String(src.id);
+        card.innerHTML = `
+          <div class="mesh-source-top">
+            <strong>#${String(src.id).padStart(2, "0")} ${src.name}</strong>
+            <span class="mesh-source-badge">${src.license} &bull; ${src.styleTag}</span>
+          </div>
+          <div class="mesh-source-summary">${src.summary}</div>
+          <div class="mesh-source-preview"><strong>Komplettsatz:</strong> ${src.setPreview}</div>
+          <div class="mesh-source-links">
+            <a href="${src.url}" target="_blank" rel="noopener noreferrer">🔗 GitHub / 3D-Repo</a>
+            ${src.webUrl ? `<a href="${src.webUrl}" target="_blank" rel="noopener noreferrer">🌐 Katalog</a>` : ""}
+            <button type="button" class="btn-apply-set" data-sid="${src.id}">✓ Komplettsatz #${src.id} laden</button>
+          </div>
+        `;
+        card.addEventListener("click", (e) => {
+          if (e.target && e.target.tagName && e.target.tagName.toLowerCase() === "a") return;
+          this.selectCompleteMeshSet(src.id);
+        });
+        sourcesListEl.appendChild(card);
+      }
+    }
+
+    // Populate the 16 Gameplay Element Mix-and-Match selectors
+    if (mixGridEl) {
+      mixGridEl.innerHTML = "";
+      for (const cat of MeshGeometryBuilder.ELEMENT_CATEGORIES) {
+        const row = document.createElement("div");
+        row.className = "mesh-mix-item";
+        const optionsHtml = MeshGeometryBuilder.MESH_SOURCES.map(
+          (s) =>
+            `<option value="${s.id}" ${s.id === 20 ? "selected" : ""}>#${String(s.id).padStart(2, "0")} ${s.name}</option>`
+        ).join("");
+        row.innerHTML = `
+          <div class="mesh-mix-label">
+            <strong>${cat.label}</strong>
+            <span>Slot: ${cat.tileHint}</span>
+          </div>
+          <select class="mesh-mix-select" data-cat-key="${cat.id}">
+            ${optionsHtml}
+          </select>
+        `;
+        const sel = row.querySelector("select");
+        if (sel) {
+          sel.addEventListener("change", () => {
+            this.setCategoryMeshSource(cat.id, parseInt(sel.value, 10) || 20);
+          });
+        }
+        mixGridEl.appendChild(row);
+      }
+    }
+
+    if (topSelect) {
+      topSelect.addEventListener("change", () => {
+        const val = parseInt(topSelect.value, 10);
+        if (val >= 1 && val <= 20) {
+          this.selectCompleteMeshSet(val);
+        }
+      });
+    }
+
+    if (btnOpenStudio && drawer) {
+      btnOpenStudio.addEventListener("click", () => {
+        const willOpen = drawer.classList.contains("hidden");
+        drawer.classList.toggle("hidden", !willOpen);
+        if (willOpen) {
+          this.setShowcaseCompleteSetMode(true);
+        }
+      });
+    }
+
+    if (btnClose && drawer) {
+      btnClose.addEventListener("click", () => {
+        drawer.classList.add("hidden");
+      });
+    }
+
+    if (btnCamShowcase) {
+      btnCamShowcase.addEventListener("click", () => {
+        this.setShowcaseCompleteSetMode(!this.renderer.showcaseCompleteSetMode);
+      });
+    }
+
+    if (btnViewToggle) {
+      btnViewToggle.addEventListener("click", () => {
+        this.setShowcaseCompleteSetMode(!this.renderer.showcaseCompleteSetMode);
+      });
+    }
+
+    if (btnPlayLive) {
+      btnPlayLive.addEventListener("click", () => {
+        this.setShowcaseCompleteSetMode(false);
+        if (drawer) drawer.classList.add("hidden");
+        if (this.state.currentScreenMode !== ScreenMode.IN_GAME) {
+          this.loadAnyZone(this.currentSelectedZone || 1, 1, false);
+        }
+      });
+    }
+  }
+
+  /**
+   * Applies one of the 20 3D Mesh Sources across all 16 Zone X gameplay elements.
+   */
+  selectCompleteMeshSet(sourceId) {
+    const sid = Math.max(1, Math.min(20, sourceId | 0));
+    this.meshMixConfig.defaultSourceId = sid;
+    for (const cat of MeshGeometryBuilder.ELEMENT_CATEGORIES) {
+      this.meshMixConfig[cat.id] = sid;
+    }
+    this.renderer.rebuildMeshes(this.meshMixConfig);
+    this._syncMeshStudioUI();
+    this.renderer.render3DPass();
+  }
+
+  /**
+   * Mix-and-match: sets the 3D Mesh Source (1..20) for a single gameplay element category.
+   */
+  setCategoryMeshSource(categoryKey, sourceId) {
+    const sid = Math.max(1, Math.min(20, sourceId | 0));
+    this.meshMixConfig[categoryKey] = sid;
+    this.renderer.rebuildMeshes(this.meshMixConfig);
+    this._syncMeshStudioUI();
+    this.renderer.render3DPass();
+  }
+
+  /**
+   * Toggles the 4x4 16-Element 3D Diorama Showcase mode vs. live level view.
+   */
+  setShowcaseCompleteSetMode(enabled) {
+    this.renderer.showcaseCompleteSetMode = Boolean(enabled);
+    const overlay = document.getElementById("mesh-showcase-overlay");
+    const btnCamShowcase = document.getElementById("btn-cam-showcase-toggle");
+    const btnViewToggle = document.getElementById("btn-mesh-view-toggle");
+    if (overlay) {
+      overlay.classList.toggle("hidden", !this.renderer.showcaseCompleteSetMode);
+    }
+    if (btnCamShowcase) {
+      btnCamShowcase.classList.toggle("active", this.renderer.showcaseCompleteSetMode);
+      btnCamShowcase.textContent = this.renderer.showcaseCompleteSetMode
+        ? "🎮 Zurück zum Level"
+        : "🧩 16-Elemente-Schau";
+    }
+    if (btnViewToggle) {
+      btnViewToggle.textContent = this.renderer.showcaseCompleteSetMode
+        ? "🧩 16-Elemente-Schau (Ein)"
+        : "🧩 16-Elemente-Schau (Aus)";
+    }
+    this._syncMeshStudioUI();
+    this.renderer.render3DPass();
+  }
+
+  _syncMeshStudioUI() {
+    const cats = MeshGeometryBuilder.ELEMENT_CATEGORIES;
+    const firstSid = this.meshMixConfig[cats[0].id] || 20;
+    const isUniform = cats.every((c) => (this.meshMixConfig[c.id] || 20) === firstSid);
+
+    const topSelect = document.getElementById("ui-mesh-source-select");
+    if (topSelect && isUniform) {
+      topSelect.value = String(firstSid);
+    }
+
+    const cards = document.querySelectorAll(".mesh-source-card");
+    cards.forEach((card) => {
+      const cid = parseInt(card.dataset.sourceId, 10);
+      card.classList.toggle("active", isUniform && cid === firstSid);
+    });
+
+    const selects = document.querySelectorAll(".mesh-mix-select");
+    selects.forEach((sel) => {
+      const key = sel.dataset.catKey;
+      if (key && this.meshMixConfig[key]) {
+        sel.value = String(this.meshMixConfig[key]);
+      }
+    });
+
+    const titleEl = document.getElementById("mesh-showcase-title");
+    const subEl = document.getElementById("mesh-showcase-sub");
+    if (titleEl && subEl) {
+      if (isUniform) {
+        const srcObj =
+          MeshGeometryBuilder.MESH_SOURCES.find((s) => s.id === firstSid) ||
+          MeshGeometryBuilder.MESH_SOURCES[19];
+        titleEl.textContent = `KOMPLETTSATZ #${String(srcObj.id).padStart(2, "0")}: ${srcObj.name} (${srcObj.license})`;
+        subEl.textContent = `${srcObj.setPreview} — [${srcObj.url}]`;
+      } else {
+        titleEl.textContent = `INDIVIDUELLER MIX & MATCH 3D-SATZ (AUS 20 QUELLEN ZUSAMMENGESTELLT)`;
+        subEl.textContent = `Alle 16 Zone-X Gameplay-Elemente im einheitlichen Hellgrau-Weiß Design + Gameplay-Akzente`;
+      }
+    }
   }
 
   /**

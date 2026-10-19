@@ -91,6 +91,32 @@
           </select>
         </label>
 
+        <label>3D-Mesh-Quelle:
+          <select id="ui-mesh-source-select" title="Kompletten 3D-Mesh-Satz aus 20 Quellen wählen">
+            <option value="1">01. Kenney.nl Space Kit</option>
+            <option value="2">02. KayKit Space Base &amp; Bots</option>
+            <option value="3">03. Quaternius Modular Sci-Fi</option>
+            <option value="4">04. Khronos glTF-Sample-Assets</option>
+            <option value="5">05. Three.js RobotExpressive</option>
+            <option value="6">06. Poly Pizza Low-Poly Origami</option>
+            <option value="7">07. MagicaVoxel 3D Cube Stack</option>
+            <option value="8">08. Pmndrs drei Studio Minimal</option>
+            <option value="9">09. Evan Wallace csg.js CAD</option>
+            <option value="10">10. NASA 3D Apollo/ISS/Rover</option>
+            <option value="11">11. OpenGameArt Tabletop 3D</option>
+            <option value="12">12. Poly Haven Brutalist Plinth</option>
+            <option value="13">13. Polygon Sci-Fi Chevron</option>
+            <option value="14">14. Little Workshop Diorama</option>
+            <option value="15">15. Bruno Simon Three.js Journey</option>
+            <option value="16">16. LDraw / LEGO 3D Stud Bricks</option>
+            <option value="17">17. Bauhaus / Monument Valley</option>
+            <option value="18">18. Portal 2 Aperture Chamber</option>
+            <option value="19">19. Teenage Eng. / Braun CAD</option>
+            <option value="20" selected>20. Zone X Classic 3D Extrusion</option>
+          </select>
+        </label>
+
+        <button id="btn-open-mesh-studio" type="button" class="btn-accent" title="Alle 20 3D-Mesh-Quellen als Komplettsatz ansehen &amp; individuell zusammenstellen">🎨 20&times; 3D-Mesh-Baukasten</button>
         <button id="btn-open-editor" type="button" class="btn-accent">🛠 Level-Editor</button>
         <button id="btn-hz-toggle" type="button" title="Zwischen 50 Hz (PAL) und 60 Hz (NTSC) umschalten">Mode: 50 Hz (PAL)</button>
         <button id="btn-audio-toggle" type="button" class="btn-audio">🔊 Enable FM Audio</button>
@@ -166,6 +192,32 @@
           <canvas id="atari-canvas" width="336" height="240" class="viewport-2d-hologram"></canvas>
           <div class="crt-overlay" id="crt-overlay"></div>
 
+          <!-- 4x4 Label Overlay for the 16-Element Complete Set 3D Showcase Mode -->
+          <div class="mesh-showcase-overlay hidden" id="mesh-showcase-overlay">
+            <div class="mesh-showcase-header">
+              <strong id="mesh-showcase-title">KOMPLETTSATZ-VORSCHAU: 20. Zone X Classic 3D Extrusion</strong>
+              <span id="mesh-showcase-sub">Alle 16 Zone-X Gameplay-Elemente im Hellgrau-Weiß Design + Gameplay-Akzente</span>
+            </div>
+            <div class="mesh-showcase-grid">
+              <span>1. Wand-Block</span>
+              <span>2. Boden-Platte</span>
+              <span class="emerald-glow">3. Plutonium (Fokus #1)</span>
+              <span class="emerald-glow">4. Tonne (Standby &amp; Aktiv)</span>
+              <span>5. Spieler-Roboter (Gesicht)</span>
+              <span>6. Alien Normal (Grau)</span>
+              <span>7. Alien Schnell (Blau)</span>
+              <span>8. Laser-Tür (Rot=Zu)</span>
+              <span>9. Schlüssel (Gold)</span>
+              <span>10. Schloss-Tür</span>
+              <span>11. Spaten (Schaufel)</span>
+              <span>12. Grabbares Erdreich</span>
+              <span>13. Isoliermatte</span>
+              <span>14. Schutz-Kapsel</span>
+              <span>15. Extra-Zeit &amp; Box</span>
+              <span>16. Ausgang &amp; Schädel</span>
+            </div>
+          </div>
+
           <!-- Compact Translucent Telemetry HUD shown automatically in Fullscreen Mode -->
           <div class="fullscreen-hud-bar" id="fullscreen-hud-bar">
             <span class="fs-hud-item"><strong id="fs-hud-zone" class="cyan-glow">ZONE 01</strong></span>
@@ -179,11 +231,31 @@
 
           <!-- Floating 3D Camera & Fullscreen Quick-Controls -->
           <div class="cam-quick-bar">
+            <button type="button" id="btn-cam-showcase-toggle" title="Zwischen 16-Elemente-Komplettsatz-Schau und Live-Level umschalten">🧩 16-Elemente-Schau</button>
             <button type="button" id="btn-cam-zoom-in" title="Näher heranzoomen">🔍+</button>
             <button type="button" id="btn-cam-zoom-out" title="Weiter herauszoomen">🔍−</button>
             <button type="button" id="btn-cam-tilt-up" title="Steilere Vogelperspektive">📐▲</button>
             <button type="button" id="btn-cam-tilt-down" title="Flacherer 3D-Winkel">📐▼</button>
             <button type="button" id="btn-cam-fullscreen" class="btn-cam-fs" title="Vollbildmodus umschalten (Taste F / ESC)">⛶ Vollbild</button>
+          </div>
+        </div>
+
+        <!-- Interactive 20-Source 3D Mesh Baukasten & Mix-and-Match Configurator Drawer -->
+        <div class="mesh-studio-drawer hidden" id="mesh-studio-drawer">
+          <div class="mesh-studio-header">
+            <div>
+              <strong>🎨 20&times; 3D-MESH-QUELLEN &amp; MIX-AND-MATCH BAUKASTEN</strong>
+              <span id="mesh-studio-active-info">Wähle einen kompletten 3D-Satz (1–20) oder stelle dir jedes der 16 Gameplay-Elemente individuell zusammen!</span>
+            </div>
+            <div class="mesh-studio-actions">
+              <button type="button" id="btn-mesh-view-toggle" class="btn-accent">🧩 Ansicht: 16-Elemente-Schau</button>
+              <button type="button" id="btn-mesh-play-live" class="btn-play-now">▶ Im 3D-Level spielen!</button>
+              <button type="button" id="btn-mesh-studio-close" class="btn-close-editor">✕ Schließen</button>
+            </div>
+          </div>
+          <div class="mesh-studio-columns">
+            <div class="mesh-sources-list" id="mesh-sources-list"></div>
+            <div class="mesh-mix-grid" id="mesh-mix-grid"></div>
           </div>
         </div>
 
@@ -319,6 +391,33 @@
       </div>
     </div>
   </div>
+
+  <!-- Interactive 20-Source 3D Mesh Studio & Mix-and-Match Configurator Drawer -->
+  <aside id="mesh-studio-drawer" class="mesh-studio-drawer hidden" aria-label="20x 3D-Mesh-Quellen & Baukasten">
+    <div class="mesh-studio-header">
+      <div>
+        <h2>🎨 20&times; 3D-MESH-QUELLEN &amp; BAUKASTEN (KOMPLETTSÄTZE + MIX &amp; MATCH)</h2>
+        <p>Wähle einen kompletten 16-Elemente-Satz aus einer der 20 besten 3D-Mesh-Quellen (inkl. GitHub) oder kombiniere jedes Element individuell!</p>
+      </div>
+      <div class="mesh-studio-actions">
+        <button type="button" id="btn-mesh-view-toggle" class="btn-accent">🧩 16-Elemente-Schau (Ein)</button>
+        <button type="button" id="btn-mesh-play-live" class="btn-play-now">▶ Im Live-Level spielen</button>
+        <button type="button" id="btn-mesh-studio-close" class="btn-close-editor">✕ Schließen</button>
+      </div>
+    </div>
+
+    <div class="mesh-studio-body">
+      <div class="mesh-sources-column">
+        <h3>1. Die 20 besten 3D-Mesh-Quellen (Klick lädt Komplettsatz für alle 16 Elemente)</h3>
+        <div id="mesh-sources-list" class="mesh-sources-list"></div>
+      </div>
+
+      <div class="mesh-mix-column">
+        <h3>2. Individueller Baukasten (Jedes der 16 Zone-X Elemente frei aus Quelle 1–20 kombinieren)</h3>
+        <div id="mesh-mix-grid" class="mesh-mix-grid"></div>
+      </div>
+    </div>
+  </aside>
 
   <script src="assets/zonex_rom_bundle.js"></script>
   <script src="src/bundle/zonex_gfx_redesign.bundle.js"></script>

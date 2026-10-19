@@ -202,21 +202,36 @@ export class WebGL3DMeshRenderer {
       uPointColors: gl.getUniformLocation(prog, "uPointColors"),
     };
 
-    // Upload all procedural 3D meshes to GPU VBOs
-    const rawMeshes = MeshGeometryBuilder.buildAllGameMeshes();
-    for (const [name, mesh] of Object.entries(rawMeshes)) {
-      const vbo = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-      gl.bufferData(gl.ARRAY_BUFFER, mesh.data, gl.STATIC_DRAW);
-      this.gpuMeshes[name] = {
-        vbo,
-        vertexCount: mesh.vertexCount,
-      };
-    }
+    this.currentMixConfig = { defaultSourceId: 20 };
+    this.showcaseCompleteSetMode = false;
+    this.rebuildMeshes(this.currentMixConfig);
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.CULL_FACE);
+  }
+
+  /**
+   * Dynamically rebuilds and uploads all 3D GPU VBO meshes from the selected 3D Mesh Source (`1..20`)
+   * or a custom Mix-and-Match configuration across all 16 Zone X gameplay elements.
+   * @param {Object} mixConfig
+   */
+  rebuildMeshes(mixConfig = {}) {
+    const gl = this.gl;
+    if (!gl) return;
+    this.currentMixConfig = { ...this.currentMixConfig, ...mixConfig };
+    const rawMeshes = MeshGeometryBuilder.buildAllGameMeshes(this.currentMixConfig);
+    for (const [name, mesh] of Object.entries(rawMeshes)) {
+      let entry = this.gpuMeshes[name];
+      if (!entry) {
+        const vbo = gl.createBuffer();
+        entry = { vbo, vertexCount: 0 };
+        this.gpuMeshes[name] = entry;
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, entry.vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, mesh.data, gl.STATIC_DRAW);
+      entry.vertexCount = mesh.vertexCount;
+    }
   }
 
   _compileShader(gl, type, source) {
@@ -245,6 +260,12 @@ export class WebGL3DMeshRenderer {
       this.state.ram[SystemAddressMap.DLIST_PTR_LO] |
       (this.state.ram[SystemAddressMap.DLIST_PTR_HI] << 8);
     const isInGame = dlAddr === DisplayListAddress[ScreenMode.IN_GAME];
+
+    if (this.showcaseCompleteSetMode) {
+      this.webglCanvas.style.display = "block";
+      this.screenCanvas2d.className = "viewport-2d-hidden";
+      return;
+    }
 
     if (this.renderMode === "classic_2d") {
       this.webglCanvas.style.display = "none";
@@ -299,6 +320,11 @@ export class WebGL3DMeshRenderer {
     if (!this.gl || !this.program || this.renderMode === "classic_2d") return;
     this._syncCanvasResolution();
 
+    if (this.showcaseCompleteSetMode) {
+      this._renderCompleteSetShowcase();
+      return;
+    }
+
     const dlAddr =
       this.state.ram[SystemAddressMap.DLIST_PTR_LO] |
       (this.state.ram[SystemAddressMap.DLIST_PTR_HI] << 8);
@@ -309,6 +335,97 @@ export class WebGL3DMeshRenderer {
     } else {
       this._render3DShowcaseBackdrop();
     }
+  }
+
+  /**
+   * Renders a 4x4 3D Diorama Pedestal Board showing ALL 16 Zone X Gameplay Elements side-by-side
+   * so the user can inspect the complete 3D Mesh Set of any of the 20 sources (or their custom mix)!
+   */
+  _renderCompleteSetShowcase() {
+    const gl = this.gl;
+    const t = performance.now() * 0.001;
+    this.anim.time = t;
+
+    gl.viewport(0, 0, this.webglCanvas.width, this.webglCanvas.height);
+    gl.clearColor(0.18, 0.20, 0.24, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(this.program);
+
+    const aspect = this.webglCanvas.width / Math.max(1, this.webglCanvas.height);
+    const eyeX = 0;
+    const eyeY = 8.4;
+    const eyeZ = 7.4;
+    this._perspective(this.projMatrix, (38 * Math.PI) / 180, aspect, 0.5, 45.0);
+    this._lookAt(this.viewMatrix, [eyeX, eyeY, eyeZ], [0, 0.1, 0.3], [0, 1, 0]);
+    this._multiplyMat4(this.viewProjMatrix, this.projMatrix, this.viewMatrix);
+
+    gl.uniformMatrix4fv(this.uniforms.uViewProj, false, this.viewProjMatrix);
+    gl.uniform3f(this.uniforms.uCameraPos, eyeX, eyeY, eyeZ);
+    gl.uniform3f(this.uniforms.uAmbientColor, 0.56, 0.58, 0.62);
+    gl.uniform3f(this.uniforms.uSunDir, 0.36, 0.84, 0.41);
+    gl.uniform3f(this.uniforms.uSunColor, 0.55, 0.56, 0.58);
+
+    this.pointLightsFlat.fill(0);
+    this.pointColorsFlat.fill(0);
+    // Highlight Plutonium & Active Barrel on Row 1
+    this.pointLightsFlat.set([-1.2, 1.2, -2.5, 4.5, 3.6, 1.2, -2.5, 4.5], 0);
+    this.pointColorsFlat.set([0.12, 0.95, 0.48, 0.12, 0.95, 0.48], 0);
+    gl.uniform4fv(this.uniforms.uPointLights, this.pointLightsFlat);
+    gl.uniform3fv(this.uniforms.uPointColors, this.pointColorsFlat);
+
+    // Draw 9x7 Diorama Floor Stage
+    for (let gz = -3; gz <= 3; gz++) {
+      for (let gx = -5; gx <= 5; gx++) {
+        const chk = (gx + gz) & 1 ? 1.02 : 0.98;
+        this._drawMesh("floorTile", gx, 0, gz, 0, 1, 1, 1, [chk, chk, chk], 0);
+      }
+    }
+
+    const xs = [-3.6, -1.2, 1.2, 3.6];
+    const zs = [-2.3, -0.7, 0.9, 2.5];
+    const bob = Math.sin(t * 3.5) * 0.06;
+
+    // Row 1 (z = -2.3): 1. Wall Block, 2. Floor Tile Pedestal, 3. Plutonium Core, 4. Container (Standby & Active)
+    this._drawMesh("wallBlock", xs[0], 0, zs[0], t * 0.4, 1, 1, 1, [1, 1, 1], 0.02);
+    this._drawMesh("floorTile", xs[1], 0.22, zs[0], t * 0.4, 0.95, 2.2, 0.95, [1.05, 1.05, 1.05], 0.02);
+    this._drawMesh("plutoniumHalo", xs[2], 0, zs[0], t * 1.2, 1.08, 1, 1.08, [1, 1, 1], 0.45);
+    this._drawMesh("plutoniumCore", xs[2], bob, zs[0], t * 1.8, 1.18, 1.18, 1.18, [1, 1, 1], 0.45);
+    this._drawMesh("plutoniumBeacon", xs[2], bob, zs[0], -t * 2.8, 1.18, 1.18, 1.18, [1, 1, 1], 0.25);
+    // Container Standby (left half) + Container Active (right half)
+    this._drawMesh("containerVault", xs[3] - 0.52, 0, zs[0], 0, 0.92, 0.92, 0.92, [1, 1, 1], 0.0);
+    this._drawMesh("containerVault", xs[3] + 0.52, 0, zs[0], 0, 0.96, 0.96, 0.96, [0.95, 1.08, 0.98], 0.25);
+    this._drawMesh("containerActiveGlow", xs[3] + 0.52, 0, zs[0], -t * 3.2, 1.0, 0.96, 1.0, [1, 1, 1], 0.65);
+    this._drawMesh("containerArrow", xs[3] + 0.52, bob, zs[0], t * 3.5, 1.05, 1.05, 1.05, [1, 1, 1], 0.65);
+
+    // Row 2 (z = -0.7): 5. Player Robot (with Face), 6. Alien Normal (Grey), 7. Alien Fast (Dark Blue), 8. Laser Door
+    this._drawMesh("playerTorso", xs[0], 0.44, zs[1], Math.sin(t * 1.5) * 0.25, 1.05, 1.05, 1.05, [1, 1, 1], 0.02);
+    this._drawMesh3DRot("playerHead", xs[0], 0.86, zs[1], -0.32, Math.sin(t * 2.0) * 0.22, 0, 1.12, 1.12, 1.12, [1, 1, 1], 0.06);
+    this._drawMesh("playerLimb", xs[0] - 0.14, 0.30, zs[1], 0, 1, 1, 1, [1, 1, 1], 0);
+    this._drawMesh("playerLimb", xs[0] + 0.14, 0.30, zs[1], 0, 1, 1, 1, [1, 1, 1], 0);
+    this._drawMesh("playerLimb", xs[0] - 0.28, 0.56, zs[1], 0, 0.9, 0.9, 0.9, [1, 1, 1], 0);
+    this._drawMesh("playerLimb", xs[0] + 0.28, 0.56, zs[1], 0, 0.9, 0.9, 0.9, [1, 1, 1], 0);
+
+    this._renderCreepyAlien({ x: xs[1], z: zs[1], type: 0, facingAngle: Math.sin(t * 1.4) * 0.35 }, 0, t);
+    this._renderCreepyAlien({ x: xs[2], z: zs[1], type: 1, facingAngle: Math.sin(t * 1.4) * 0.35 }, 1, t);
+
+    this._drawMesh("laserPylons", xs[3], 0, zs[1], 0, 1, 1, 1, [1, 1, 1], 0);
+    this._drawMesh("laserDangerClosed", xs[3], 0, zs[1], 0, 1, 1, 1, [1, 1, 1], 0.35);
+    this._drawMesh("laserBeams", xs[3], 0, zs[1] - 0.18, 0, 1, 1, 0.85, [1, 1, 1], 0.08);
+    this._drawMesh("laserBeams", xs[3], 0, zs[1] + 0.18, 0, 1, 1, 0.85, [1, 1, 1], 0.08);
+
+    // Row 3 (z = +0.9): 9. Key, 10. Locked Door, 11. Spade, 12. Crumbly Dirt
+    this._drawMesh("keyItem", xs[0], bob, zs[2], t * 1.8, 1.25, 1.25, 1.25, [1, 1, 1], 0.04);
+    this._drawMesh("lockedDoor", xs[1], 0, zs[2], Math.sin(t * 0.8) * 0.2, 1, 1, 1, [1, 1, 1], 0.02);
+    this._drawMesh("spadeItem", xs[2], bob, zs[2], t * 1.8, 1.25, 1.25, 1.25, [1, 1, 1], 0.04);
+    this._drawMesh("crumblyDirt", xs[3], 0, zs[2], t * 0.5, 1.05, 1.05, 1.05, [1, 1, 1], 0);
+
+    // Row 4 (z = +2.5): 13. Insulating Mat, 14. Shield Capsule, 15. Extra-Time & Mystery Box, 16. Exit Portal & Skull
+    this._drawMesh("matItem", xs[0], bob * 0.5, zs[3], t * 0.8, 1.12, 1.12, 1.12, [1, 1, 1], 0.02);
+    this._drawMesh("capsuleItem", xs[1], bob, zs[3], t * 1.6, 1.20, 1.20, 1.20, [1, 1, 1], 0.04);
+    this._drawMesh("extraTimeItem", xs[2] - 0.45, bob, zs[3], t * 1.8, 1.05, 1.05, 1.05, [1, 1, 1], 0.05);
+    this._drawMesh("mysteryBox", xs[2] + 0.45, bob * 0.6, zs[3], t * 1.1, 0.92, 0.92, 0.92, [1, 1, 1], 0.02);
+    this._drawMesh("exitPortal", xs[3] - 0.45, 0, zs[3], t * 1.4, 0.95, 0.95, 0.95, [1, 1, 1], 0.15);
+    this._drawMesh("skullHazard", xs[3] + 0.48, 0, zs[3], Math.sin(t * 2.2) * 0.25, 1.0, 1.0, 1.0, [1, 1, 1], 0.06);
   }
 
   // ===========================================================================

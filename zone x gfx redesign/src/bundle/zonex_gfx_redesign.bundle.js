@@ -3006,9 +3006,246 @@ class MeshGeometryBuilder {
   }
 
   /**
-   * Builds the complete dictionary of static/dynamic 3D meshes used by the renderer.
+   * All 16 Zone X Gameplay Element Categories that can be individually selected and mixed-and-matched
+   * across all 20 3D Mesh Sources.
    */
-  static buildAllGameMeshes() {
+  static get ELEMENT_CATEGORIES() {
+    return [
+      { id: "wall",           label: "1. Wand-Block (Wall)",              tileHint: "WALL" },
+      { id: "floor",          label: "2. Boden-Platte (Floor)",           tileHint: "FLOOR" },
+      { id: "plutonium",      label: "3. Plutonium-Kern (Fokus #1)",      tileHint: "PLUTONIUM" },
+      { id: "container",      label: "4. Tonne / Container (Fokus #2)",   tileHint: "CONTAINER" },
+      { id: "player",         label: "5. Spieler-Roboter (mit Gesicht)",  tileHint: "PLAYER" },
+      { id: "alienNormal",    label: "6. Alien Normal (Grau-in-Grau)",    tileHint: "ALIEN_NORMAL" },
+      { id: "alienFast",      label: "7. Alien Schnell (Dunkelblau)",     tileHint: "ALIEN_FAST" },
+      { id: "laserDoor",      label: "8. Automatische Laser-Tür",         tileHint: "LASER_DOOR" },
+      { id: "key",            label: "9. Sicherheits-Schlüssel (Key)",    tileHint: "KEY" },
+      { id: "lockedDoor",     label: "10. Schloss-Tür (Locked Door)",     tileHint: "LOCKED_DOOR" },
+      { id: "spade",          label: "11. Spaten / Schaufel (Spade)",     tileHint: "SPADE" },
+      { id: "crumblyDirt",    label: "12. Grabbares Erdreich (Dirt)",     tileHint: "CRUMBLY_DIRT" },
+      { id: "mat",            label: "13. Isoliermatte (Mat)",            tileHint: "INSULATING_MAT" },
+      { id: "capsule",        label: "14. Strahlenschutz-Kapsel",         tileHint: "RADIATION_CAPSULE" },
+      { id: "extraTimeBox",   label: "15. Extra-Zeit & Mystery-Box",      tileHint: "EXTRA_TIME" },
+      { id: "hazardsPortals", label: "16. Gefahren, Warp & Ausgang",      tileHint: "EXIT_PORTAL" },
+    ];
+  }
+
+  /**
+   * Curated catalog of the 20 Best 3D Mesh Sources (including GitHub repositories & CC0 asset libraries),
+   * each providing a complete, stylistically distinct 16-element Zone X 3D Mesh Set on a unified
+   * Light-Grey & White base with focused Gameplay Attention Accents (Plutonium / Containers).
+   */
+  static get MESH_SOURCES() {
+    return [
+      {
+        id: 1,
+        name: "01. Kenney.nl — Space Kit & Modular Station",
+        url: "https://github.com/KenneyNL",
+        webUrl: "https://kenney.nl/assets/space-kit",
+        license: "CC0 Public Domain",
+        styleTag: "Low-Poly Chamfered Hex/Block",
+        summary: "Klare, gefaste Sechskant- & Block-Geometrie im berühmten Kenney-Low-Poly-Stil.",
+        setPreview: "Gefaste Oktogon-Wände, sechseckige Tonnen, kompakter Rover-Bot mit breitem Visier-Gesicht, flach-facettierter Smaragd-Kristall.",
+      },
+      {
+        id: 2,
+        name: "02. KayKit — Space Base Bits & Stylized Bots",
+        url: "https://github.com/KayKit-Game-Assets",
+        webUrl: "https://kaylousberg.itch.io/kaykit-space-base-bits",
+        license: "CC0 / Free Commercial",
+        styleTag: "Stylized Toy-Bot & Chunky Props",
+        summary: "Charismatische Toy-Proportionen mit großem Roboter-Kopf, dicken Fassringen und markanten Silhouetten.",
+        setPreview: "Weich gefaste Toy-Blöcke, bauchige Doppelfalz-Tonne, großer Roboterkopf mit Kulleraugen & Ohren, kräftiger Gold-Schlüssel.",
+      },
+      {
+        id: 3,
+        name: "03. Quaternius — Ultimate Modular Sci-Fi Kit",
+        url: "https://quaternius.com/packs/ultimatemodularscifi.html",
+        webUrl: "https://quaternius.com",
+        license: "CC0 Public Domain",
+        styleTag: "Angular Faceted Sci-Fi",
+        summary: "Scharfkantige, facettierte Sci-Fi-Module mit Kühlrippen-Tonnen und Doppelspindel-Kristallen.",
+        setPreview: "Kantige Architektur-Blöcke, 4-Rippen-Reaktortonne, Doppelpyramiden-Plutonium, kantige Spinnen-Mechs.",
+      },
+      {
+        id: 4,
+        name: "04. Khronos Group — glTF-Sample-Assets (GitHub)",
+        url: "https://github.com/KhronosGroup/glTF-Sample-Assets",
+        webUrl: "https://github.com/KhronosGroup/glTF-Sample-Models",
+        license: "CC-BY / Apache 2.0",
+        styleTag: "Precision Gimbal & Reference CAD",
+        summary: "Offizieller Khronos WebGL/glTF-Referenzstil mit kardanischen Gyro-Ringen und präzisen Flansch-Zylindern.",
+        setPreview: "Präzisions-Wände mit Deckplatte, 2-Achsen-Gimbal-Plutonium, Flansch-Zylinder-Tonne, humanoider Referenz-Roboter.",
+      },
+      {
+        id: 5,
+        name: "05. Three.js Official — RobotExpressive & Primitives (GitHub)",
+        url: "https://github.com/mrdoob/three.js/tree/dev/examples/models/gltf",
+        webUrl: "https://threejs.org",
+        license: "MIT / CC0",
+        styleTag: "TV-Head Expressive Bot & WebGL Geo",
+        summary: "Inspiriert von RobotExpressive.glb aus dem offiziellen Three.js-GitHub-Repo mit V-Antennen und Monitor-Gesicht.",
+        setPreview: "Monitor-Kopf-Roboter mit Doppel-Antenne, gekreuzte Orbit-Ringe ums Plutonium, glatte WebGL-Zylinder-Tonnen.",
+      },
+      {
+        id: 6,
+        name: "06. Poly Pizza & Google Poly Toolkit (GitHub)",
+        url: "https://github.com/googlearchive/poly-toolkit-unity",
+        webUrl: "https://poly.pizza",
+        license: "CC0 / CC-BY",
+        styleTag: "Origami Triangulated Low-Poly",
+        summary: "Kristallin-faltiger Origami-Low-Poly-Look (Google Blocks Stil) aus reinen Oktaeder- und Prismen-Clustern.",
+        setPreview: "Kristalline Oktaeder-Wände, Diamant-Tonne, Mehrkern-Plutonium-Kristall, Origami-Spinnen-Aliens.",
+      },
+      {
+        id: 7,
+        name: "07. MagicaVoxel — ephtracy/voxel-model (GitHub)",
+        url: "https://github.com/ephtracy/voxel-model",
+        webUrl: "https://ephtracy.github.io",
+        license: "MIT / Free Voxel Repo",
+        styleTag: "3D Isometric Voxel Cube Stack",
+        summary: "Echter gestufter 3D-Voxel-Look aus präzisen Mikro-Würfeln in Hellgrau-Weiß mit Smaragd-Voxel-Kern.",
+        setPreview: "Gestufte 3D-Voxel-Wände, Voxel-Plutonium-Kreuz, gestufte Voxel-Tonne, Pixel-Voxel-Robotergesicht & Voxel-Spinnen.",
+      },
+      {
+        id: 8,
+        name: "08. Pmndrs — drei-assets & Poimandres Market (GitHub)",
+        url: "https://github.com/pmndrs/drei-assets",
+        webUrl: "https://market.pmnd.rs",
+        license: "MIT / CC0",
+        styleTag: "Scandinavian Porcelain Studio",
+        summary: "Ultra-reduziertes skandinavisches Studio-Design mit schwebenden dünnen Ringen und glatten Monolithen.",
+        setPreview: "Nahtlose Porzellan-Monolithen, hauchdünne Schweberinge, minimalistische Kapsel-Tonne, cleaner Studio-Bot.",
+      },
+      {
+        id: 9,
+        name: "09. Evan Wallace — csg.js Boolean Solid CAD (GitHub)",
+        url: "https://github.com/evanw/csg.js",
+        webUrl: "https://evanw.github.io/csg.js/",
+        license: "MIT License",
+        styleTag: "Constructive Solid Geometry (CSG)",
+        summary: "Boolesche CAD-Körper (ausgefräste Rahmenblöcke, gekreuzte Zylinder-Schnitte, gefräste Schlitze).",
+        setPreview: "Ausgehöhlte CSG-Rahmenwände, Kreuzschnitt-Reaktortonne, oktaedrischer Würfel-Schnitt-Kristall, CAD-Roboter.",
+      },
+      {
+        id: 10,
+        name: "10. NASA 3D Resources — Apollo / ISS Modules (GitHub)",
+        url: "https://github.com/nasa/NASA-3D-Resources",
+        webUrl: "https://nasa3d.arc.nasa.gov",
+        license: "NASA Public Domain",
+        styleTag: "Hard-Surface Spaceflight & RTG",
+        summary: "Authentische Raumfahrt-Formensprache: RTG-Kühlrippen-Plutonium, ISS-Tank-Tonne & Mars-Rover-Kamerakopf.",
+        setPreview: "ISS-Modulwände, RTG-Isotopenkern mit 4 Kühlrippen, Raumfahrt-Kanistertonne, Rover-Bot mit Dual-Optik-Kopf.",
+      },
+      {
+        id: 11,
+        name: "11. OpenGameArt.org — CC0 Sci-Fi Tactical Board",
+        url: "https://opengameart.org",
+        webUrl: "https://opengameart.org/art-search-advanced?field_art_type_tid%5B%5D=10",
+        license: "CC0 Public Domain",
+        styleTag: "Tactical Tabletop Miniatures",
+        summary: "Klassischer 3D-Brettspiel-Miniaturen-Look mit runden Standbasen und stark betonten Gameplay-Symbolen.",
+        setPreview: "Tabletop-Sockel unter allen Figuren & Items, hohe Leuchtfeuer-Säulen, Retro-Bot mit seitlichen Parabol-Ohren.",
+      },
+      {
+        id: 12,
+        name: "12. Poly Haven — Brutalist Ceramic & Architecture (GitHub)",
+        url: "https://github.com/Poly-Haven",
+        webUrl: "https://polyhaven.com/models",
+        license: "CC0 Public Domain",
+        styleTag: "Architectural Stepped Plinths",
+        summary: "Architektonischer Stufen-Monolith-Stil mit massiven Sockelplatten und schweren Tresor-Behältern.",
+        setPreview: "Dreistufige Zikkurat-Wände, dickwandiges Tresor-Fass, Kristall-Obelisk, schwer gepanzerter Industrie-Bot.",
+      },
+      {
+        id: 13,
+        name: "13. Polygon Sci-Fi Minimal (Synty-Inspired Low-Poly)",
+        url: "https://github.com/topics/low-poly-models",
+        webUrl: "https://syntystore.com",
+        license: "Custom Procedural Low-Poly",
+        styleTag: "Sharp Chevron & Blade Facets",
+        summary: "Dynamische, angeschrägte Chevron-Kanten, Sechskant-Zellen und schnittige Klingen-Drohnen.",
+        setPreview: "Chevron-Wandblöcke, sechseckige Energietonne, schwebendes Kristall-Prisma, schneidige Klingen-Aliens.",
+      },
+      {
+        id: 14,
+        name: "14. Little Workshop — Isometric WebGL Diorama (GitHub)",
+        url: "https://github.com/littleworkshop",
+        webUrl: "https://www.littleworkshop.fr",
+        license: "MIT / WebGL Showcase",
+        styleTag: "Delicate Miniature Diorama",
+        summary: "Feingliedrige Miniatur-Architektur mit mehrschichtigen Bodenkacheln, schlanken Säulen und kompaktem Bot.",
+        setPreview: "Mehrschicht-Kacheln, Doppelsäulen-Wände, filigraner Schwebe-Kristall, zierliche Fass-Kapsel & Mini-Bot.",
+      },
+      {
+        id: 15,
+        name: "15. Bruno Simon — Three.js Journey Stylized Kit (GitHub)",
+        url: "https://github.com/brunosimon",
+        webUrl: "https://threejs-journey.com",
+        license: "MIT / Community Style",
+        styleTag: "Playful Isometric Playground",
+        summary: "Verspielter, einladender 3D-Playground-Look mit weichen Phasen, Leuchtring-Tonnen und großen Roboteraugen.",
+        setPreview: "Weiche Kissen-Fase-Wände, Ring-Portal-Tonne, schwebendes Kristall-Totem, freundlicher Rover-Bot.",
+      },
+      {
+        id: 16,
+        name: "16. LDraw / Mecabricks — 3D Stud Brick System",
+        url: "https://github.com/ldraw",
+        webUrl: "https://www.ldraw.org",
+        license: "CC-BY / Open Brick Standard",
+        styleTag: "3D Interlocking Stud Bricks (LEGO-Look)",
+        summary: "Alle Gameplay-Elemente als echte 3D-Klemmbausteine mit zylindrischen Noppen in Weiß, Hellgrau & Transparent-Grün!",
+        setPreview: "2×2 Noppen-Wandsteine, 1×1 Noppen-Bodenplatten, runde Noppen-Tonne, Klemmbaustein-Roboter & Smaragd-Kristallstein.",
+      },
+      {
+        id: 17,
+        name: "17. Bauhaus / Monument Valley — Sacred Geometry",
+        url: "https://github.com/topics/isometric-game",
+        webUrl: "https://www.monumentvalleygame.com",
+        license: "Bauhaus Procedural 3D",
+        styleTag: "Monumental Colonnade & Obelisks",
+        summary: "Reine Bauhaus-Architektur: schlanke Kolonnaden, verschachtelte Platonische Körper und Obelisk-Tonnen.",
+        setPreview: "Architektur-Säulenblöcke, verschachtelte Doppel-Oktaeder, zylindrischer Stufen-Obelisk, geometrischer Totem-Bot.",
+      },
+      {
+        id: 18,
+        name: "18. Portal 2 Aperture — Clean Test Chamber Panels",
+        url: "https://github.com/topics/portal",
+        webUrl: "https://sketchfab.com/features/cc0",
+        license: "Clean Test-Chamber Homage",
+        styleTag: "2×2 White Chamber Panels & Companion Cube",
+        summary: "Weiße 2×2-Testkammer-Kacheln mit dunklen Fugen, Companion-Cube-Tonne/Box und Aperture-Test-Roboter.",
+        setPreview: "2×2 geteilte weiße Kammerwände mit dunkler Fuge, Companion-Flansch-Tonne, Testkammer-Laser & Optik-Bot.",
+      },
+      {
+        id: 19,
+        name: "19. Teenage Engineering / Braun — Industrial Audio-CAD",
+        url: "https://github.com/openscad/openscad",
+        webUrl: "https://teenage.engineering",
+        license: "Industrial Design Minimal",
+        styleTag: "Rotary Dials, Keycaps & Speaker Grille",
+        summary: "Edles Hardware-Synthesizer-Design (Dieter Rams / Teenage Engineering) mit Drehregler-Tonnen & Keycap-Kacheln.",
+        setPreview: "Keycap-Wände & -Matten, Drehregler-Encoder-Tonne, LED-Punkt-Plutonium, Hi-Fi-Lautsprechergitter-Roboter.",
+      },
+      {
+        id: 20,
+        name: "20. Zone X Classic — Atari 800XL to 3D Extrusion",
+        url: "https://github.com/enzocage/Zone-X-REA",
+        webUrl: "https://github.com/enzocage/Zone-X-REA",
+        license: "Zone X Native Engine",
+        styleTag: "Retro-Arcade 3D Remaster",
+        summary: "Direkte 3D-Extrusion der Original-Atari-800XL-Silhouetten in modernem Hellgrau-Weiß mit Smaragd-Akzent.",
+        setPreview: "Stufenpyramiden-Wände, klassische Zweiring-Tonne, kultiger grauer Zone-X-Roboter mit 3D-Gesicht & Vocoder.",
+      },
+    ];
+  }
+
+  /**
+   * Builds the complete dictionary of static/dynamic 3D meshes used by the renderer.
+   * Supports picking any of the 20 3D Mesh Sources (`1..20`) globally or individually per element category!
+   * @param {Object} [mixConfig] Optional mapping `{ wall: 1..20, floor: 1..20, plutonium: 1..20, container: 1..20, ... }`
+   */
+  static buildAllGameMeshes(mixConfig = {}) {
     const b = new MeshGeometryBuilder();
     const meshes = {};
 
@@ -3021,168 +3258,347 @@ class MeshGeometryBuilder {
       b.clear();
     };
 
-    // =========================================================================
-    // MINIMALIST ARCHITECTURAL PALETTE ("Clean Light-Grey & White Diorama")
-    // - Base Palette (90% of scene): Crisp Porcelain White, Alabaster Off-White,
-    //   Architectural Light-Grey & Brushed Silver-Grey.
-    // - Primary Gameplay Attention Accent: Luminous Mint-Emerald (exclusively
-    //   for Plutonium crystals & Active Delivery Barrels when timer runs).
-    // - Secondary Subtle Accents:
-    //   * Warm Sand-Gold (subtle detail on Keys, Locks, Spade, Mat & Crumbly Blocks)
-    //   * Soft Sky-Blue (subtle detail on Warp Pads, Portals, Time & Shield)
-    //   * Crisp Coral-Red (exclusively for closed/closing Laser Barriers & Lethal Hazards)
-    // =========================================================================
-    const PURE_WHITE    = [0.96, 0.97, 0.99]; // Crisp porcelain white (top caps, highlights)
-    const OFF_WHITE     = [0.87, 0.89, 0.92]; // Alabaster white (walls, clean geometric blocks)
-    const LIGHT_GREY    = [0.75, 0.78, 0.82]; // Soft architectural light-grey (pedestals, frames, barrels)
-    const SILVER_GREY   = [0.62, 0.65, 0.70]; // Brushed silver-grey (floor plates, robot armor)
-    const SLATE_GREY    = [0.45, 0.48, 0.53]; // Calm medium slate-grey (grooves, joints, normal aliens)
-    const CHARCOAL_DARK = [0.22, 0.25, 0.30]; // Deep anthracite contrast (robot face screen, keyholes)
-
-    // Focal Gameplay Attention Accents
-    const PLUT_EMERALD  = [0.10, 0.92, 0.46]; // Primary Focus: Plutonium & Active Barrels
-    const PLUT_MINT     = [0.58, 1.00, 0.78]; // Bright mint crystal core
-    const PLUT_MUTED    = [0.22, 0.56, 0.38]; // Subtle standby barrel indicator
-
-    const ACCENT_GOLD   = [0.92, 0.72, 0.22]; // Subtle warm gold for tools/locks
-    const ACCENT_SAND   = [0.78, 0.72, 0.62]; // Warm sand-grey for diggable regolith cubes
-    const ACCENT_SKY    = [0.30, 0.75, 0.96]; // Soft sky-blue for warp/exit/shield
-    const ACCENT_CORAL  = [0.95, 0.24, 0.28]; // Crisp coral-red for closed laser barriers & hazards
-
-    // Helper: Minimalist round white/light-grey base disc for items
-    const addCleanDiscBase = (radius = 0.34, height = 0.05, accentColor = LIGHT_GREY, accentEmissive = 0.05) => {
-      b.addCylinderY(0, 0.0, height, 0, radius, radius * 0.95, 12, OFF_WHITE, 0.02);
-      b.addTorusXZ(0, height, 0, radius * 0.82, 0.018, 12, 6, accentColor, accentEmissive);
+    const getStyle = (catId) => {
+      const v = mixConfig[catId] || mixConfig.defaultSourceId || 1;
+      return Math.max(1, Math.min(20, v | 0));
     };
 
-    // 1. Minimalist Light-Grey Architectural Floor Tile (1x1 unit with clean recessed border)
+    // =========================================================================
+    // MINIMALIST ARCHITECTURAL PALETTE ("Clean Light-Grey & White Diorama")
+    // =========================================================================
+    const PURE_WHITE    = [0.96, 0.97, 0.99];
+    const OFF_WHITE     = [0.87, 0.89, 0.92];
+    const LIGHT_GREY    = [0.75, 0.78, 0.82];
+    const SILVER_GREY   = [0.62, 0.65, 0.70];
+    const SLATE_GREY    = [0.45, 0.48, 0.53];
+    const CHARCOAL_DARK = [0.22, 0.25, 0.30];
+
+    const PLUT_EMERALD  = [0.10, 0.92, 0.46];
+    const PLUT_MINT     = [0.58, 1.00, 0.78];
+    const PLUT_MUTED    = [0.22, 0.56, 0.38];
+
+    const ACCENT_GOLD   = [0.92, 0.72, 0.22];
+    const ACCENT_SAND   = [0.78, 0.72, 0.62];
+    const ACCENT_SKY    = [0.30, 0.75, 0.96];
+    const ACCENT_CORAL  = [0.95, 0.24, 0.28];
+
+    const addCleanDiscBase = (radius = 0.34, height = 0.05, accentColor = LIGHT_GREY, accentEmissive = 0.05, segs = 12) => {
+      b.addCylinderY(0, 0.0, height, 0, radius, radius * 0.95, segs, OFF_WHITE, 0.02);
+      b.addTorusXZ(0, height, 0, radius * 0.82, 0.018, segs, 6, accentColor, accentEmissive);
+    };
+
+    // =========================================================================
+    // 1. FLOOR TILE ("floor") — 20 Source Variations
+    // =========================================================================
+    const sFloor = getStyle("floor");
     b.addBox(0, -0.04, 0, 0.96, 0.08, 0.96, SILVER_GREY, 0.0, LIGHT_GREY);
-    b.addBox(0, 0.004, 0, 0.84, 0.008, 0.84, LIGHT_GREY, 0.0);
+    if (sFloor === 16) {
+      // #16 LDraw / LEGO Stud Floor Tile (center hollow stud)
+      b.addBox(0, 0.004, 0, 0.84, 0.008, 0.84, LIGHT_GREY, 0.0);
+      b.addCylinderY(0, 0.008, 0.022, 0, 0.14, 0.14, 10, OFF_WHITE, 0.0);
+    } else if (sFloor === 18) {
+      // #18 Portal 2 Aperture 2x2 Sub-Panel Floor
+      for (let ix = -1; ix <= 1; ix += 2) {
+        for (let iz = -1; iz <= 1; iz += 2) {
+          b.addBox(ix * 0.22, 0.005, iz * 0.22, 0.41, 0.01, 0.41, LIGHT_GREY, 0.0);
+        }
+      }
+    } else if (sFloor === 1 || sFloor === 13) {
+      // #1 Kenney / #13 Polygon Hexagonal Inlay Floor
+      b.addCylinderY(0, 0.002, 0.010, 0, 0.42, 0.42, 6, LIGHT_GREY, 0.0);
+    } else if (sFloor === 19) {
+      // #19 Teenage Engineering Keycap Floor Tile
+      b.addBevelledBox(0, 0.005, 0, 0.82, 0.016, 0.82, 0.03, LIGHT_GREY, OFF_WHITE, 0.0);
+    } else {
+      b.addBox(0, 0.004, 0, 0.84, 0.008, 0.84, LIGHT_GREY, 0.0);
+    }
     compile("floorTile");
 
-    // 2. Clean White & Light-Grey Architectural Wall Block (Simple, sculptural bevelled monolith)
+    // =========================================================================
+    // 2. WALL BLOCK ("wall") — 20 Source Variations
+    // =========================================================================
+    const sWall = getStyle("wall");
     b.addBox(0, 0.04, 0, 0.96, 0.08, 0.96, LIGHT_GREY, 0.0);
-    b.addBevelledBox(0, 0.34, 0, 0.92, 0.56, 0.92, 0.06, OFF_WHITE, PURE_WHITE, 0.02);
-    b.addBox(0, 0.63, 0, 0.76, 0.03, 0.76, PURE_WHITE, 0.03);
+    if (sWall === 1) {
+      // #01 Kenney Chamfered Octagonal Module
+      b.addBevelledBox(0, 0.34, 0, 0.92, 0.56, 0.92, 0.12, OFF_WHITE, PURE_WHITE, 0.02);
+      b.addCylinderY(0, 0.62, 0.66, 0, 0.34, 0.30, 8, PURE_WHITE, 0.03);
+    } else if (sWall === 6) {
+      // #06 Poly Pizza Origami Low-Poly Faceted Wall
+      b.addBevelledBox(0, 0.28, 0, 0.90, 0.44, 0.90, 0.08, OFF_WHITE, PURE_WHITE, 0.02);
+      b.addOctahedron(0, 0.50, 0, 0.42, 0.20, 0.42, PURE_WHITE, 0.03);
+    } else if (sWall === 7) {
+      // #07 MagicaVoxel 3-Tier Voxel Stack Wall
+      b.addBox(0, 0.22, 0, 0.92, 0.28, 0.92, LIGHT_GREY, 0.01, OFF_WHITE);
+      b.addBox(0, 0.46, 0, 0.82, 0.22, 0.82, OFF_WHITE, 0.02, PURE_WHITE);
+      b.addBox(0, 0.61, 0, 0.66, 0.10, 0.66, PURE_WHITE, 0.03, PURE_WHITE);
+    } else if (sWall === 9) {
+      // #09 CSG Hollowed Frame Block
+      b.addBevelledBox(0, 0.34, 0, 0.92, 0.56, 0.92, 0.04, OFF_WHITE, PURE_WHITE, 0.02);
+      b.addBox(0, 0.63, 0, 0.54, 0.04, 0.54, SLATE_GREY, 0.0);
+      b.addBox(0, 0.65, 0, 0.34, 0.04, 0.34, PURE_WHITE, 0.03);
+    } else if (sWall === 12 || sWall === 20) {
+      // #12 Poly Haven / #20 Classic Zone X Stepped Ziggurat Pyramid Wall
+      b.addBox(0, 0.20, 0, 0.92, 0.24, 0.92, LIGHT_GREY, 0.01, OFF_WHITE);
+      b.addBox(0, 0.40, 0, 0.78, 0.18, 0.78, OFF_WHITE, 0.02, PURE_WHITE);
+      b.addBox(0, 0.56, 0, 0.60, 0.14, 0.60, PURE_WHITE, 0.03, PURE_WHITE);
+    } else if (sWall === 16) {
+      // #16 LDraw / LEGO 2x2 Stud Brick Wall!
+      b.addBox(0, 0.32, 0, 0.92, 0.52, 0.92, OFF_WHITE, 0.02, PURE_WHITE);
+      for (let sx = -0.23; sx <= 0.24; sx += 0.46) {
+        for (let sz = -0.23; sz <= 0.24; sz += 0.46) {
+          b.addCylinderY(sx, 0.58, 0.68, sz, 0.13, 0.13, 12, PURE_WHITE, 0.04);
+        }
+      }
+    } else if (sWall === 17) {
+      // #17 Bauhaus / Monument Valley Colonnade Block
+      b.addBox(0, 0.14, 0, 0.92, 0.16, 0.92, OFF_WHITE, 0.02);
+      for (let sx = -0.30; sx <= 0.31; sx += 0.60) {
+        for (let sz = -0.30; sz <= 0.31; sz += 0.60) {
+          b.addCylinderY(sx, 0.22, 0.56, sz, 0.10, 0.10, 8, LIGHT_GREY, 0.02);
+        }
+      }
+      b.addBevelledBox(0, 0.62, 0, 0.92, 0.14, 0.92, 0.03, PURE_WHITE, PURE_WHITE, 0.03);
+    } else if (sWall === 18) {
+      // #18 Portal 2 Aperture 2x2 Divided Test-Chamber Wall with Dark Seam
+      b.addBox(0, 0.32, 0, 0.88, 0.52, 0.88, CHARCOAL_DARK, 0.0);
+      for (let ix = -1; ix <= 1; ix += 2) {
+        for (let iz = -1; iz <= 1; iz += 2) {
+          b.addBevelledBox(ix * 0.22, 0.34, iz * 0.22, 0.42, 0.54, 0.42, 0.02, OFF_WHITE, PURE_WHITE, 0.03);
+        }
+      }
+    } else {
+      // Default Clean Architectural Monolith (#2, #3, #4, #5, #8, #10, #11, #13, #14, #15, #19)
+      b.addBevelledBox(0, 0.34, 0, 0.92, 0.56, 0.92, 0.06, OFF_WHITE, PURE_WHITE, 0.02);
+      b.addBox(0, 0.63, 0, 0.76, 0.03, 0.76, PURE_WHITE, 0.03);
+    }
     compile("wallBlock");
 
-    // 3. PLUTONIUM CORE — #1 Gameplay Attention Magnet (Simple, iconic floating Emerald Diamond on White Socket)
-    addCleanDiscBase(0.40, 0.06, PLUT_EMERALD, 0.65);
-    b.addOctahedron(0, 0.50, 0, 0.28, 0.38, 0.28, PLUT_EMERALD, 0.90);
-    b.addOctahedron(0, 0.50, 0, 0.16, 0.24, 0.16, PLUT_MINT, 1.00);
+    // =========================================================================
+    // 3. PLUTONIUM CORE ("plutonium") — 20 Source Variations (Mint-Emerald Focus!)
+    // =========================================================================
+    const sPlut = getStyle("plutonium");
+    addCleanDiscBase(0.40, 0.06, PLUT_EMERALD, 0.65, sPlut === 1 || sPlut === 13 ? 6 : 12);
+    if (sPlut === 7) {
+      // #07 MagicaVoxel 3D Voxel Crystal Cross
+      b.addBox(0, 0.50, 0, 0.22, 0.56, 0.22, PLUT_MINT, 0.98);
+      b.addBox(0, 0.50, 0, 0.44, 0.24, 0.22, PLUT_EMERALD, 0.90);
+      b.addBox(0, 0.50, 0, 0.22, 0.24, 0.44, PLUT_EMERALD, 0.90);
+    } else if (sPlut === 10) {
+      // #10 NASA RTG Isotope Core with 4 White Radiator Fins
+      b.addCylinderY(0, 0.10, 0.78, 0, 0.16, 0.16, 12, PLUT_EMERALD, 0.92);
+      b.addCylinderY(0, 0.78, 0.86, 0, 0.12, 0.08, 12, PLUT_MINT, 1.0);
+      b.addBox(0, 0.44, 0, 0.56, 0.46, 0.04, PURE_WHITE, 0.35);
+      b.addBox(0, 0.44, 0, 0.04, 0.46, 0.56, PURE_WHITE, 0.35);
+    } else if (sPlut === 16) {
+      // #16 LDraw / LEGO Translucent-Emerald Stud Cylinder & Gem
+      b.addCylinderY(0, 0.08, 0.68, 0, 0.24, 0.24, 12, PLUT_EMERALD, 0.90);
+      b.addCylinderY(0, 0.68, 0.80, 0, 0.13, 0.13, 12, PLUT_MINT, 1.0);
+      b.addTorusXZ(0, 0.38, 0, 0.25, 0.025, 12, 6, PURE_WHITE, 0.5);
+    } else if (sPlut === 3 || sPlut === 6 || sPlut === 17) {
+      // #03/#06/#17 Multi-Shard / Sacred Geometry Nested Octahedra
+      b.addOctahedron(0, 0.52, 0, 0.30, 0.44, 0.30, PLUT_EMERALD, 0.90);
+      b.addOctahedron(0, 0.52, 0, 0.18, 0.28, 0.18, PLUT_MINT, 1.00);
+      b.addOctahedron(0, 0.92, 0, 0.10, 0.14, 0.10, PURE_WHITE, 0.85);
+    } else if (sPlut === 19) {
+      // #19 Teenage Engineering Minimalist LED Pillar & White Ring Cap
+      b.addCylinderY(0, 0.08, 0.72, 0, 0.22, 0.22, 16, PURE_WHITE, 0.15);
+      b.addCylinderY(0, 0.22, 0.58, 0, 0.23, 0.23, 16, PLUT_EMERALD, 0.95);
+      b.addCylinderY(0, 0.72, 0.78, 0, 0.15, 0.15, 16, PLUT_MINT, 1.0);
+    } else {
+      // Classic Clean Floating Emerald Diamond on White Socket
+      b.addOctahedron(0, 0.50, 0, 0.28, 0.38, 0.28, PLUT_EMERALD, 0.90);
+      b.addOctahedron(0, 0.50, 0, 0.16, 0.24, 0.16, PLUT_MINT, 1.00);
+    }
     compile("plutoniumCore");
 
-    // 3b. Plutonium Minimalist Orbital Ring (Single clean white & emerald ring)
-    b.addTorusXZ(0, 0.50, 0, 0.38, 0.024, 16, 6, PURE_WHITE, 0.55);
+    // 3b. Plutonium Orbital Ring ("plutoniumBeacon")
+    b.addTorusXZ(0, 0.50, 0, 0.38, 0.024, sPlut === 7 ? 4 : 16, 6, PURE_WHITE, 0.55);
+    if (sPlut === 4 || sPlut === 5) {
+      // #04 Khronos / #05 Three.js Dual Gimbal Ring
+      b.addTorusXZ(0, 0.28, 0, 0.32, 0.020, 14, 6, PLUT_MINT, 0.85);
+    }
     b.addOctahedron(0.38, 0.50, 0, 0.06, 0.06, 0.06, PLUT_MINT, 0.95);
     b.addOctahedron(-0.38, 0.50, 0, 0.06, 0.06, 0.06, PLUT_MINT, 0.95);
     compile("plutoniumBeacon");
 
-    // 3c. Plutonium Clean Floor Halo Ring
-    b.addTorusXZ(0, 0.02, 0, 0.44, 0.025, 16, 6, PLUT_EMERALD, 0.85);
+    // 3c. Plutonium Floor Halo ("plutoniumHalo")
+    b.addTorusXZ(0, 0.02, 0, 0.44, 0.025, sPlut === 1 || sPlut === 13 ? 6 : 16, 6, PLUT_EMERALD, 0.85);
     compile("plutoniumHalo");
 
-    // 4. PLUTONIUM CONTAINER / BARREL (Simple, iconic White/Light-Grey Cylindrical Barrel)
-    // Standby: Calm white/light-grey cylinder with two subtle slate hoops and a dark top opening
-    addCleanDiscBase(0.42, 0.05, LIGHT_GREY, 0.04);
-    b.addCylinderY(0, 0.05, 0.64, 0, 0.36, 0.36, 16, OFF_WHITE, 0.04);
-    b.addTorusXZ(0, 0.22, 0, 0.37, 0.026, 16, 6, SLATE_GREY, 0.04);
-    b.addTorusXZ(0, 0.48, 0, 0.37, 0.026, 16, 6, SLATE_GREY, 0.04);
-    b.addTorusXZ(0, 0.64, 0, 0.34, 0.042, 16, 6, PURE_WHITE, 0.08);
-    b.addCylinderY(0, 0.60, 0.66, 0, 0.25, 0.25, 14, CHARCOAL_DARK, 0.02);
-    b.addTorusXZ(0, 0.65, 0, 0.18, 0.020, 12, 6, PLUT_MUTED, 0.35);
+    // =========================================================================
+    // 4. CONTAINER / BARREL ("container") — 20 Source Variations
+    // =========================================================================
+    const sCont = getStyle("container");
+    const contSegs = sCont === 1 || sCont === 13 ? 6 : sCont === 7 ? 4 : 16;
+    addCleanDiscBase(0.42, 0.05, LIGHT_GREY, 0.04, contSegs);
+    if (sCont === 7) {
+      // #07 MagicaVoxel Stepped Cube Barrel
+      b.addBox(0, 0.35, 0, 0.62, 0.58, 0.62, OFF_WHITE, 0.04, PURE_WHITE);
+      b.addBox(0, 0.22, 0, 0.66, 0.07, 0.66, SLATE_GREY, 0.04);
+      b.addBox(0, 0.48, 0, 0.66, 0.07, 0.66, SLATE_GREY, 0.04);
+      b.addBox(0, 0.65, 0, 0.42, 0.04, 0.42, CHARCOAL_DARK, 0.02);
+      b.addBox(0, 0.66, 0, 0.26, 0.04, 0.26, PLUT_MUTED, 0.35);
+    } else if (sCont === 16) {
+      // #16 LDraw / LEGO Round Brick Barrel with Top Open Stud Rim
+      b.addCylinderY(0, 0.05, 0.62, 0, 0.36, 0.36, 14, OFF_WHITE, 0.04);
+      b.addTorusXZ(0, 0.34, 0, 0.37, 0.03, 14, 6, LIGHT_GREY, 0.04);
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI) * 0.5 + Math.PI * 0.25;
+        b.addCylinderY(Math.cos(a) * 0.22, 0.62, 0.70, Math.sin(a) * 0.22, 0.08, 0.08, 8, PURE_WHITE, 0.05);
+      }
+      b.addCylinderY(0, 0.60, 0.65, 0, 0.20, 0.20, 12, CHARCOAL_DARK, 0.02);
+      b.addTorusXZ(0, 0.65, 0, 0.16, 0.02, 12, 6, PLUT_MUTED, 0.35);
+    } else if (sCont === 18) {
+      // #18 Portal 2 Aperture Companion-Flanged Silo
+      b.addCylinderY(0, 0.05, 0.64, 0, 0.35, 0.35, 16, OFF_WHITE, 0.04);
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI) * 0.5;
+        b.addBox(Math.cos(a) * 0.34, 0.35, Math.sin(a) * 0.34, 0.12, 0.54, 0.12, PURE_WHITE, 0.05);
+      }
+      b.addTorusXZ(0, 0.64, 0, 0.33, 0.04, 16, 6, PURE_WHITE, 0.08);
+      b.addCylinderY(0, 0.60, 0.66, 0, 0.24, 0.24, 14, CHARCOAL_DARK, 0.02);
+      b.addTorusXZ(0, 0.65, 0, 0.18, 0.020, 12, 6, PLUT_MUTED, 0.35);
+    } else {
+      // Clean White/Light-Grey Cylindrical Barrel (Hexagonal for #1/#13, Smooth 16-seg for others)
+      b.addCylinderY(0, 0.05, 0.64, 0, 0.36, 0.36, contSegs, OFF_WHITE, 0.04);
+      b.addTorusXZ(0, 0.22, 0, 0.37, 0.026, contSegs, 6, SLATE_GREY, 0.04);
+      b.addTorusXZ(0, 0.48, 0, 0.37, 0.026, contSegs, 6, SLATE_GREY, 0.04);
+      b.addTorusXZ(0, 0.64, 0, 0.34, 0.042, contSegs, 6, PURE_WHITE, 0.08);
+      b.addCylinderY(0, 0.60, 0.66, 0, 0.25, 0.25, contSegs, CHARCOAL_DARK, 0.02);
+      b.addTorusXZ(0, 0.65, 0, 0.18, 0.020, 12, 6, PLUT_MUTED, 0.35);
+    }
     compile("containerVault");
 
-    // 4b. Container ACTIVE Ignition Overlay (Illuminates the Barrel in Mint-Emerald when player carries Plutonium!)
-    b.addTorusXZ(0, 0.025, 0, 0.48, 0.032, 16, 6, PLUT_EMERALD, 0.95);
-    b.addTorusXZ(0, 0.35, 0, 0.385, 0.034, 16, 6, PLUT_EMERALD, 0.90);
-    b.addTorusXZ(0, 0.66, 0, 0.35, 0.042, 16, 6, PLUT_MINT, 1.00);
-    b.addCylinderY(0, 0.62, 0.70, 0, 0.23, 0.23, 14, PLUT_EMERALD, 0.95);
+    // 4b. Container ACTIVE Ignition Overlay
+    b.addTorusXZ(0, 0.025, 0, 0.48, 0.032, contSegs, 6, PLUT_EMERALD, 0.95);
+    b.addTorusXZ(0, 0.35, 0, 0.385, 0.034, contSegs, 6, PLUT_EMERALD, 0.90);
+    b.addTorusXZ(0, 0.66, 0, 0.35, 0.042, contSegs, 6, PLUT_MINT, 1.00);
+    b.addCylinderY(0, 0.62, 0.70, 0, 0.23, 0.23, contSegs, PLUT_EMERALD, 0.95);
     compile("containerActiveGlow");
 
-    // 4c. Clean Abstract Floating Downward Chevron/Cone above Active Container Barrel
+    // 4c. Floating Downward Target Chevron/Cone above Active Container Barrel
     b.addCylinderY(0, 0.88, 1.18, 0, 0.02, 0.20, 8, PLUT_EMERALD, 0.90);
     b.addTorusXZ(0, 0.88, 0, 0.22, 0.022, 12, 6, PURE_WHITE, 0.80);
     compile("containerArrow");
 
-    // 5. Security Key (Simple, recognizable 3D Key in White & Warm Gold)
-    addCleanDiscBase(0.32, 0.04, ACCENT_GOLD, 0.25);
-    b.addTorusXZ(0, 0.28, -0.18, 0.14, 0.042, 12, 6, ACCENT_GOLD, 0.45);
+    // =========================================================================
+    // 5. SECURITY KEY ("key") — 20 Source Variations
+    // =========================================================================
+    const sKey = getStyle("key");
+    addCleanDiscBase(0.32, 0.04, ACCENT_GOLD, 0.25, sKey === 1 || sKey === 13 ? 6 : 12);
+    if (sKey === 7) {
+      // #07 MagicaVoxel Block Key
+      b.addBox(0, 0.28, -0.18, 0.24, 0.07, 0.20, ACCENT_GOLD, 0.45);
+      b.addBox(0, 0.28, -0.18, 0.10, 0.08, 0.08, CHARCOAL_DARK, 0.0);
+    } else {
+      b.addTorusXZ(0, 0.28, -0.18, 0.14, 0.042, sKey === 1 ? 6 : 12, 6, ACCENT_GOLD, 0.45);
+    }
     b.addBox(0, 0.28, 0.08, 0.07, 0.06, 0.38, PURE_WHITE, 0.20);
     b.addBox(0.09, 0.28, 0.14, 0.11, 0.06, 0.055, ACCENT_GOLD, 0.45);
     b.addBox(0.09, 0.28, 0.24, 0.11, 0.06, 0.055, ACCENT_GOLD, 0.45);
     compile("keyItem");
 
-    // 6. Excavator Spade (Clean, simple Shovel Blade in White/Light-Grey + Gold Handle)
-    addCleanDiscBase(0.32, 0.04, ACCENT_GOLD, 0.25);
+    // =========================================================================
+    // 6. EXCAVATOR SPADE ("spade") — 20 Source Variations
+    // =========================================================================
+    const sSpade = getStyle("spade");
+    addCleanDiscBase(0.32, 0.04, ACCENT_GOLD, 0.25, sSpade === 1 || sSpade === 13 ? 6 : 12);
     b.addBox(0, 0.28, -0.26, 0.22, 0.06, 0.06, ACCENT_GOLD, 0.40);
     b.addBox(0, 0.28, -0.04, 0.06, 0.05, 0.38, LIGHT_GREY, 0.10);
     b.addBevelledBox(0, 0.28, 0.20, 0.30, 0.05, 0.24, 0.02, PURE_WHITE, OFF_WHITE, 0.20);
     compile("spadeItem");
 
-    // 6b. Radiation Shield Pod (Simple White Capsule with a clean Sky-Blue Cross)
-    addCleanDiscBase(0.32, 0.04, ACCENT_SKY, 0.25);
-    b.addCylinderY(0, 0.08, 0.46, 0, 0.20, 0.20, 12, PURE_WHITE, 0.15);
+    // =========================================================================
+    // 6b. RADIATION SHIELD POD ("capsule")
+    // =========================================================================
+    const sCap = getStyle("capsule");
+    addCleanDiscBase(0.32, 0.04, ACCENT_SKY, 0.25, sCap === 1 ? 6 : 12);
+    b.addCylinderY(0, 0.08, 0.46, 0, 0.20, 0.20, sCap === 7 ? 4 : 12, PURE_WHITE, 0.15);
     b.addBox(0, 0.48, 0, 0.22, 0.04, 0.07, ACCENT_SKY, 0.65);
     b.addBox(0, 0.48, 0, 0.07, 0.04, 0.22, ACCENT_SKY, 0.65);
     compile("capsuleItem");
 
-    // 7. Insulating Mat (Simple White/Light-Grey Floor Tile with 3 Warm Gold Stripes)
+    // =========================================================================
+    // 7. INSULATING MAT ("mat")
+    // =========================================================================
+    const sMat = getStyle("mat");
     b.addBevelledBox(0, 0.08, 0, 0.76, 0.10, 0.56, 0.03, OFF_WHITE, PURE_WHITE, 0.08);
-    b.addBox(-0.20, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
-    b.addBox( 0.00, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
-    b.addBox( 0.20, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
+    if (sMat === 16) {
+      // #16 LEGO Stud Mat
+      for (let ix = -0.22; ix <= 0.23; ix += 0.22) {
+        b.addCylinderY(ix, 0.13, 0.18, -0.12, 0.07, 0.07, 8, ACCENT_GOLD, 0.40);
+        b.addCylinderY(ix, 0.13, 0.18,  0.12, 0.07, 0.07, 8, ACCENT_GOLD, 0.40);
+      }
+    } else {
+      b.addBox(-0.20, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
+      b.addBox( 0.00, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
+      b.addBox( 0.20, 0.14, 0, 0.08, 0.025, 0.44, ACCENT_GOLD, 0.40);
+    }
     compile("matItem");
 
-    // 8. Extra Time Hourglass (Clean Minimalist White & Sky-Blue Hourglass)
+    // =========================================================================
+    // 8 & 9. EXTRA TIME & MYSTERY BOX ("extraTimeBox")
+    // =========================================================================
+    const sTime = getStyle("extraTimeBox");
     addCleanDiscBase(0.32, 0.04, ACCENT_SKY, 0.25);
     b.addBox(0, 0.10, 0, 0.38, 0.05, 0.38, PURE_WHITE, 0.15);
-    b.addCylinderY(0, 0.13, 0.36, 0, 0.18, 0.03, 10, ACCENT_SKY, 0.55);
-    b.addCylinderY(0, 0.36, 0.59, 0, 0.03, 0.18, 10, ACCENT_SKY, 0.55);
+    b.addCylinderY(0, 0.13, 0.36, 0, 0.18, 0.03, sTime === 7 ? 4 : 10, ACCENT_SKY, 0.55);
+    b.addCylinderY(0, 0.36, 0.59, 0, 0.03, 0.18, sTime === 7 ? 4 : 10, ACCENT_SKY, 0.55);
     b.addBox(0, 0.61, 0, 0.38, 0.05, 0.38, PURE_WHITE, 0.15);
     compile("extraTimeItem");
 
-    // 9. Supply / Mystery Cube (Clean White Bevelled Cube with Light-Grey Cross & Gold Emblem)
     b.addBevelledBox(0, 0.28, 0, 0.58, 0.48, 0.58, 0.05, OFF_WHITE, PURE_WHITE, 0.08);
     b.addBox(0, 0.28, 0, 0.61, 0.07, 0.10, LIGHT_GREY, 0.05);
     b.addBox(0, 0.28, 0, 0.10, 0.07, 0.61, LIGHT_GREY, 0.05);
     b.addOctahedron(0, 0.58, 0, 0.10, 0.10, 0.10, ACCENT_GOLD, 0.55);
     compile("mysteryBox");
 
-    // 10. Locked Key-Door (Clean Light-Grey/White Gate Block with a clear Warm-Gold Lock Symbol)
+    // =========================================================================
+    // 10. LOCKED KEY-DOOR ("lockedDoor")
+    // =========================================================================
     b.addBevelledBox(0, 0.36, 0, 0.92, 0.68, 0.38, 0.05, OFF_WHITE, PURE_WHITE, 0.05);
     b.addTorusXZ(0, 0.78, 0, 0.14, 0.038, 10, 6, ACCENT_GOLD, 0.50);
     b.addBevelledBox(0, 0.52, 0, 0.32, 0.36, 0.46, 0.03, ACCENT_GOLD, PURE_WHITE, 0.40);
     b.addBox(0, 0.52, 0, 0.08, 0.16, 0.49, CHARCOAL_DARK, 0.0);
     compile("lockedDoor");
 
-    // Airlock / Proximity Door (Clean White Gate with Sky-Blue Ring)
     b.addBevelledBox(0, 0.36, 0, 0.92, 0.68, 0.38, 0.05, OFF_WHITE, PURE_WHITE, 0.05);
     b.addTorusXZ(0, 0.76, 0, 0.18, 0.036, 12, 6, ACCENT_SKY, 0.55);
     compile("proximityDoor");
 
-    // 11. Automatic Laser/Blast Door (Clean White Thresholds + Coral-Red Laser Bar when closed):
+    // =========================================================================
+    // 11. AUTOMATIC LASER DOOR ("laserDoor")
+    // =========================================================================
+    const sLaser = getStyle("laserDoor");
     b.addBox(0, 0.04, -0.43, 0.92, 0.08, 0.10, OFF_WHITE, 0.04);
     b.addBox(0, 0.04,  0.43, 0.92, 0.08, 0.10, OFF_WHITE, 0.04);
     compile("laserPylons");
 
-    // OPEN / SAFE state: Calm white/light-grey walkthrough strips (unobstructed!)
     b.addBox(-0.24, 0.02, 0, 0.08, 0.02, 0.64, PURE_WHITE, 0.35);
     b.addBox( 0.24, 0.02, 0, 0.08, 0.02, 0.64, PURE_WHITE, 0.35);
     compile("laserSafeOpen");
 
-    // CLOSED / DANGER state: Crisp Coral-Red floor warning strip + top indicator nodes
     b.addBox(0, 0.025, 0, 0.84, 0.03, 0.64, ACCENT_CORAL, 0.65);
     b.addOctahedron(0, 0.78, -0.42, 0.11, 0.11, 0.11, ACCENT_CORAL, 0.85);
     b.addOctahedron(0, 0.78,  0.42, 0.11, 0.11, 0.11, ACCENT_CORAL, 0.85);
     compile("laserDangerClosed");
 
-    // Sliding Door Leaf (Clean White/Light-Grey Barrier Block + Single Bold Coral-Red Laser Bar)
-    b.addBevelledBox(0, 0.34, 0, 0.88, 0.62, 0.32, 0.03, OFF_WHITE, PURE_WHITE, 0.08);
-    b.addBox(0, 0.38, 0, 0.92, 0.12, 0.35, ACCENT_CORAL, 0.90);
+    if (sLaser === 4 || sLaser === 10 || sLaser === 18) {
+      // Multi-beam Aperture / ISS Laser Grid
+      b.addBevelledBox(0, 0.34, 0, 0.88, 0.62, 0.28, 0.03, OFF_WHITE, PURE_WHITE, 0.06);
+      b.addBox(0, 0.22, 0, 0.92, 0.06, 0.32, ACCENT_CORAL, 0.90);
+      b.addBox(0, 0.48, 0, 0.92, 0.06, 0.32, ACCENT_CORAL, 0.90);
+    } else {
+      b.addBevelledBox(0, 0.34, 0, 0.88, 0.62, 0.32, 0.03, OFF_WHITE, PURE_WHITE, 0.08);
+      b.addBox(0, 0.38, 0, 0.92, 0.12, 0.35, ACCENT_CORAL, 0.90);
+    }
     compile("laserBeams");
 
-    // 12. Warp Pad & Warp Frame (Minimalist White Ring Pad with Soft Sky-Blue Core)
+    // =========================================================================
+    // 12, 14 & 15. WARP, HAZARDS & EXIT PORTAL ("hazardsPortals")
+    // =========================================================================
+    const sHaz = getStyle("hazardsPortals");
     addCleanDiscBase(0.42, 0.05, ACCENT_SKY, 0.45);
     b.addTorusXZ(0, 0.10, 0, 0.26, 0.032, 14, 6, PURE_WHITE, 0.50);
     b.addCylinderY(0, 0.05, 0.09, 0, 0.18, 0.18, 12, ACCENT_SKY, 0.65);
@@ -3192,21 +3608,10 @@ class MeshGeometryBuilder {
     b.addTorusXZ(0, 0.44, 0, 0.30, 0.035, 10, 6, ACCENT_SKY, 0.45);
     compile("warpFrame");
 
-    // 13. Crumbly Diggable Regolith (Abstract cluster of 3 rounded Warm Sand-Grey & Light-Grey Cubes)
-    b.addBevelledBox(0, 0.14, 0, 0.78, 0.26, 0.78, 0.05, ACCENT_SAND, OFF_WHITE, 0.03);
-    b.addBevelledBox(-0.16, 0.30, -0.12, 0.34, 0.22, 0.34, 0.04, LIGHT_GREY, PURE_WHITE, 0.04);
-    b.addBevelledBox( 0.16, 0.32,  0.14, 0.32, 0.24, 0.32, 0.04, ACCENT_SAND, OFF_WHITE, 0.04);
-    compile("crumblyDirt");
-
-    b.addBevelledBox(0, 0.28, 0, 0.68, 0.52, 0.68, 0.06, LIGHT_GREY, OFF_WHITE, 0.02);
-    compile("rockBlock");
-
-    // 14. Forcefield Barrier & Skull Hazard (Minimalist White Base + Crisp Coral-Red Hazard Symbol)
     b.addBevelledBox(0, 0.32, 0, 0.84, 0.60, 0.84, 0.05, OFF_WHITE, PURE_WHITE, 0.06);
     b.addOctahedron(0, 0.74, 0, 0.18, 0.22, 0.18, ACCENT_CORAL, 0.85);
     compile("hazardField");
 
-    // 14b. Abstract Minimalist 3D Block-Skull (Clean White Cranium + Coral-Red Eyes)
     addCleanDiscBase(0.38, 0.05, ACCENT_CORAL, 0.40);
     b.addBevelledBox(0, 0.22, -0.02, 0.34, 0.22, 0.30, 0.04, PURE_WHITE, OFF_WHITE, 0.15);
     b.addBox(0, 0.12, 0.12, 0.20, 0.10, 0.12, OFF_WHITE, 0.10);
@@ -3214,47 +3619,87 @@ class MeshGeometryBuilder {
     b.addBox( 0.08, 0.24, 0.08, 0.07, 0.07, 0.07, ACCENT_CORAL, 0.85);
     compile("skullHazard");
 
-    // 15. Exit Extraction Portal (Clean White Architectural Archway + Sky-Blue Portal Ring)
     addCleanDiscBase(0.44, 0.06, ACCENT_SKY, 0.50);
     b.addBox(-0.34, 0.42, 0, 0.12, 0.78, 0.18, PURE_WHITE, 0.15);
     b.addBox( 0.34, 0.42, 0, 0.12, 0.78, 0.18, PURE_WHITE, 0.15);
     b.addBox(0, 0.82, 0, 0.82, 0.12, 0.22, PURE_WHITE, 0.20);
-    b.addTorusXZ(0, 0.44, 0, 0.30, 0.04, 14, 6, ACCENT_SKY, 0.75);
+    b.addTorusXZ(0, 0.44, 0, 0.30, 0.04, sHaz === 7 ? 4 : 14, 6, ACCENT_SKY, 0.75);
     compile("exitPortal");
 
-    // 16. Articulated 3D Light-Grey & White Player Robot (With Friendly 3D Robot Face)
-    const ROBOT_GREY_DARK  = [0.34, 0.37, 0.42]; // Slate-grey joints & boots
-    const ROBOT_GREY_MID   = [0.64, 0.68, 0.73]; // Clean light-grey robot chassis
-    const ROBOT_GREY_LIGHT = [0.88, 0.90, 0.94]; // Crisp off-white bevel highlights & brow/nose
-    const ROBOT_FACE_DARK  = [0.14, 0.16, 0.20]; // Dark face screen & pupils
-    const ROBOT_EYE_GLOW   = [0.92, 0.98, 1.00]; // Crisp white-cyan robot eyes & mouth
+    // =========================================================================
+    // 13. CRUMBLY DIGGABLE REGOLITH ("crumblyDirt") — 20 Source Variations
+    // =========================================================================
+    const sDirt = getStyle("crumblyDirt");
+    if (sDirt === 6 || sDirt === 17) {
+      // #06 Poly Pizza / #17 Bauhaus Octahedron Crystal Cluster
+      b.addOctahedron(0, 0.22, 0, 0.38, 0.26, 0.38, ACCENT_SAND, 0.03);
+      b.addOctahedron(-0.18, 0.32, -0.14, 0.22, 0.24, 0.22, LIGHT_GREY, 0.04);
+      b.addOctahedron( 0.18, 0.30,  0.14, 0.22, 0.24, 0.22, OFF_WHITE, 0.04);
+    } else if (sDirt === 16) {
+      // #16 LDraw / LEGO Loose 1x1 Stud Bricks
+      b.addBox(0, 0.14, 0, 0.78, 0.24, 0.78, ACCENT_SAND, 0.03, OFF_WHITE);
+      b.addCylinderY(-0.18, 0.26, 0.34, -0.18, 0.12, 0.12, 10, OFF_WHITE, 0.04);
+      b.addCylinderY( 0.18, 0.26, 0.34,  0.18, 0.12, 0.12, 10, LIGHT_GREY, 0.04);
+    } else {
+      b.addBevelledBox(0, 0.14, 0, 0.78, 0.26, 0.78, 0.05, ACCENT_SAND, OFF_WHITE, 0.03);
+      b.addBevelledBox(-0.16, 0.30, -0.12, 0.34, 0.22, 0.34, 0.04, LIGHT_GREY, PURE_WHITE, 0.04);
+      b.addBevelledBox( 0.16, 0.32,  0.14, 0.32, 0.24, 0.32, 0.04, ACCENT_SAND, OFF_WHITE, 0.04);
+    }
+    compile("crumblyDirt");
 
-    // 16A. Light-Grey & White Robot Torso
+    b.addBevelledBox(0, 0.28, 0, 0.68, 0.52, 0.68, 0.06, LIGHT_GREY, OFF_WHITE, 0.02);
+    compile("rockBlock");
+
+    // =========================================================================
+    // 16. ARTICULATED 3D GREY/WHITE PLAYER ROBOT ("player") — 20 Source Variations
+    // =========================================================================
+    const sPlayer = getStyle("player");
+    const ROBOT_GREY_DARK  = [0.34, 0.37, 0.42];
+    const ROBOT_GREY_MID   = [0.64, 0.68, 0.73];
+    const ROBOT_GREY_LIGHT = [0.88, 0.90, 0.94];
+    const ROBOT_FACE_DARK  = [0.14, 0.16, 0.20];
+    const ROBOT_EYE_GLOW   = [0.92, 0.98, 1.00];
+
+    // 16A. Player Robot Torso
     b.addBevelledBox(0, 0, 0, 0.42, 0.40, 0.26, 0.04, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.12);
     b.addBox(0, 0.04, 0.14, 0.30, 0.20, 0.03, PURE_WHITE, 0.18);
     b.addBox(0, 0.02, -0.17, 0.30, 0.30, 0.12, ROBOT_GREY_DARK, 0.08);
     b.addCylinderY(0, -0.24, -0.15, 0, 0.13, 0.15, 8, ROBOT_GREY_DARK, 0.10);
     compile("playerTorso");
 
-    // 16B. Light-Grey & White Robot Head with Simple, Recognizable 3D Robot Face
+    // 16B. Player Robot Head with 3D Robot Face (Styled per Source!)
     b.addCylinderY(0, -0.21, -0.12, 0, 0.10, 0.10, 8, ROBOT_GREY_DARK, 0.10);
-    b.addBevelledBox(0, 0.02, 0, 0.42, 0.38, 0.36, 0.05, ROBOT_GREY_MID, PURE_WHITE, 0.15);
-    // Simple top antenna
-    b.addCylinderY(0, 0.21, 0.34, -0.02, 0.022, 0.015, 6, ROBOT_GREY_LIGHT, 0.20);
-    b.addOctahedron(0, 0.37, -0.02, 0.042, 0.042, 0.042, PURE_WHITE, 0.70);
-    // Side ear bolts
-    b.addBox(-0.23, 0.02, 0, 0.05, 0.12, 0.12, ROBOT_GREY_DARK, 0.12);
-    b.addBox( 0.23, 0.02, 0, 0.05, 0.12, 0.12, ROBOT_GREY_DARK, 0.12);
-    // Dark recessed face screen on +Z
+    if (sPlayer === 2 || sPlayer === 5 || sPlayer === 15) {
+      // #02 KayKit / #05 Three.js RobotExpressive Wide TV-Monitor Head with Twin V-Antennae
+      b.addBevelledBox(0, 0.03, 0, 0.48, 0.36, 0.34, 0.05, PURE_WHITE, PURE_WHITE, 0.16);
+      b.addCylinderY(-0.10, 0.21, 0.36, -0.02, 0.018, 0.012, 6, ROBOT_GREY_DARK, 0.15);
+      b.addCylinderY( 0.10, 0.21, 0.36, -0.02, 0.018, 0.012, 6, ROBOT_GREY_DARK, 0.15);
+      b.addOctahedron(-0.10, 0.38, -0.02, 0.038, 0.038, 0.038, ACCENT_SKY, 0.80);
+      b.addOctahedron( 0.10, 0.38, -0.02, 0.038, 0.038, 0.038, ACCENT_SKY, 0.80);
+    } else if (sPlayer === 10) {
+      // #10 NASA Rover Twin-Lens Optical Mast Head
+      b.addBevelledBox(0, 0.02, 0, 0.44, 0.32, 0.34, 0.04, PURE_WHITE, PURE_WHITE, 0.16);
+      b.addCylinderY(0.12, 0.18, 0.34, 0, 0.03, 0.03, 8, ROBOT_GREY_MID, 0.15);
+    } else if (sPlayer === 16) {
+      // #16 LDraw / LEGO Minifig-Bot Cylindrical Stud Head
+      b.addCylinderY(0, -0.15, 0.20, 0, 0.23, 0.23, 14, ROBOT_GREY_LIGHT, 0.15);
+      b.addCylinderY(0, 0.20, 0.28, 0, 0.12, 0.12, 12, PURE_WHITE, 0.20);
+    } else {
+      // Standard Sculpted Grey-White Robot Head with Antenna & Ear Bolts
+      b.addBevelledBox(0, 0.02, 0, 0.42, 0.38, 0.36, 0.05, ROBOT_GREY_MID, PURE_WHITE, 0.15);
+      b.addCylinderY(0, 0.21, 0.34, -0.02, 0.022, 0.015, 6, ROBOT_GREY_LIGHT, 0.20);
+      b.addOctahedron(0, 0.37, -0.02, 0.042, 0.042, 0.042, PURE_WHITE, 0.70);
+      b.addBox(-0.23, 0.02, 0, 0.05, 0.12, 0.12, ROBOT_GREY_DARK, 0.12);
+      b.addBox( 0.23, 0.02, 0, 0.05, 0.12, 0.12, ROBOT_GREY_DARK, 0.12);
+    }
+    // Expressive 3D Robot Face on +Z (Dark Screen, 2 Glowing Eyes + Pupils + Brow Ridges + Nose + Mouth Grille)
     b.addBox(0, 0.02, 0.175, 0.34, 0.28, 0.03, ROBOT_FACE_DARK, 0.05);
-    // Left & Right 3D Eyes, Pupils & Brow Ridges
     b.addBox(-0.095, 0.075, 0.195, 0.10, 0.09, 0.03, ROBOT_EYE_GLOW, 0.90);
     b.addBox( 0.095, 0.075, 0.195, 0.10, 0.09, 0.03, ROBOT_EYE_GLOW, 0.90);
     b.addBox(-0.090, 0.078, 0.212, 0.038, 0.042, 0.015, ROBOT_FACE_DARK, 0.02);
     b.addBox( 0.090, 0.078, 0.212, 0.038, 0.042, 0.015, ROBOT_FACE_DARK, 0.02);
     b.addBox(-0.095, 0.140, 0.200, 0.12, 0.03, 0.04, PURE_WHITE, 0.30);
     b.addBox( 0.095, 0.140, 0.200, 0.12, 0.03, 0.04, PURE_WHITE, 0.30);
-    // Nose bridge & clean vocoder mouth
     b.addBox(0, 0.015, 0.200, 0.04, 0.07, 0.04, PURE_WHITE, 0.25);
     b.addBox(0, -0.075, 0.195, 0.20, 0.046, 0.025, ROBOT_EYE_GLOW, 0.85);
     b.addBox(-0.05, -0.075, 0.208, 0.016, 0.05, 0.015, ROBOT_FACE_DARK, 0.05);
@@ -3262,15 +3707,17 @@ class MeshGeometryBuilder {
     b.addBox( 0.05, -0.075, 0.208, 0.016, 0.05, 0.015, ROBOT_FACE_DARK, 0.05);
     compile("playerHead");
 
-    // 16C. Light-Grey Robot Limb
+    // 16C. Player Robot Limb
     b.addBox(0, -0.02, 0, 0.15, 0.07, 0.15, ROBOT_GREY_DARK, 0.12);
     b.addBevelledBox(0, -0.15, 0, 0.13, 0.25, 0.13, 0.02, ROBOT_GREY_MID, ROBOT_GREY_LIGHT, 0.15);
     b.addBox(0, -0.28, 0.02, 0.16, 0.09, 0.18, ROBOT_GREY_DARK, 0.15);
     compile("playerLimb");
 
-    // 17. Abstract, Compact 3D Alien Hunters:
-    // - Normal Alien (Type 0): Monochrome "Grau-in-Grau" (Slate-Grey & Light-Grey)
-    // - Fast Alien   (Type 1): "Dunkelblau" (Muted Deep Steel-Blue & Ice-White Eyes)
+    // =========================================================================
+    // 17. COMPACT 3D ALIEN HUNTERS ("alienNormal" = Grey, "alienFast" = Dark Blue)
+    // =========================================================================
+    const sAlienN = getStyle("alienNormal");
+    const sAlienF = getStyle("alienFast");
     const ALIEN_GREY_DARK  = [0.34, 0.37, 0.42];
     const ALIEN_GREY_MID   = [0.54, 0.58, 0.63];
     const ALIEN_GREY_LIGHT = [0.78, 0.81, 0.86];
@@ -3281,24 +3728,32 @@ class MeshGeometryBuilder {
     const ALIEN_BLUE_HI    = [0.34, 0.52, 0.82];
     const ALIEN_BLUE_EYE   = [0.75, 0.90, 1.00];
 
-    // 17a. Normal Alien Body (Clean Abstract Grey-on-Grey Spider Pod)
-    b.addBevelledBox(0, 0.06, 0.02, 0.24, 0.16, 0.28, 0.035, ALIEN_GREY_DARK, ALIEN_GREY_MID, 0.08);
+    // 17a. Normal Alien Body ("Grau-in-Grau")
+    if (sAlienN === 6 || sAlienN === 13 || sAlienN === 17) {
+      b.addOctahedron(0, 0.08, 0.02, 0.18, 0.14, 0.22, ALIEN_GREY_DARK, 0.08);
+    } else {
+      b.addBevelledBox(0, 0.06, 0.02, 0.24, 0.16, 0.28, 0.035, ALIEN_GREY_DARK, ALIEN_GREY_MID, 0.08);
+    }
     b.addOctahedron(0, 0.12, -0.14, 0.16, 0.14, 0.18, ALIEN_GREY_LIGHT, 0.12);
     b.addBox(-0.06, 0.08, 0.17, 0.05, 0.04, 0.03, ALIEN_GREY_EYE, 0.70);
     b.addBox( 0.06, 0.08, 0.17, 0.05, 0.04, 0.03, ALIEN_GREY_EYE, 0.70);
     compile("droidCore");
 
-    // 17b. Clean Minimalist Articulated Spider Leg
+    // 17b. Articulated Spider Leg
     b.addBox(0.10, 0.09, 0, 0.16, 0.038, 0.038, [0.58, 0.62, 0.67], 0.08);
     b.addCylinderY(0.22, -0.16, 0.11, 0, 0.014, 0.028, 5, [0.44, 0.47, 0.52], 0.08);
     compile("alienSpiderLeg");
 
-    // 17c. Clean Minimalist Pincer
+    // 17c. Mandible
     b.addBox(0, 0.0, 0.07, 0.038, 0.035, 0.12, ALIEN_GREY_LIGHT, 0.15);
     compile("alienMandible");
 
-    // 17d. Fast Alien Body (Clean Abstract Deep-Blue Hunter Pod)
-    b.addBevelledBox(0, 0.09, 0.0, 0.25, 0.20, 0.30, 0.04, ALIEN_BLUE_DEEP, ALIEN_BLUE_MID, 0.12);
+    // 17d. Fast Alien Body ("Dunkelblau")
+    if (sAlienF === 6 || sAlienF === 13 || sAlienF === 17) {
+      b.addOctahedron(0, 0.10, 0.0, 0.19, 0.16, 0.24, ALIEN_BLUE_DEEP, 0.12);
+    } else {
+      b.addBevelledBox(0, 0.09, 0.0, 0.25, 0.20, 0.30, 0.04, ALIEN_BLUE_DEEP, ALIEN_BLUE_MID, 0.12);
+    }
     b.addOctahedron(0, 0.18, -0.14, 0.14, 0.12, 0.22, ALIEN_BLUE_HI, 0.18);
     b.addBox(-0.06, 0.14, 0.16, 0.055, 0.04, 0.035, ALIEN_BLUE_EYE, 0.80);
     b.addBox( 0.06, 0.14, 0.16, 0.055, 0.04, 0.035, ALIEN_BLUE_EYE, 0.80);
@@ -3338,7 +3793,7 @@ class MeshGeometryBuilder {
     b.addOctahedron(0.06, 0.04, 0, 0.10, 0.07, 0.09, ACCENT_CORAL, 0.65);
     compile("debrisArmorChunk");
 
-    // 21. Exploded Alien Carapace Fragment (Neutral Grey/Steel so tinting matches Grey or Dark-Blue alien)
+    // 21. Exploded Alien Carapace Fragment
     b.addBevelledBox(0, 0, 0, 0.20, 0.10, 0.22, 0.025, [0.52, 0.55, 0.60], [0.74, 0.78, 0.84], 0.25);
     b.addOctahedron(0, 0.05, 0, 0.11, 0.11, 0.11, [0.85, 0.88, 0.94], 0.40);
     compile("alienBioChunk");
@@ -4628,21 +5083,36 @@ class WebGL3DMeshRenderer {
       uPointColors: gl.getUniformLocation(prog, "uPointColors"),
     };
 
-    // Upload all procedural 3D meshes to GPU VBOs
-    const rawMeshes = MeshGeometryBuilder.buildAllGameMeshes();
-    for (const [name, mesh] of Object.entries(rawMeshes)) {
-      const vbo = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-      gl.bufferData(gl.ARRAY_BUFFER, mesh.data, gl.STATIC_DRAW);
-      this.gpuMeshes[name] = {
-        vbo,
-        vertexCount: mesh.vertexCount,
-      };
-    }
+    this.currentMixConfig = { defaultSourceId: 20 };
+    this.showcaseCompleteSetMode = false;
+    this.rebuildMeshes(this.currentMixConfig);
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.disable(gl.CULL_FACE);
+  }
+
+  /**
+   * Dynamically rebuilds and uploads all 3D GPU VBO meshes from the selected 3D Mesh Source (`1..20`)
+   * or a custom Mix-and-Match configuration across all 16 Zone X gameplay elements.
+   * @param {Object} mixConfig
+   */
+  rebuildMeshes(mixConfig = {}) {
+    const gl = this.gl;
+    if (!gl) return;
+    this.currentMixConfig = { ...this.currentMixConfig, ...mixConfig };
+    const rawMeshes = MeshGeometryBuilder.buildAllGameMeshes(this.currentMixConfig);
+    for (const [name, mesh] of Object.entries(rawMeshes)) {
+      let entry = this.gpuMeshes[name];
+      if (!entry) {
+        const vbo = gl.createBuffer();
+        entry = { vbo, vertexCount: 0 };
+        this.gpuMeshes[name] = entry;
+      }
+      gl.bindBuffer(gl.ARRAY_BUFFER, entry.vbo);
+      gl.bufferData(gl.ARRAY_BUFFER, mesh.data, gl.STATIC_DRAW);
+      entry.vertexCount = mesh.vertexCount;
+    }
   }
 
   _compileShader(gl, type, source) {
@@ -4671,6 +5141,12 @@ class WebGL3DMeshRenderer {
       this.state.ram[SystemAddressMap.DLIST_PTR_LO] |
       (this.state.ram[SystemAddressMap.DLIST_PTR_HI] << 8);
     const isInGame = dlAddr === DisplayListAddress[ScreenMode.IN_GAME];
+
+    if (this.showcaseCompleteSetMode) {
+      this.webglCanvas.style.display = "block";
+      this.screenCanvas2d.className = "viewport-2d-hidden";
+      return;
+    }
 
     if (this.renderMode === "classic_2d") {
       this.webglCanvas.style.display = "none";
@@ -4725,6 +5201,11 @@ class WebGL3DMeshRenderer {
     if (!this.gl || !this.program || this.renderMode === "classic_2d") return;
     this._syncCanvasResolution();
 
+    if (this.showcaseCompleteSetMode) {
+      this._renderCompleteSetShowcase();
+      return;
+    }
+
     const dlAddr =
       this.state.ram[SystemAddressMap.DLIST_PTR_LO] |
       (this.state.ram[SystemAddressMap.DLIST_PTR_HI] << 8);
@@ -4735,6 +5216,97 @@ class WebGL3DMeshRenderer {
     } else {
       this._render3DShowcaseBackdrop();
     }
+  }
+
+  /**
+   * Renders a 4x4 3D Diorama Pedestal Board showing ALL 16 Zone X Gameplay Elements side-by-side
+   * so the user can inspect the complete 3D Mesh Set of any of the 20 sources (or their custom mix)!
+   */
+  _renderCompleteSetShowcase() {
+    const gl = this.gl;
+    const t = performance.now() * 0.001;
+    this.anim.time = t;
+
+    gl.viewport(0, 0, this.webglCanvas.width, this.webglCanvas.height);
+    gl.clearColor(0.18, 0.20, 0.24, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.useProgram(this.program);
+
+    const aspect = this.webglCanvas.width / Math.max(1, this.webglCanvas.height);
+    const eyeX = 0;
+    const eyeY = 8.4;
+    const eyeZ = 7.4;
+    this._perspective(this.projMatrix, (38 * Math.PI) / 180, aspect, 0.5, 45.0);
+    this._lookAt(this.viewMatrix, [eyeX, eyeY, eyeZ], [0, 0.1, 0.3], [0, 1, 0]);
+    this._multiplyMat4(this.viewProjMatrix, this.projMatrix, this.viewMatrix);
+
+    gl.uniformMatrix4fv(this.uniforms.uViewProj, false, this.viewProjMatrix);
+    gl.uniform3f(this.uniforms.uCameraPos, eyeX, eyeY, eyeZ);
+    gl.uniform3f(this.uniforms.uAmbientColor, 0.56, 0.58, 0.62);
+    gl.uniform3f(this.uniforms.uSunDir, 0.36, 0.84, 0.41);
+    gl.uniform3f(this.uniforms.uSunColor, 0.55, 0.56, 0.58);
+
+    this.pointLightsFlat.fill(0);
+    this.pointColorsFlat.fill(0);
+    // Highlight Plutonium & Active Barrel on Row 1
+    this.pointLightsFlat.set([-1.2, 1.2, -2.5, 4.5, 3.6, 1.2, -2.5, 4.5], 0);
+    this.pointColorsFlat.set([0.12, 0.95, 0.48, 0.12, 0.95, 0.48], 0);
+    gl.uniform4fv(this.uniforms.uPointLights, this.pointLightsFlat);
+    gl.uniform3fv(this.uniforms.uPointColors, this.pointColorsFlat);
+
+    // Draw 9x7 Diorama Floor Stage
+    for (let gz = -3; gz <= 3; gz++) {
+      for (let gx = -5; gx <= 5; gx++) {
+        const chk = (gx + gz) & 1 ? 1.02 : 0.98;
+        this._drawMesh("floorTile", gx, 0, gz, 0, 1, 1, 1, [chk, chk, chk], 0);
+      }
+    }
+
+    const xs = [-3.6, -1.2, 1.2, 3.6];
+    const zs = [-2.3, -0.7, 0.9, 2.5];
+    const bob = Math.sin(t * 3.5) * 0.06;
+
+    // Row 1 (z = -2.3): 1. Wall Block, 2. Floor Tile Pedestal, 3. Plutonium Core, 4. Container (Standby & Active)
+    this._drawMesh("wallBlock", xs[0], 0, zs[0], t * 0.4, 1, 1, 1, [1, 1, 1], 0.02);
+    this._drawMesh("floorTile", xs[1], 0.22, zs[0], t * 0.4, 0.95, 2.2, 0.95, [1.05, 1.05, 1.05], 0.02);
+    this._drawMesh("plutoniumHalo", xs[2], 0, zs[0], t * 1.2, 1.08, 1, 1.08, [1, 1, 1], 0.45);
+    this._drawMesh("plutoniumCore", xs[2], bob, zs[0], t * 1.8, 1.18, 1.18, 1.18, [1, 1, 1], 0.45);
+    this._drawMesh("plutoniumBeacon", xs[2], bob, zs[0], -t * 2.8, 1.18, 1.18, 1.18, [1, 1, 1], 0.25);
+    // Container Standby (left half) + Container Active (right half)
+    this._drawMesh("containerVault", xs[3] - 0.52, 0, zs[0], 0, 0.92, 0.92, 0.92, [1, 1, 1], 0.0);
+    this._drawMesh("containerVault", xs[3] + 0.52, 0, zs[0], 0, 0.96, 0.96, 0.96, [0.95, 1.08, 0.98], 0.25);
+    this._drawMesh("containerActiveGlow", xs[3] + 0.52, 0, zs[0], -t * 3.2, 1.0, 0.96, 1.0, [1, 1, 1], 0.65);
+    this._drawMesh("containerArrow", xs[3] + 0.52, bob, zs[0], t * 3.5, 1.05, 1.05, 1.05, [1, 1, 1], 0.65);
+
+    // Row 2 (z = -0.7): 5. Player Robot (with Face), 6. Alien Normal (Grey), 7. Alien Fast (Dark Blue), 8. Laser Door
+    this._drawMesh("playerTorso", xs[0], 0.44, zs[1], Math.sin(t * 1.5) * 0.25, 1.05, 1.05, 1.05, [1, 1, 1], 0.02);
+    this._drawMesh3DRot("playerHead", xs[0], 0.86, zs[1], -0.32, Math.sin(t * 2.0) * 0.22, 0, 1.12, 1.12, 1.12, [1, 1, 1], 0.06);
+    this._drawMesh("playerLimb", xs[0] - 0.14, 0.30, zs[1], 0, 1, 1, 1, [1, 1, 1], 0);
+    this._drawMesh("playerLimb", xs[0] + 0.14, 0.30, zs[1], 0, 1, 1, 1, [1, 1, 1], 0);
+    this._drawMesh("playerLimb", xs[0] - 0.28, 0.56, zs[1], 0, 0.9, 0.9, 0.9, [1, 1, 1], 0);
+    this._drawMesh("playerLimb", xs[0] + 0.28, 0.56, zs[1], 0, 0.9, 0.9, 0.9, [1, 1, 1], 0);
+
+    this._renderCreepyAlien({ x: xs[1], z: zs[1], type: 0, facingAngle: Math.sin(t * 1.4) * 0.35 }, 0, t);
+    this._renderCreepyAlien({ x: xs[2], z: zs[1], type: 1, facingAngle: Math.sin(t * 1.4) * 0.35 }, 1, t);
+
+    this._drawMesh("laserPylons", xs[3], 0, zs[1], 0, 1, 1, 1, [1, 1, 1], 0);
+    this._drawMesh("laserDangerClosed", xs[3], 0, zs[1], 0, 1, 1, 1, [1, 1, 1], 0.35);
+    this._drawMesh("laserBeams", xs[3], 0, zs[1] - 0.18, 0, 1, 1, 0.85, [1, 1, 1], 0.08);
+    this._drawMesh("laserBeams", xs[3], 0, zs[1] + 0.18, 0, 1, 1, 0.85, [1, 1, 1], 0.08);
+
+    // Row 3 (z = +0.9): 9. Key, 10. Locked Door, 11. Spade, 12. Crumbly Dirt
+    this._drawMesh("keyItem", xs[0], bob, zs[2], t * 1.8, 1.25, 1.25, 1.25, [1, 1, 1], 0.04);
+    this._drawMesh("lockedDoor", xs[1], 0, zs[2], Math.sin(t * 0.8) * 0.2, 1, 1, 1, [1, 1, 1], 0.02);
+    this._drawMesh("spadeItem", xs[2], bob, zs[2], t * 1.8, 1.25, 1.25, 1.25, [1, 1, 1], 0.04);
+    this._drawMesh("crumblyDirt", xs[3], 0, zs[2], t * 0.5, 1.05, 1.05, 1.05, [1, 1, 1], 0);
+
+    // Row 4 (z = +2.5): 13. Insulating Mat, 14. Shield Capsule, 15. Extra-Time & Mystery Box, 16. Exit Portal & Skull
+    this._drawMesh("matItem", xs[0], bob * 0.5, zs[3], t * 0.8, 1.12, 1.12, 1.12, [1, 1, 1], 0.02);
+    this._drawMesh("capsuleItem", xs[1], bob, zs[3], t * 1.6, 1.20, 1.20, 1.20, [1, 1, 1], 0.04);
+    this._drawMesh("extraTimeItem", xs[2] - 0.45, bob, zs[3], t * 1.8, 1.05, 1.05, 1.05, [1, 1, 1], 0.05);
+    this._drawMesh("mysteryBox", xs[2] + 0.45, bob * 0.6, zs[3], t * 1.1, 0.92, 0.92, 0.92, [1, 1, 1], 0.02);
+    this._drawMesh("exitPortal", xs[3] - 0.45, 0, zs[3], t * 1.4, 0.95, 0.95, 0.95, [1, 1, 1], 0.15);
+    this._drawMesh("skullHazard", xs[3] + 0.48, 0, zs[3], Math.sin(t * 2.2) * 0.25, 1.0, 1.0, 1.0, [1, 1, 1], 0.06);
   }
 
   // ===========================================================================
@@ -7408,12 +7980,18 @@ class ZoneXApp {
     this.accumulatorMs = 0.0;
     this.autoLoopEnabled = true;
 
+    this.meshMixConfig = { defaultSourceId: 20 };
+    for (const cat of MeshGeometryBuilder.ELEMENT_CATEGORIES) {
+      this.meshMixConfig[cat.id] = 20;
+    }
+
     this.pokey.setFrameStepper(() => this.stepFrame());
 
     this.levelEditor = new LevelEditorController(this);
     this.levelEditor.initUI();
     this.refreshZoneDropdown();
     this.bindUIControls();
+    this.initMeshStudioUI();
 
     // Boot authentically into the Title Screen with 3D Showcase Backdrop
     this.loadInteractiveScreen(ScreenMode.TITLE);
@@ -7837,6 +8415,216 @@ class ZoneXApp {
         updateFullscreenUI();
       }
     });
+  }
+
+  /**
+   * Initializes the 20-Source 3D Mesh Studio & 16-Element Mix-and-Match Configurator UI.
+   */
+  initMeshStudioUI() {
+    const topSelect = document.getElementById("ui-mesh-source-select");
+    const btnOpenStudio = document.getElementById("btn-open-mesh-studio");
+    const btnCamShowcase = document.getElementById("btn-cam-showcase-toggle");
+    const drawer = document.getElementById("mesh-studio-drawer");
+    const btnViewToggle = document.getElementById("btn-mesh-view-toggle");
+    const btnPlayLive = document.getElementById("btn-mesh-play-live");
+    const btnClose = document.getElementById("btn-mesh-studio-close");
+    const sourcesListEl = document.getElementById("mesh-sources-list");
+    const mixGridEl = document.getElementById("mesh-mix-grid");
+
+    // Populate the 20 3D Mesh Sources cards
+    if (sourcesListEl) {
+      sourcesListEl.innerHTML = "";
+      for (const src of MeshGeometryBuilder.MESH_SOURCES) {
+        const card = document.createElement("div");
+        card.className = "mesh-source-card" + (src.id === 20 ? " active" : "");
+        card.dataset.sourceId = String(src.id);
+        card.innerHTML = `
+          <div class="mesh-source-top">
+            <strong>#${String(src.id).padStart(2, "0")} ${src.name}</strong>
+            <span class="mesh-source-badge">${src.license} &bull; ${src.styleTag}</span>
+          </div>
+          <div class="mesh-source-summary">${src.summary}</div>
+          <div class="mesh-source-preview"><strong>Komplettsatz:</strong> ${src.setPreview}</div>
+          <div class="mesh-source-links">
+            <a href="${src.url}" target="_blank" rel="noopener noreferrer">🔗 GitHub / 3D-Repo</a>
+            ${src.webUrl ? `<a href="${src.webUrl}" target="_blank" rel="noopener noreferrer">🌐 Katalog</a>` : ""}
+            <button type="button" class="btn-apply-set" data-sid="${src.id}">✓ Komplettsatz #${src.id} laden</button>
+          </div>
+        `;
+        card.addEventListener("click", (e) => {
+          if (e.target && e.target.tagName && e.target.tagName.toLowerCase() === "a") return;
+          this.selectCompleteMeshSet(src.id);
+        });
+        sourcesListEl.appendChild(card);
+      }
+    }
+
+    // Populate the 16 Gameplay Element Mix-and-Match selectors
+    if (mixGridEl) {
+      mixGridEl.innerHTML = "";
+      for (const cat of MeshGeometryBuilder.ELEMENT_CATEGORIES) {
+        const row = document.createElement("div");
+        row.className = "mesh-mix-item";
+        const optionsHtml = MeshGeometryBuilder.MESH_SOURCES.map(
+          (s) =>
+            `<option value="${s.id}" ${s.id === 20 ? "selected" : ""}>#${String(s.id).padStart(2, "0")} ${s.name}</option>`
+        ).join("");
+        row.innerHTML = `
+          <div class="mesh-mix-label">
+            <strong>${cat.label}</strong>
+            <span>Slot: ${cat.tileHint}</span>
+          </div>
+          <select class="mesh-mix-select" data-cat-key="${cat.id}">
+            ${optionsHtml}
+          </select>
+        `;
+        const sel = row.querySelector("select");
+        if (sel) {
+          sel.addEventListener("change", () => {
+            this.setCategoryMeshSource(cat.id, parseInt(sel.value, 10) || 20);
+          });
+        }
+        mixGridEl.appendChild(row);
+      }
+    }
+
+    if (topSelect) {
+      topSelect.addEventListener("change", () => {
+        const val = parseInt(topSelect.value, 10);
+        if (val >= 1 && val <= 20) {
+          this.selectCompleteMeshSet(val);
+        }
+      });
+    }
+
+    if (btnOpenStudio && drawer) {
+      btnOpenStudio.addEventListener("click", () => {
+        const willOpen = drawer.classList.contains("hidden");
+        drawer.classList.toggle("hidden", !willOpen);
+        if (willOpen) {
+          this.setShowcaseCompleteSetMode(true);
+        }
+      });
+    }
+
+    if (btnClose && drawer) {
+      btnClose.addEventListener("click", () => {
+        drawer.classList.add("hidden");
+      });
+    }
+
+    if (btnCamShowcase) {
+      btnCamShowcase.addEventListener("click", () => {
+        this.setShowcaseCompleteSetMode(!this.renderer.showcaseCompleteSetMode);
+      });
+    }
+
+    if (btnViewToggle) {
+      btnViewToggle.addEventListener("click", () => {
+        this.setShowcaseCompleteSetMode(!this.renderer.showcaseCompleteSetMode);
+      });
+    }
+
+    if (btnPlayLive) {
+      btnPlayLive.addEventListener("click", () => {
+        this.setShowcaseCompleteSetMode(false);
+        if (drawer) drawer.classList.add("hidden");
+        if (this.state.currentScreenMode !== ScreenMode.IN_GAME) {
+          this.loadAnyZone(this.currentSelectedZone || 1, 1, false);
+        }
+      });
+    }
+  }
+
+  /**
+   * Applies one of the 20 3D Mesh Sources across all 16 Zone X gameplay elements.
+   */
+  selectCompleteMeshSet(sourceId) {
+    const sid = Math.max(1, Math.min(20, sourceId | 0));
+    this.meshMixConfig.defaultSourceId = sid;
+    for (const cat of MeshGeometryBuilder.ELEMENT_CATEGORIES) {
+      this.meshMixConfig[cat.id] = sid;
+    }
+    this.renderer.rebuildMeshes(this.meshMixConfig);
+    this._syncMeshStudioUI();
+    this.renderer.render3DPass();
+  }
+
+  /**
+   * Mix-and-match: sets the 3D Mesh Source (1..20) for a single gameplay element category.
+   */
+  setCategoryMeshSource(categoryKey, sourceId) {
+    const sid = Math.max(1, Math.min(20, sourceId | 0));
+    this.meshMixConfig[categoryKey] = sid;
+    this.renderer.rebuildMeshes(this.meshMixConfig);
+    this._syncMeshStudioUI();
+    this.renderer.render3DPass();
+  }
+
+  /**
+   * Toggles the 4x4 16-Element 3D Diorama Showcase mode vs. live level view.
+   */
+  setShowcaseCompleteSetMode(enabled) {
+    this.renderer.showcaseCompleteSetMode = Boolean(enabled);
+    const overlay = document.getElementById("mesh-showcase-overlay");
+    const btnCamShowcase = document.getElementById("btn-cam-showcase-toggle");
+    const btnViewToggle = document.getElementById("btn-mesh-view-toggle");
+    if (overlay) {
+      overlay.classList.toggle("hidden", !this.renderer.showcaseCompleteSetMode);
+    }
+    if (btnCamShowcase) {
+      btnCamShowcase.classList.toggle("active", this.renderer.showcaseCompleteSetMode);
+      btnCamShowcase.textContent = this.renderer.showcaseCompleteSetMode
+        ? "🎮 Zurück zum Level"
+        : "🧩 16-Elemente-Schau";
+    }
+    if (btnViewToggle) {
+      btnViewToggle.textContent = this.renderer.showcaseCompleteSetMode
+        ? "🧩 16-Elemente-Schau (Ein)"
+        : "🧩 16-Elemente-Schau (Aus)";
+    }
+    this._syncMeshStudioUI();
+    this.renderer.render3DPass();
+  }
+
+  _syncMeshStudioUI() {
+    const cats = MeshGeometryBuilder.ELEMENT_CATEGORIES;
+    const firstSid = this.meshMixConfig[cats[0].id] || 20;
+    const isUniform = cats.every((c) => (this.meshMixConfig[c.id] || 20) === firstSid);
+
+    const topSelect = document.getElementById("ui-mesh-source-select");
+    if (topSelect && isUniform) {
+      topSelect.value = String(firstSid);
+    }
+
+    const cards = document.querySelectorAll(".mesh-source-card");
+    cards.forEach((card) => {
+      const cid = parseInt(card.dataset.sourceId, 10);
+      card.classList.toggle("active", isUniform && cid === firstSid);
+    });
+
+    const selects = document.querySelectorAll(".mesh-mix-select");
+    selects.forEach((sel) => {
+      const key = sel.dataset.catKey;
+      if (key && this.meshMixConfig[key]) {
+        sel.value = String(this.meshMixConfig[key]);
+      }
+    });
+
+    const titleEl = document.getElementById("mesh-showcase-title");
+    const subEl = document.getElementById("mesh-showcase-sub");
+    if (titleEl && subEl) {
+      if (isUniform) {
+        const srcObj =
+          MeshGeometryBuilder.MESH_SOURCES.find((s) => s.id === firstSid) ||
+          MeshGeometryBuilder.MESH_SOURCES[19];
+        titleEl.textContent = `KOMPLETTSATZ #${String(srcObj.id).padStart(2, "0")}: ${srcObj.name} (${srcObj.license})`;
+        subEl.textContent = `${srcObj.setPreview} — [${srcObj.url}]`;
+      } else {
+        titleEl.textContent = `INDIVIDUELLER MIX & MATCH 3D-SATZ (AUS 20 QUELLEN ZUSAMMENGESTELLT)`;
+        subEl.textContent = `Alle 16 Zone-X Gameplay-Elemente im einheitlichen Hellgrau-Weiß Design + Gameplay-Akzente`;
+      }
+    }
   }
 
   /**
